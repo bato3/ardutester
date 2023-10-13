@@ -42,13 +42,16 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     uint8_t HiPinR_L, HiPinR_H;
     uint8_t LoADC;
     uint8_t ii;
+#if FLASHEND > 0x1fff
+    unsigned int vloss; // lost voltage after load pulse in 0.1%
+#endif
 
 #ifdef AUTO_CAL
     pin_combination = (HighPin * 3) + LowPin - 1; // coded Pin combination for capacity zero offset
 #endif
 
-    LoADC = MEM_read_byte(&PinADCtab[LowPin]) | TXD_MSK;
-    HiPinR_L = MEM_read_byte(&PinRLtab[HighPin]); // R_L mask for HighPin R_L load
+    LoADC = pgm_read_byte(&PinADCtab[LowPin]) | TXD_MSK;
+    HiPinR_L = pgm_read_byte(&PinRLtab[HighPin]); // R_L mask for HighPin R_L load
     HiPinR_H = HiPinR_L + HiPinR_L;               // double for HighPin R_H load
 
 #if DebugOut == 10
@@ -60,17 +63,6 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     lcd_testpin(HighPin);
     lcd_space();
 #endif
-    //  if(PartFound == PART_CAPACITOR) {
-    // #if DebugOut == 10
-    //     lcd_data('d');
-    //     lcd_data('o');
-    //     lcd_data('p');
-    //     lcd_space();
-    //     DisplayValue(cap.cval,cap.cpre,'F',3);
-    //     wait_about2s();
-    // #endif
-    //     return;	//We have found a capacitor already
-    //  }
     if (PartFound == PART_RESISTOR)
     {
 #if DebugOut == 10
@@ -93,6 +85,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
 
 #if FLASHEND > 0x1fff
     cap.esr = 0; // set ESR of capacitor to zero
+    vloss = 0;   // set lost voltage to zero
 #endif
     cap.cval = 0;               // set capacity value to zero
     cap.cpre = -12;             // default unit is pF
@@ -187,7 +180,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     cap.cval_uncorrected.dw = ovcnt16 + 1;
     cap.cval_uncorrected.dw *= getRLmultip(adcv[2]); // get factor to convert time to capacity from table
 #else
-    // wait the same time which is required for loading
+    // wait the half the time which was required for loading
     adcv[3] = adcv[2]; // preset to prevent compiler warning
     for (tmpint = 0; tmpint <= ovcnt16; tmpint++)
     {
@@ -212,6 +205,15 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     {
         adcv[3] = 0; // no lost voltage
     }
+#if FLASHEND > 0x1fff
+    // compute equivalent parallel resistance from voltage drop
+    if (adcv[3] > 0)
+    {
+        // there is any voltage drop (adcv[3]) !
+        // adcv[2] is the loaded voltage.
+        vloss = (unsigned long)(adcv[3] * 1000UL) / adcv[2];
+    }
+#endif
     if (adcv[3] > 100)
     {
         // more than 100mV is lost during load time
@@ -339,7 +341,8 @@ messe_mit_rh:
     ADCSRA = (1 << ADEN) | (1 << ADIF) | AUTO_CLOCK_DIV; // enable ADC
     R_DDR = 0;                                           // switch R_H resistor port for input
     R_PORT = 0;                                          // switch R_H resistor port pull up for HighPin off
-    load_diff = ReadADC(HighPin) + REF_C_KORR - ref_mv;  // build difference of capacitor voltage to Reference Voltage
+    adcv[2] = ReadADC(HighPin);                          // get loaded voltage
+    load_diff = adcv[2] + REF_C_KORR - ref_mv;           // build difference of capacitor voltage to Reference Voltage
                                                          // ############################################################
     if (ovcnt16 >= (F_CPU / 10000))
     {
@@ -421,11 +424,6 @@ messe_mit_rh:
         goto keinC; // capacity to low, < 70pF @1MHz (35pF @8MHz)
     }
     // end low capacity
-#if FLASHEND > 0x1fff
-//   if (ovcnt16 > (6 * ((unsigned long)F_CPU/1000000))) {	// above 3 uF
-//      GetESR(HighPin,LowPin);
-//   }
-#endif
 checkDiodes:
     if ((NumOfDiodes > 0) && (PartFound != PART_FET))
     {
@@ -445,6 +443,9 @@ checkDiodes:
             // we have found a greater one
             cap.cval_max = cap.cval;
             cap.cpre_max = cap.cpre;
+#if FLASHEND > 0x1fff
+            cap.v_loss = vloss; // lost voltage in 0.01%
+#endif
             cap.ca = LowPin;  // save LowPin
             cap.cb = HighPin; // save HighPin
         }

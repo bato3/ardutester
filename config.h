@@ -346,7 +346,7 @@ End of configuration
 #define REF_C_KORR 0
 #endif
 
-#define LONG_WAIT_TIME 14000
+#define LONG_WAIT_TIME 28000
 #define SHORT_WAIT_TIME 5000
 
 #ifdef POWER_OFF
@@ -371,6 +371,9 @@ End of configuration
 // clock divider is 128, when CPU_Clock==16MHz and ADC_Clock==125kHz
 #define F_ADC 125000
 // #define F_ADC 250000
+#if F_CPU / F_ADC == 2
+#define AUTO_CLOCK_DIV (1 << ADPS0)
+#endif
 #if F_CPU / F_ADC == 4
 #define AUTO_CLOCK_DIV (1 << ADPS1)
 #endif
@@ -388,6 +391,29 @@ End of configuration
 #endif
 #if F_CPU / F_ADC == 128
 #define AUTO_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0)
+#endif
+//**********************************************************
+#define F_ADC_F 500000
+#if F_CPU / F_ADC_F == 2
+#define FAST_CLOCK_DIV (1 << ADPS0)
+#endif
+#if F_CPU / F_ADC_F == 4
+#define FAST_CLOCK_DIV (1 << ADPS1)
+#endif
+#if F_CPU / F_ADC_F == 8
+#define FAST_CLOCK_DIV (1 << ADPS1) | (1 << ADPS0)
+#endif
+#if F_CPU / F_ADC_F == 16
+#define FAST_CLOCK_DIV (1 << ADPS2)
+#endif
+#if F_CPU / F_ADC_F == 32
+#define FAST_CLOCK_DIV (1 << ADPS2) | (1 << ADPS0)
+#endif
+#if F_CPU / F_ADC_F == 64
+#define FAST_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1)
+#endif
+#if F_CPU / F_ADC_F == 128
+#define FAST_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0)
 #endif
 
 #ifndef PIN_RP
@@ -511,3 +537,21 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 #undef EBC_STYLE
 #endif
 #endif
+
+// self build characters
+#define LCD_CHAR_DIODE1 1 // Diode-Icon; will be generated as custom character
+#define LCD_CHAR_DIODE2 2 // Diode-Icon;  will be generated as custom character
+#define LCD_CHAR_CAP 3    // Capacitor-Icon;  will be generated as custom character
+// numbers of RESIS1 and RESIS2 are swapped for OLED display, which shows a corrupt RESIS1 character otherwise ???
+#define LCD_CHAR_RESIS1 7 // Resistor left part will be generated as custom character
+#define LCD_CHAR_RESIS2 6 // Resistor right part will be generated as custom character
+
+#ifdef LCD_CYRILLIC
+#define LCD_CHAR_OMEGA 4 // Omega-character
+#define LCD_CHAR_U 5     // �-character
+#else
+#define LCD_CHAR_OMEGA 244 // Omega-character
+#define LCD_CHAR_U 228     // �-character
+#endif
+
+#define LCD_CHAR_DEGREE 0xdf // Character for degree

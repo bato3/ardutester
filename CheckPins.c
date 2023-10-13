@@ -61,15 +61,15 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     //   #define RR680PL (R_L_VAL + PIN_RP)
     //   #define RR680MI (R_L_VAL + PIN_RM)
     // #endif
-    LoPinRL = MEM_read_byte(&PinRLtab[LowPin]);       // intruction for LowPin R_L
+    LoPinRL = pgm_read_byte(&PinRLtab[LowPin]);       // intruction for LowPin R_L
     LoPinRH = LoPinRL + LoPinRL;                      // intruction for LowPin R_H
-    TriPinRL = MEM_read_byte(&PinRLtab[TristatePin]); // intruction for TristatePin R_L
+    TriPinRL = pgm_read_byte(&PinRLtab[TristatePin]); // intruction for TristatePin R_L
     TriPinRH = TriPinRL + TriPinRL;                   // intruction for TristatePin R_H
-    HiPinRL = MEM_read_byte(&PinRLtab[HighPin]);      // intruction for HighPin R_L
+    HiPinRL = pgm_read_byte(&PinRLtab[HighPin]);      // intruction for HighPin R_L
     HiPinRH = HiPinRL + HiPinRL;                      // intruction for HighPin R_H
 
-    HiADCp = MEM_read_byte(&PinADCtab[HighPin]); // intruction for ADC High-Pin
-    LoADCp = MEM_read_byte(&PinADCtab[LowPin]);  // intruction for ADC Low-Pin
+    HiADCp = pgm_read_byte(&PinADCtab[HighPin]); // intruction for ADC High-Pin
+    LoADCp = pgm_read_byte(&PinADCtab[LowPin]);  // intruction for ADC Low-Pin
     HiADCm = HiADCp | TXD_MSK;
     HiADCp |= TXD_VAL;
     LoADCm = LoADCp | TXD_MSK;
@@ -801,6 +801,17 @@ widmes:
                 lrx1 = (lirx1 + lirx2) / 2; // average of both R_L measurements
             }
         }
+//   lrx1  is tempory result
+#if 0
+     /* The zero resistance is in 0.01 Ohm units and usually so little, that correction for resistors above 10 Ohm */
+     /* is not necassary.  */
+     ii = eeprom_read_byte(&EE_ESR_ZEROtab[LowPin+HighPin]) / 10; /* Resistance offset in 0,1 Ohm units */
+     if (ii < lrx1) {
+       lrx1 -= ii;
+     } else {
+       lrx1 = 0;
+     }
+#endif
 #if DebugOut == 3
         lcd_line3();
         lcd_clear_line();

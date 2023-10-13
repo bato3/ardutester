@@ -242,17 +242,17 @@ void AutoCheck(void)
     adcmv[3] = 0;
     PartFound = PART_NONE;
     ReadCapacity(TP3, TP1);
-    adcmv[5] = (unsigned int)cval_uncorrected; // save capacity value of empty Pin 1:3
+    adcmv[5] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 1:3
     ReadCapacity(TP3, TP2);
-    adcmv[6] = (unsigned int)cval_uncorrected; // save capacity value of empty Pin 2:3
+    adcmv[6] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 2:3
     ReadCapacity(TP2, TP1);
-    adcmv[2] = (unsigned int)cval_uncorrected; // save capacity value of empty Pin 1:2
+    adcmv[2] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 1:2
     ReadCapacity(TP1, TP3);
-    adcmv[1] = (unsigned int)cval_uncorrected; // save capacity value of empty Pin 3:1
+    adcmv[1] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 3:1
     ReadCapacity(TP2, TP3);
-    adcmv[4] = (unsigned int)cval_uncorrected; // save capacity value of empty Pin 3:2
+    adcmv[4] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 3:2
     ReadCapacity(TP1, TP2);
-    adcmv[0] = (unsigned int)cval_uncorrected; // save capacity value of empty Pin 2:1
+    adcmv[0] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 2:1
     lcd_clear();
     lcd_data('C');
     lcd_data('0');
@@ -286,16 +286,16 @@ no_c0save:
         lcd_data('1');
         lcd_fix_string(CapZeich); // "-||-"
         lcd_data('3');
-        lcd_fix_string(MinCap); // " >100nF!"
+        lcd_fix_string(MinCap_str); // " >100nF!"
         PartFound = PART_NONE;
         // measure  offset Voltage of analog Comparator for Capacity measurement
         ReadCapacity(TP3, TP1); // look for capacitor > 100nF
-        while (cpre < -9)
+        while (cap.cpre < -9)
         {
-            cpre++;
-            cval /= 10;
+            cap.cpre++;
+            cap.cval /= 10;
         }
-        if ((cpre == -9) && (cval > 95))
+        if ((cap.cpre == -9) && (cap.cval > 95) && (cap.cval < 22000))
         {
             cap_found++;
         }
@@ -308,8 +308,9 @@ no_c0save:
             // value of capacitor is correct
             (void)eeprom_write_word((uint16_t *)(&ref_offset), load_diff); // hold zero offset + slew rate dependend offset
             lcd_clear();
-            lcd_fix_string(REF_Cstr);                // "REF_C="
-            lcd_string(itoa(load_diff, outval, 10)); // output REF_C_KORR
+            lcd_fix_string(REF_C_str);                                       // "REF_C="
+            lcd_string(itoa(load_diff, outval, 10));                         // output REF_C_KORR
+            eeprom_write_byte((uint8_t *)(&EE_ESR_ZERO), (uint8_t)ESR_ZERO); // set to initial zero offset
 #ifdef AUTOSCALE_ADC
             ADC_PORT = TXD_VAL;           // ADC-Port 1 to GND
             ADC_DDR = 1 << TP1 | TXD_MSK; // ADC-Pin  1 to output 0V
@@ -328,7 +329,7 @@ no_c0save:
             ADCconfig.U_Bandgap = ADC_internal_reference;
             udiff = (int8_t)(((signed long)(adcmv[0] + adcmv[2] - adcmv[1] - adcmv[1])) * ADC_internal_reference / (2 * adcmv[1])) + REF_R_KORR;
             lcd_line2();
-            lcd_fix_string(REF_Rstr); // "REF_R="
+            lcd_fix_string(REF_R_str); // "REF_R="
             udiff2 = udiff + (int8_t)eeprom_read_byte((uint8_t *)(&RefDiff));
             (void)eeprom_write_byte((uint8_t *)(&RefDiff), (uint8_t)udiff2); // hold offset for true reference Voltage
             lcd_string(itoa(udiff2, outval, 10));                            // output correction voltage
@@ -337,7 +338,7 @@ no_c0save:
             break;
         }
         lcd_line2();
-        DisplayValue(cval, cpre, 'F', 4);
+        DisplayValue(cap.cval, cap.cpre, 'F', 4);
         wait200ms(); // wait additional time
     }
 
@@ -348,7 +349,7 @@ no_c0save:
     lcd_clear();
     //  lcd_line1();
     lcd_line2();
-    lcd_fix_string(VERSION); //"Version ..."
+    lcd_fix_string(VERSION_str); //"Version ..."
     lcd_line1();
     lcd_fix_string(ATE); //"Selftest End"
 #ifdef FREQUENCY_50HZ

@@ -15,6 +15,8 @@
 // #define DebugOut 4		// if set, output of voltages of Diode measurement in row 3+4
 // #define DebugOut 5		// if set, output of Transistor checks in row 2+3
 // #define DebugOut 10		// if set, output of capacity measurements (ReadCapacity) in row 3+4
+
+#define MAIN_C
 #include "Transistortester.h"
 
 // begin of transistortester program
@@ -82,6 +84,8 @@ int main(void)
 #endif
 #endif
 
+    //  DIDR0 = 0x3f;			//disable all Input register of ADC
+
 #if POWER_OFF + 0 > 1
     // tester display time selection
     display_time = OFF_WAIT_TIME; // LONG_WAIT_TIME for single mode, else SHORT_WAIT_TIME
@@ -121,8 +125,8 @@ start:
     ResistorsFound = 0;
 #endif
 #ifdef C_MESS
-    ca = 0;
-    cb = 0;
+    cap.ca = 0;
+    cap.cb = 0;
 #endif
 #ifdef WITH_UART
     uart_newline(); // start of new measurement
@@ -147,7 +151,7 @@ start:
     (void)ReadADC(0x0e);         // read Reference-voltage
     ref_mv = W20msReadADC(0x0e); // read Reference-voltage
 #else
-    ref_mv = DEFAULT_BAND_GAP; // set to default Reference Voltage
+    ref_mv = DEFAULT_BAND_GAP;   // set to default Reference Voltage
 #endif
     ADCconfig.U_Bandgap = ADC_internal_reference; // set internal reference voltage for ADC
     ADCconfig.Samples = ANZ_MESS;                 // set to configured number of ADC samples
@@ -156,13 +160,13 @@ start:
     // Battery check is selected
     ReadADC(TPBAT);                    // Dummy-Readout
     trans.uBE[0] = W5msReadADC(TPBAT); // with 5V reference
-    lcd_fix_string(Bat);               // output: "Bat. "
+    lcd_fix_string(Bat_str);           // output: "Bat. "
 #ifdef BAT_OUT
     // display Battery voltage
     // The divisor to get the voltage in 0.01V units is ((10*33)/133) witch is about 2.4812
     // A good result can be get with multiply by 4 and divide by 10 (about 0.75%).
-    cval = (trans.uBE[0] * 4) / 10 + ((BAT_OUT + 5) / 10); // usually output only 2 digits
-    DisplayValue(cval, -2, 'V', 2);                        // Display 2 Digits of this 10mV units
+    cap.cval = (trans.uBE[0] * 4) / 10 + ((BAT_OUT + 5) / 10); // usually output only 2 digits
+    DisplayValue(cap.cval, -2, 'V', 2);                        // Display 2 Digits of this 10mV units
     lcd_space();
 #endif
 #if (BAT_POOR > 52) && (BAT_POOR < 190)
@@ -188,11 +192,11 @@ start:
         lcd_fix_string(BatWeak); // Battery weak
     }
     else
-    {                       // Battery-voltage OK
-        lcd_fix_string(OK); // "OK"
+    {                           // Battery-voltage OK
+        lcd_fix_string(OK_str); // "OK"
     }
 #else
-    lcd_fix_string(VERSION);   // if no Battery check, Version .. in row 1
+    lcd_fix_string(VERSION_str); // if no Battery check, Version .. in row 1
 #endif
 #ifdef WDT_enabled
     wdt_enable(WDTO_2S); // Watchdog on
@@ -224,12 +228,10 @@ start:
     lcd_line2(); // LCD position row 2, column 1
 #endif
 #ifdef C_MESS
-#define AUSGABE_FUNKTION
     EntladePins(); // discharge all capacitors!
     if (PartFound == PART_CELL)
     {
         lcd_clear();
-        //    lcd_line1();
         lcd_fix_string(Cell_str); // display "Cell!"
         goto end2;
     }
@@ -286,9 +288,9 @@ start:
             lcd_testpin(diodes[0].Cathode);
             UfAusgabe(0x70);
 #ifdef C_MESS
-            lcd_fix_string(GateCap);                          //"C="
+            lcd_fix_string(GateCap_str);                      //"C="
             ReadCapacity(diodes[0].Cathode, diodes[0].Anode); // Capacity opposite flow direction
-            DisplayValue(cval, cpre, 'F', 3);
+            DisplayValue(cap.cval, cap.cpre, 'F', 3);
 #endif
             goto end;
         }
@@ -423,11 +425,11 @@ start:
 
         if (PartMode == PART_MODE_NPN)
         {
-            lcd_fix_string(NPN); //"NPN "
+            lcd_fix_string(NPN_str); //"NPN "
         }
         else
         {
-            lcd_fix_string(PNP); //"PNP "
+            lcd_fix_string(PNP_str); //"PNP "
         }
         if (NumOfDiodes > 2)
         { // Transistor with protection diode
@@ -440,16 +442,16 @@ start:
                 lcd_fix_string(KatAn); //"-|<-"
             }
         }
-        lcd_fix_string(ebcstr); //" EBC="
+        lcd_fix_string(EBC_str); //" EBC="
         lcd_testpin(trans.e);
         lcd_testpin(trans.b);
         lcd_testpin(trans.c);
-        lcd_line2();            // 2. row
-        lcd_fix_string(hfestr); //"B="  (hFE)
+        lcd_line2();             // 2. row
+        lcd_fix_string(hfe_str); //"B="  (hFE)
         DisplayValue(trans.hfe[0], 0, 0, 3);
         lcd_space();
 
-        lcd_fix_string(Uf); //"Uf="
+        lcd_fix_string(Uf_str); //"Uf="
         DisplayValue(trans.uBE[0], -3, 'V', 3);
         goto end;
         // end (PartFound == PART_TRANSISTOR)
@@ -478,13 +480,13 @@ start:
         }
         if (tmp == (PART_MODE_N_JFET / 2))
         {
-            lcd_fix_string(jfet); //"JFET"
+            lcd_fix_string(jfet_str); //"JFET"
         }
         else
         {
-            lcd_fix_string(mosfet); //"-MOS "
+            lcd_fix_string(mosfet_str); //"-MOS "
         }
-        lcd_fix_string(gds); //"GDS="
+        lcd_fix_string(GDS_str); //"GDS="
         lcd_testpin(trans.b);
         lcd_testpin(trans.c);
         lcd_testpin(trans.e);
@@ -504,11 +506,11 @@ start:
         if (PartMode < PART_MODE_N_D_MOS)
         {                                   // enhancement-MOSFET
 #ifdef C_MESS                               // Gate capacity
-            lcd_fix_string(GateCap);        //"C="
+            lcd_fix_string(GateCap_str);    //"C="
             ReadCapacity(trans.b, trans.e); // measure capacity
-            DisplayValue(cval, cpre, 'F', 3);
+            DisplayValue(cap.cval, cap.cpre, 'F', 3);
 #endif
-            lcd_fix_string(vt); // "Vt="
+            lcd_fix_string(vt_str); // "Vt="
         }
         else
         {
@@ -591,6 +593,7 @@ start:
             if (resis[0].lx != 0)
             {
                 // resistor have also Inductance
+                lcd_fix_string(Lis_str);               // "L="
                 DisplayValue(resis[0].lx, -5, 'H', 3); // output inductance
             }
 #endif
@@ -624,11 +627,14 @@ start:
     else if (PartFound == PART_CAPACITOR)
     {
         //     lcd_fix_string(Capacitor);
-        lcd_testpin(ca);          // Pin number 1
+        lcd_testpin(cap.ca);      // Pin number 1
         lcd_fix_string(CapZeich); // capacitor sign
-        lcd_testpin(cb);          // Pin number 2
+        lcd_testpin(cap.cb);      // Pin number 2
         lcd_line2();              // 2. row
-        DisplayValue(cval, cpre, 'F', 4);
+        DisplayValue(cap.cval, cap.cpre, 'F', 4);
+#if FLASHEND > 0x1fff
+        GetESR(); // get ESR of capacitor
+#endif
         goto end;
     }
 #endif
@@ -704,7 +710,7 @@ end2:
         }
     }
 #else
-    goto start;                // POWER_OFF not selected, repeat measurement
+    goto start;                  // POWER_OFF not selected, repeat measurement
 #endif
     return 0;
 } // end main
@@ -718,8 +724,8 @@ end2:
 void UfAusgabe(uint8_t bcdnum)
 {
 
-    lcd_line2();        // 2. row
-    lcd_fix_string(Uf); //"Uf="
+    lcd_line2();            // 2. row
+    lcd_fix_string(Uf_str); //"Uf="
     mVAusgabe(bcdnum >> 4);
     mVAusgabe(bcdnum & 0x0f);
 }
@@ -734,7 +740,6 @@ void mVAusgabe(uint8_t nn)
 }
 
 #ifdef R_MESS
-#define AUSGABE_FUNKTION
 void RvalOut(uint8_t ii)
 {
     // output of resistor value
@@ -850,60 +855,6 @@ void EntladePins()
         }
     } // end while
 }
-
-#ifdef C_MESS // measurement of capacity is wanted
-#include "ReadCapacity.c"
-#if FLASHEND > 0x1fff
-#include "ReadInductance.c"
-#endif
-
-unsigned int getRLmultip(unsigned int cvolt)
-{
-
-    // interpolate table RLtab corresponding to voltage cvolt
-    // Widerstand 680 Ohm          300   325   350   375   400   425   450   475   500   525   550   575   600   625   650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400  mV
-    // uint16_t RLtab[] MEM_TEXT = {22447,20665,19138,17815,16657,15635,14727,13914,13182,12520,11918,11369,10865,10401, 9973, 9577, 9209, 8866, 8546, 8247, 7966, 7702, 7454, 7220, 6999, 6789, 6591, 6403, 6224, 6054, 5892, 5738, 5590, 5449, 5314, 5185, 5061, 4942, 4828, 4718, 4613, 4511, 4413, 4319, 4228};
-
-#define RL_Tab_Abstand 25  // displacement of table 25mV
-#define RL_Tab_Beginn 300  // begin of table ist 300mV
-#define RL_Tab_Length 1100 // length of table is 1400-300
-
-    unsigned int uvolt;
-    unsigned int y1, y2;
-    uint8_t tabind;
-    uint8_t tabres;
-    if (cvolt >= RL_Tab_Beginn)
-    {
-        uvolt = cvolt - RL_Tab_Beginn;
-    }
-    else
-    {
-        uvolt = 0; // limit to begin of table
-    }
-    tabind = uvolt / RL_Tab_Abstand;
-    tabres = uvolt % RL_Tab_Abstand;
-    tabres = RL_Tab_Abstand - tabres;
-    if (tabind > (RL_Tab_Length / RL_Tab_Abstand))
-    {
-        tabind = (RL_Tab_Length / RL_Tab_Abstand); // limit to end of table
-    }
-    y1 = MEM_read_word(&RLtab[tabind]);
-    y2 = MEM_read_word(&RLtab[tabind + 1]);
-    return (((y1 - y2) * tabres + (RL_Tab_Abstand / 2)) / RL_Tab_Abstand + y2); // interpolate table
-}
-
-void Scale_C_with_vcc(void)
-{
-    while (cval > 100000)
-    {
-        cval /= 10;
-        cpre++; // prevent overflow
-    }
-    cval *= ADCconfig.U_AVCC; // scale with measured voltage
-    cval /= U_VCC;            // Factors are computed for U_VCC
-}
-
-#endif
 
 #ifdef AUTO_RH
 void RefVoltage(void)

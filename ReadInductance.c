@@ -3,12 +3,17 @@
 // The current with a coil will with (1 - e**(-t*R/L)), where R is
 // the sum of Pin_RM , R_L_VAL , Resistance of coil and Pin_RP.
 // L in the inductance of the coil.
+#include <avr/io.h>
+#include <stdlib.h>
+#include "config.h"
+#include "Transistortester.h"
 
 unsigned long CombineII2Long(unsigned int ovcnt16, unsigned int tmpcnt); // tricky function to build unsigned long from two unsigned int values
 
 //=================================================================
 void ReadInductance(void)
 {
+#if FLASHEND > 0x1fff
     // check if inductor and measure the inductance value
     unsigned int tmpint;
     unsigned int ovcnt16; // overrun counter for 16 bit counter
@@ -31,7 +36,7 @@ void ReadInductance(void)
     }
     for (found = 0; found < ResistorsFound; found++)
     {
-        if (resis[found].rx > 28000)
+        if (resis[found].rx > 21000)
             continue;
         // we can check for Inductance, if resistance is below 2800 Ohm
         for (count = 0; count < 4; count++)
@@ -150,18 +155,36 @@ void ReadInductance(void)
                 if ((umax < 2) && (total_r < 2))
                     break; // low current detected
             }
-            cval = CombineII2Long(ovcnt16, tmpint);
-            if (cval > 6)
-                cval -= 6;
+            cap.cval = CombineII2Long(ovcnt16, tmpint);
+#define CNT_ZERO_42 6
+#define CNT_ZERO_720 8
+#if F_CPU == 16000000UL
+#undef CNT_ZERO_42
+#undef CNT_ZERO_720
+#define CNT_ZERO_42 4
+#define CNT_ZERO_720 10
+#endif
+            if (mess_r < R_L_VAL)
+            {
+                if (cap.cval > CNT_ZERO_42)
+                    cap.cval -= CNT_ZERO_42;
+                else
+                    cap.cval = 0;
+            }
             else
-                cval = 0;
+            {
+                if (cap.cval > CNT_ZERO_720)
+                    cap.cval -= CNT_ZERO_720;
+                else
+                    cap.cval = 0;
+            }
             if ((count & 0x01) == 1)
             {
                 // second pass with delayed counter start
-                cval += (3 * (F_CPU / 1000000)) + 10;
+                cap.cval += (3 * (F_CPU / 1000000)) + 10;
             }
             if (ovcnt16 >= (F_CPU / 100000))
-                cval = 0; // no transition found
+                cap.cval = 0; // no transition found
             total_r = (mess_r + resis[0].rx + RR680PL - R_L_VAL);
             // compute the maximum Voltage umax with the Resistor of the coil
             umax = ((unsigned long)mess_r * (unsigned long)ADCconfig.U_AVCC) / total_r;
@@ -173,7 +196,7 @@ void ReadInductance(void)
 #endif
             per_ref = (uint8_t)MEM2_read_byte(&LogTab[per_ref]); // -log(1 - per_ref/100)
             // lx in 0.01mH units,  L = Tau * R
-            inductance[count] = (cval * total_r) / ((unsigned int)per_ref * (F_CPU / 1000000));
+            inductance[count] = (cap.cval * total_r) / ((unsigned int)per_ref * (F_CPU / 1000000));
             if (((count & 0x01) == 0) && (inductance[count] > (F_CPU / 1000000)))
             {
                 // transition is found, measurement with delayed counter start is not necessary
@@ -201,5 +224,6 @@ void ReadInductance(void)
     // switch all ports to input
     ADC_DDR = TXD_MSK; // switch all ADC ports to input
     R_DDR = 0;         // switch all resistor ports to input
+#endif
     return;
 } // end ReadInductance()

@@ -34,14 +34,11 @@
 char OutBuffer[12]; /* output buffer */
 
 /* configuration */
-Config_Type Config; /* offsets and values */
+Config_Type Config; /* tester modes, offsets and values */
 
 /* probing */
-uint8_t CompDone;       /* flag for component detection done */
-uint8_t CompFound;      /* component type which was found */
-uint8_t CompType;       /* component specific subtype */
-uint8_t ResistorsFound; /* number of resistors found */
-uint8_t DiodesFound;    /* number of diodes found */
+Probe_Type Probes; /* test probes */
+Check_Type Check;  /* checking/testing */
 
 /* components */
 Resistor_Type Resistors[3]; /* resistors (3 combinations) */
@@ -49,7 +46,10 @@ Capacitor_Type Caps[3];     /* capacitors (3 combinations) */
 Diode_Type Diodes[6];       /* diodes (3 combinations in 2 directions) */
 BJT_Type BJT;               /* bipolar junction transistor */
 FET_Type FET;               /* FET */
-Error_Type Error;           /* error */
+
+#ifdef FLASH_32K
+Inductor_Type Inductor; /* inductor */
+#endif
 
 /*
  *  NVRAM values (stored in EEPROM) with their defaults
@@ -136,10 +136,13 @@ const unsigned char GDS_str[] EEMEM = "GDS=";
 const unsigned char NPN_str[] EEMEM = "NPN";
 const unsigned char PNP_str[] EEMEM = "PNP";
 const unsigned char EBC_str[] EEMEM = "EBC=";
-const unsigned char hfe_str[] EEMEM = "B=";
+const unsigned char hFE_str[] EEMEM = "h_FE=";
+const unsigned char V_BE_str[] EEMEM = "V_BE=";
+const unsigned char I_CEO_str[] EEMEM = "I_CEO=";
 const unsigned char Vf_str[] EEMEM = "Vf=";
 const unsigned char DiodeCap_str[] EEMEM = "C=";
 const unsigned char Vth_str[] EEMEM = "Vth=";
+const unsigned char I_R_str[] EEMEM = "I_R=";
 const unsigned char Timeout_str[] EEMEM = "Timeout";
 const unsigned char URef_str[] EEMEM = "Vref";
 const unsigned char RhLow_str[] EEMEM = "Rh-";
@@ -162,7 +165,7 @@ const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Diodes_str[] EEMEM = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
 const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-const unsigned char Version_str[] EEMEM = "v1.07m";
+const unsigned char Version_str[] EEMEM = "v1.08m";
 
 /*
  *  constant custom characters for LCD (stored EEPROM)
@@ -211,6 +214,12 @@ const uint16_t LargeCap_table[] MEM_TEXT = {23022, 21195, 19629, 18272, 17084, 1
 const uint16_t SmallCap_table[] MEM_TEXT = {954, 903, 856, 814, 775, 740, 707, 676, 648};
 // const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477};
 
+/* ratio based factors for inductors */
+#ifdef FLASH_32K
+/* ratio:                                    200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
+const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
+#endif
+
 /*
  *  bitmask tables for probe settings (stored in EEPROM)
  *  - they save some bytes in the firmware.
@@ -246,11 +255,8 @@ extern char OutBuffer[12]; /* output buffer */
 extern Config_Type Config; /* offsets and values */
 
 /* probing */
-extern uint8_t CompDone;       /* flag: component detection done */
-extern uint8_t CompFound;      /* component type which was found */
-extern uint8_t CompType;       /* component specific type */
-extern uint8_t ResistorsFound; /* number of resistors found */
-extern uint8_t DiodesFound;    /* number of diodes found */
+extern Probe_Type Probes; /* test probes */
+extern Check_Type Check;  /* checking/testing */
 
 /* components */
 extern Resistor_Type Resistors[3]; /* resistors (3 combinations) */
@@ -258,7 +264,10 @@ extern Capacitor_Type Caps[3];     /* capacitors (3 combinations) */
 extern Diode_Type Diodes[6];       /* diodes (3 combinations in 2 directions) */
 extern BJT_Type BJT;               /* bipolar junction transistor */
 extern FET_Type FET;               /* FET */
-extern Error_Type Error;           /* error */
+
+#ifdef FLASH_32K
+extern Inductor_Type Inductor;     /* inductor */
+#endif
 
 /*
  *  NVRAM values (stored in EEPROM) with their defaults
@@ -318,6 +327,11 @@ extern const uint16_t LargeCap_table[];
 
 /* voltage based factors for small caps (using Rh) */
 extern const uint16_t SmallCap_table[];
+
+/* voltage based factors for inductors */
+#ifdef FLASH_32K
+extern const uint16_t Inductor_table[];
+#endif
 
 /*
  *  bitmask tables for probe settings

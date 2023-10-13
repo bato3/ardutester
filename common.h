@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -38,6 +38,12 @@
 /* ************************************************************************
  *   constants
  * ************************************************************************ */
+
+
+/* probe IDs */
+#define PROBE_1               0    /* probe #1 */
+#define PROBE_2               1    /* probe #2 */
+#define PROBE_3               2    /* probe #3 */
 
 
 /* component IDs */
@@ -137,6 +143,17 @@
 #define PIN_TOP               0b00001000     /* top */
 
 
+/* output pins of optional shift register */
+#define SH0                   0b00000000     /* pin #0 */
+#define SH1                   0b00000001     /* pin #1 */
+#define SH2                   0b00000010     /* pin #2 */
+#define SH3                   0b00000011     /* pin #3 */
+#define SH4                   0b00000100     /* pin #4 */
+#define SH5                   0b00000101     /* pin #5 */
+#define SH6                   0b00000110     /* pin #6 */
+#define SH7                   0b00000111     /* pin #7 */
+
+
 
 /* ************************************************************************
  *   structures
@@ -197,21 +214,24 @@ typedef struct
 /* probes */
 typedef struct
 {
-  /* probe pins */
-  uint8_t           Pin_1;         /* probe-1 */
-  uint8_t           Pin_2;         /* probe-2 */
-  uint8_t           Pin_3;         /* probe-3 */
+  /* probe IDs and ADC MUX input address */
+  uint8_t           ID_1;          /* probe-1 */
+  uint8_t           ID_2;          /* probe-2 */
+  uint8_t           ID_3;          /* probe-3 */
 
   /* bit masks for switching probes and test resistors */
   uint8_t           Rl_1;          /* Rl mask for probe-1 */
-  uint8_t           Rh_1;          /* Rh mask for probe-1 */
   uint8_t           Rl_2;          /* Rl mask for probe-2 */
-  uint8_t           Rh_2;          /* Rh mask for probe-2 */
   uint8_t           Rl_3;          /* Rl mask for probe-3 */
+  uint8_t           Rh_1;          /* Rh mask for probe-1 */
+  uint8_t           Rh_2;          /* Rh mask for probe-2 */
   uint8_t           Rh_3;          /* Rh mask for probe-3 */
-  uint8_t           ADC_1;         /* ADC mask for probe-1 */
-  uint8_t           ADC_2;         /* ADC mask for probe-2 */
-  uint8_t           ADC_3;         /* ADC mask for probe-3 */
+  uint8_t           Pin_1;         /* pin mask for probe-1 */
+  uint8_t           Pin_2;         /* pin mask for probe-2 */
+  uint8_t           Pin_3;         /* pin mask for probe-3 */
+//uint8_t           ADC_1;         /* ADC MUX input address for probe-1 */
+//uint8_t           ADC_2;         /* ADC MUX input address for probe-2 */
+//uint8_t           ADC_3;         /* ADC MUX input address for probe-3 */
 } Probe_Type;
 
 

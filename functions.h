@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -176,7 +176,9 @@
   #ifdef SW_ENCODER
     extern void Encoder_Tool(void);
   #endif
-
+  #ifdef SW_OPTO_COUPLER
+    extern void OptoCoupler_Tool(void);
+  #endif
 #endif
 
 
@@ -249,6 +251,7 @@
 #ifndef PROBES_C
 
   extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t AllProbesShorted(void);
   extern void DischargeProbes(void);

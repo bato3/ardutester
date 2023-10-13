@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -44,21 +44,67 @@
 
 void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 {
-  /* set probe IDs */
-  Probes.Pin_1 = Probe1;
-  Probes.Pin_2 = Probe2;
-  Probes.Pin_3 = Probe3;
+  /* set probe IDs / ADC MUX input addresses */
+  Probes.ID_1 = Probe1;
+  Probes.ID_2 = Probe2;
+  Probes.ID_3 = Probe3;
+
+  /*
+   * todo: decouple ADC MUX addresses
+   * - add new table for ADC MUX addresses (prepared)
+   * - add ADC_1, ADC_2, ADC_3 to Probes structure (prepared)
+   * - read table into ADC_x (prepared)
+   * - check any function calls with TPx and change it into x if possible 
+   * - change ReadU() and ReadU_5ms() calls from ID_x to ADC_x
+   */
 
   /* setup masks using bitmask tables */
   Probes.Rl_1 = eeprom_read_byte(&Rl_table[Probe1]);
-  Probes.Rh_1 = Probes.Rl_1 + Probes.Rl_1;
-  Probes.ADC_1 = eeprom_read_byte(&ADC_table[Probe1]);
   Probes.Rl_2 = eeprom_read_byte(&Rl_table[Probe2]);
-  Probes.Rh_2 = Probes.Rl_2 + Probes.Rl_2;
-  Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
   Probes.Rl_3 = eeprom_read_byte(&Rl_table[Probe3]);
+  Probes.Rh_1 = Probes.Rl_1 + Probes.Rl_1;
+  Probes.Rh_2 = Probes.Rl_2 + Probes.Rl_2;
   Probes.Rh_3 = Probes.Rl_3 + Probes.Rl_3;
-  Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
+  Probes.Pin_1 = eeprom_read_byte(&Pin_table[Probe1]);
+  Probes.Pin_2 = eeprom_read_byte(&Pin_table[Probe2]);
+  Probes.Pin_3 = eeprom_read_byte(&Pin_table[Probe3]);
+
+  /* setup ADC MUX input addresses */
+//Probes.ADC_1 = eeprom_read_byte(&ADC_table[Probe1]);
+//Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
+//Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
+}
+
+
+
+/*
+ *  get ID of third probe
+ *
+ *  requires:
+ *  - Probe1: ID of first probe (0-2)
+ *  - Probe2: ID of second probe (0-2)
+ *
+ *  returns:
+ *  - ID of third probe
+ */
+
+uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2)
+{
+  uint16_t          Probe3;             /* ID of third probe */
+
+  /*
+   *  we know IDs #1 and #2, so get ID of third probe
+   *  - 0+1=1 -> 2
+   *    0+2=2 -> 1
+   *    1+2=3 -> 0
+   *  - third probe = 3 - (probe ID #1 + probe ID #2)
+   */
+
+  Probe3 = 3;
+  Probe3 -= Probe1;
+  Probe3 -= Probe2;
+
+  return Probe3;
 }
 
 
@@ -228,7 +274,7 @@ void DischargeProbes(void)
     else if (U_c < 800)                 /* extra pull-down */
     {
       /* it's save now to pull-down probe pin directly */
-      ADC_DDR |= eeprom_read_byte(&ADC_table[ID]);
+      ADC_DDR |= eeprom_read_byte(&Pin_table[ID]);
     }
 
     if (DischargeMask == 0b00000111)    /* all probes discharged */
@@ -416,8 +462,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
   R_PORT = 0;                      /* set resistor port to Gnd */
   R_DDR = Probes.Rl_2;             /* pull down probe-2 via Rl */
-  ADC_DDR = Probes.ADC_1;          /* set probe-1 to output */
-  ADC_PORT = Probes.ADC_1;         /* pull-up probe-1 directly */
+  ADC_DDR = Probes.Pin_1;          /* set probe-1 to output */
+  ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
 
 
   /*
@@ -426,7 +472,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    */
 
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate via Rl */
-  U_Rl = ReadU_5ms(Probes.Pin_2);                    /* get voltage at Rl */
+  U_Rl = ReadU_5ms(Probes.ID_2);                  /* get voltage at Rl */
 
 
   /*
@@ -442,7 +488,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
      */
 
     PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);   /* discharge gate via Rl */
-    U_Rl = ReadU_5ms(Probes.Pin_2);                    /* get voltage at Rl */
+    U_Rl = ReadU_5ms(Probes.ID_2);                     /* get voltage at Rl */
   }
 
 
@@ -484,8 +530,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
       /* set probes: Gnd -- Rl - probe-2 / probe-1 -- Vcc */
       R_DDR = Probes.Rl_2;                /* enable Rl for probe-2 */
       R_PORT = 0;                         /* pull down collector via Rl */
-      ADC_DDR = Probes.ADC_1;             /* set probe 1 to output */
-      ADC_PORT = Probes.ADC_1;            /* pull up emitter directly */
+      ADC_DDR = Probes.Pin_1;             /* set probe 1 to output */
+      ADC_PORT = Probes.Pin_1;            /* pull up emitter directly */
       wait5ms();
       R_DDR = Probes.Rl_2 | Probes.Rl_3;  /* pull down base via Rl */
       U_1 = ReadU_5ms(Probe2);            /* get voltage at collector */ 
@@ -513,7 +559,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
     {
       /* we assume: probe-1 = C / probe-2 = E / probe-3 = B */
       /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
-      ADC_DDR = Probes.ADC_2;                /* set probe-2 to output mode */
+      ADC_DDR = Probes.Pin_2;                /* set probe-2 to output mode */
       ADC_PORT = 0;                          /* pull down probe-2 directly */
       R_DDR = Probes.Rl_1 | Probes.Rl_3;     /* select Rl for probe-1 & Rl for probe-3 */
       R_PORT = Probes.Rl_1 | Probes.Rl_3;    /* pull up collector & base via Rl */
@@ -558,7 +604,9 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
 
   /*
-   *  Check for a resistor.
+   *  Check for a resistor
+   *  - if no other component is found yet
+   *  - if we've got already a resistor (for reverse check)
    */
 
   if ((Check.Found == COMP_NONE) ||
@@ -569,7 +617,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
 
   /*
-   *  Otherwise run some final checks.
+   *  ... otherwise run some final checks.
    */
 
   else

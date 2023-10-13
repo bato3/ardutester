@@ -2,7 +2,7 @@
  *
  *   common display functions for LCD modules
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -115,10 +115,10 @@ void LCD_EEString(const unsigned char *String)
 
 
 /*
- *  display probe pin number
- *  - pin TP1 -> '1'
- *  - pin TP2 -> '2'
- *  - pin TP3 -> '3'
+ *  display probe number
+ *  - probe-1 -> '1'
+ *  - probe-2 -> '2'
+ *  - probe-3 -> '3'
  *
  *  requires:
  *  - probe/testpin ID (0-2)
@@ -126,7 +126,7 @@ void LCD_EEString(const unsigned char *String)
  
 void LCD_ProbeNumber(unsigned char Probe)
 {
-  /* since TP1 is 0 we simply add the value to ASCII '1' */
+  /* since probe-1 is 0 we simply add the value to ASCII '1' */
   LCD_Char('1' + Probe);           /* send char */
 }
 

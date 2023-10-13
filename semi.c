@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -34,214 +34,6 @@
 
 
 /*
- *  measure hFE of BJT in common collector circuit (emitter follower)
- *
- *  requires:
- *  - Type: NPN or PNP
- *
- *  returns:
- *  - hFE
- */
-
-uint32_t Get_hFE_C(uint8_t Type)
-{
-  uint32_t          hFE;           /* return value */
-  uint16_t          U_R_e;         /* voltage across emitter resistor */
-  uint16_t          U_R_b;         /* voltage across base resistor */
-  uint16_t          Ri;            /* internal resistance of MCU */
-
-
-  /*
-   *  measure hFE for a BJT in common collector circuit
-   *  (emitter follower):
-   *  - hFE = (I_e - I_b) / I_b
-   *  - measure the voltages across the resistors and calculate the currents
-   *    (resistor values are well known)
-   *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
-   */
-
-  /*
-   *  setup probes and get voltages
-   */
-
-  if (Type == TYPE_NPN)            /* NPN */
-  {
-    /* we assume: probe-1 = C / probe-2 = E / probe-3 = B */
-    /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
-    ADC_DDR = Probes.ADC_1;             /* set probe 1 to output */
-    ADC_PORT = Probes.ADC_1;            /* pull up collector directly */
-    R_DDR = Probes.Rl_2 | Probes.Rl_3;  /* select Rl for probe-2 & Rl for probe-3 */
-    R_PORT = Probes.Rl_3;               /* pull up base via Rl */
-
-    U_R_e = ReadU_5ms(Probes.Pin_2);              /* U_R_e = U_e */
-    U_R_b = Config.Vcc - ReadU(Probes.Pin_3);     /* U_R_b = Vcc - U_b */
-  }
-  else                             /* PNP */
-  {
-    /* we assume: probe-1 = E / probe-2 = C / probe-3 = B */
-    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
-    ADC_PORT = 0;                       /* set ADC port low */
-    ADC_DDR = Probes.ADC_2;             /* pull down collector directly */
-    R_PORT = Probes.Rl_1;               /* pull up emitter via Rl */
-    R_DDR = Probes.Rl_1 | Probes.Rl_3;  /* pull down base via Rl */
-
-    U_R_e = Config.Vcc - ReadU_5ms(Probes.Pin_1); /* U_R_e = Vcc - U_e */
-    U_R_b = ReadU(Probes.Pin_3);                  /* U_R_b = U_b */
-  }
-
-  if (U_R_b < 10)             /* I_b < 14µA -> Darlington */
-  {
-    /* change base resistor from Rl to Rh and measure again */
-    if (Type == TYPE_NPN)            /* NPN */
-    {    
-      R_DDR = Probes.Rl_2 | Probes.Rh_3;     /* select Rl for probe-2 & Rh for probe-3 */
-      R_PORT = Probes.Rh_3;                  /* pull up base via Rh */
-
-      U_R_e = ReadU_5ms(Probes.Pin_2);            /* U_R_e = U_e */
-      U_R_b = Config.Vcc - ReadU(Probes.Pin_3);   /* U_R_b = Vcc - U_b */
-
-      Ri = NV.RiL;                           /* get internal resistor */
-    }
-    else                             /* PNP */
-    {
-      R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* pull down base via Rh */
-
-      U_R_e = Config.Vcc - ReadU_5ms(Probes.Pin_1);    /* U_R_e = Vcc - U_e */
-      U_R_b = ReadU(Probes.Pin_3);                     /* U_R_b = U_b */
-
-      Ri = NV.RiH;                           /* get internal resistor */
-    }
-
-    /*
-     *  Since I_b is so small vs. I_e we'll neglect it and use
-     *  hFE = I_e / I_b
-     *      = (U_R_e / R_e) / (U_R_b / R_b)
-     *      = (U_R_e * R_b) / (U_R_b * R_e)
-     */
-
-    if (U_R_b < 1) U_R_b = 1;                /* prevent division by zero */
-    hFE =  U_R_e * R_HIGH;                   /* U_R_e * R_b */
-    hFE /= U_R_b;                            /* / U_R_b */
-    hFE *= 10;                               /* upscale to 0.1 */
-    hFE /= (R_LOW * 10) + Ri;                /* / R_e in 0.1 Ohm */
-  }
-  else                        /* I_b > 14µA -> standard */
-  {
-    /*
-     *  Both resistors are the same (R_e = R_b): 
-     *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
-     *  -     = (U_R_e - U_R_b) / U_R_b 
-     */
-
-    hFE = (uint32_t)((U_R_e - U_R_b) / U_R_b);
-  }
-
-  return hFE;
-}
-
-
-
-/*
- *  measure the gate threshold voltage of a depletion-mode MOSFET
- *
- *  requires:
- *  - Type: n-channel or p-channel
- */
-
-void GetGateThreshold(uint8_t Type)
-{
-  int32_t           Ugs = 0;       /* gate threshold voltage / Vth */
-  uint8_t           Drain_Rl;      /* Rl bitmask for drain */
-  uint8_t           Drain_ADC;     /* ADC bitmask for drain */
-  uint8_t           PullMode;
-  uint8_t           Counter;       /* loop counter */
-
-  /*
-   *  init variables
-   */
-
-  if (Type & TYPE_N_CHANNEL)       /* n-channel */
-  {
-    /* we assume: probe-1 = D / probe-2 = S / probe-3 = G */
-    /* probe-2 is still pulled down directly */
-    /* probe-1 is still pulled up via Rl */
-
-    Drain_Rl =  Probes.Rl_1;
-    Drain_ADC = Probes.ADC_1;
-    PullMode = FLAG_10MS | FLAG_PULLDOWN;
-  }
-  else                             /* p-channel */
-  {
-    /* we assume: probe-1 = S / probe-2 = D / probe-3 = G */
-    /* probe-2 is still pulled down via Rl */
-    /* probe-1 is still pulled up directly */
-
-    Drain_Rl =  Probes.Rl_2;
-    Drain_ADC = Probes.ADC_2;
-    PullMode = FLAG_10MS | FLAG_PULLUP;
-  }
-
-
-  /*
-   *  For low reaction times we use the ADC directly.
-   */
-
-  /* sanitize bit mask for drain to prevent a never-ending loop */ 
-  Drain_ADC &= 0b00000111;              /* drain */
-  ADMUX = Probes.Pin_3 | (1 << REFS0);  /* select probe-3 for ADC input */
-
-  /* sample 10 times */
-  for (Counter = 0; Counter < 10; Counter++) 
-  {
-    wdt_reset();                         /* reset watchdog */
-
-    /* discharge gate via Rl for 10 ms */
-    PullProbe(Probes.Rl_3, PullMode);
-
-    /* pull up/down gate via Rh to slowly charge gate */
-    R_DDR = Drain_Rl | Probes.Rh_3;
-
-    /* wait until FET conducts */
-    if (Type & TYPE_N_CHANNEL)          /* n-channel */
-    {
-      /* FET conducts when the voltage at drain reaches low level */
-      while (ADC_PIN & Drain_ADC);
-    }
-    else                                /* p-channel */
-    {
-      /* FET conducts when the voltage at drain reaches high level */
-      while (!(ADC_PIN & Drain_ADC));             
-    }
-
-    R_DDR = Drain_Rl;                   /* set probe-3 to HiZ mode */
-
-    /* get voltage of gate */
-    ADCSRA |= (1 << ADSC);              /* start ADC conversion */
-    while (ADCSRA & (1 << ADSC));       /* wait until conversion is done */
-
-    /* add ADC reading */
-    if (Type & TYPE_N_CHANNEL)          /* n-channel */
-    {
-      Ugs += ADCW;                        /* Ugs = U_g */
-    }
-    else                                /* p-channel */
-    {
-      Ugs -= (1023 - ADCW);               /* Ugs = - (Vcc - U_g) */
-    }
-  }
-
-  /* calculate V_th */
-  Ugs /= 10;                     /* average of 10 samples */
-  Ugs *= Config.Vcc;             /* convert to voltage */
-  Ugs /= 1024;                   /* using 10 bit resolution */
-
-  /* save data */
-  Semi.U_2 = (int16_t)Ugs;       /* gate threshold voltage (in mV) */
-}
-
-
-
-/*
  *  measure leakage current
  *  - current through a semiconducter in non-conducting mode
  *
@@ -267,10 +59,10 @@ uint16_t GetLeakageCurrent(void)
 
   R_PORT = 0;                      /* set resistor port to Gnd */
   R_DDR = Probes.Rl_2;             /* pull down probe-2 via Rl */
-  ADC_DDR = Probes.ADC_1;          /* set probe-1 to output */
-  ADC_PORT = Probes.ADC_1;         /* pull-up probe-1 directly */
+  ADC_DDR = Probes.Pin_1;          /* set probe-1 to output */
+  ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
 
-  U_Rl = ReadU_5ms(Probes.Pin_2);  /* get voltage at Rl */
+  U_Rl = ReadU_5ms(Probes.ID_2);   /* get voltage at Rl */
 
   /* calculate current */
   R_Shunt = NV.RiL + (R_LOW * 10); /* consider internal resistance of MCU (0.1 Ohms) */ 
@@ -359,16 +151,16 @@ void CheckDiode(void)
   /* we assume: probe-1 = A / probe2 = C */
   /* set probes: Gnd -- probe-2 / probe-1 -- HiZ */
   ADC_PORT = 0;
-  ADC_DDR = Probes.ADC_2;               /* pull down cathode directly */
+  ADC_DDR = Probes.Pin_2;               /* pull down cathode directly */
   /* R_DDR is set to HiZ by DischargeProbes() */
-  U1_Zero = ReadU(Probes.Pin_1);        /* get voltage at anode */
+  U1_Zero = ReadU(Probes.ID_1);         /* get voltage at anode */
 
   /* measure voltage across DUT (Vf) with Rh */
   /* set probes: Gnd -- probe-2 / probe-1 -- Rh -- Vcc */
   R_DDR = Probes.Rh_1;                  /* enable Rh for probe-1 */
   R_PORT = Probes.Rh_1;                 /* pull up anode via Rh */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);     /* discharge gate */
-  U1_Rh = ReadU_5ms(Probes.Pin_1);      /* get voltage at anode */
+  U1_Rh = ReadU_5ms(Probes.ID_1);       /* get voltage at anode */
                                         /* neglect voltage at cathode */
 
   /* measure voltage across DUT (Vf) with Rl */
@@ -376,8 +168,8 @@ void CheckDiode(void)
   R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
   R_PORT = Probes.Rl_1;                 /* pull up anode via Rl */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);     /* discharge gate */
-  U1_Rl = ReadU_5ms(Probes.Pin_1);      /* get voltage at anode */
-  U1_Rl -= ReadU(Probes.Pin_2);         /* substract voltage at cathode */
+  U1_Rl = ReadU_5ms(Probes.ID_1);       /* get voltage at anode */
+  U1_Rl -= ReadU(Probes.ID_2);          /* substract voltage at cathode */
 
 
   DischargeProbes();                    /* try to discharge probes */
@@ -391,25 +183,25 @@ void CheckDiode(void)
   /* we assume: probe-1 = A / probe2 = C */
   /* set probes: Gnd -- probe-2 / probe-1 -- HiZ */
   ADC_PORT = 0;
-  ADC_DDR = Probes.ADC_2;               /* pull down cathode directly */
+  ADC_DDR = Probes.Pin_2;               /* pull down cathode directly */
   /* R_DDR is set to HiZ by DischargeProbes() */
-  U2_Zero = ReadU(Probes.Pin_1);        /* get voltage at anode */
+  U2_Zero = ReadU(Probes.ID_1);         /* get voltage at anode */
 
   /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */
   ADC_DDR = 0;                          /* set to HiZ to prepare change */
-  ADC_PORT = Probes.ADC_1;              /* pull up anode directly */
-  ADC_DDR = Probes.ADC_1;               /* enable output */
+  ADC_PORT = Probes.Pin_1;              /* pull up anode directly */
+  ADC_DDR = Probes.Pin_1;               /* enable output */
   R_PORT = 0;                           /* pull down cathode via Rh */
   R_DDR = Probes.Rh_2;                  /* enable Rh for probe-2 */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate */
-  U2_Rh = ReadU_5ms(Probes.Pin_1);      /* get voltage at anode */
-  U2_Rh -= ReadU(Probes.Pin_2);         /* substract voltage at cathode */
+  U2_Rh = ReadU_5ms(Probes.ID_1);       /* get voltage at anode */
+  U2_Rh -= ReadU(Probes.ID_2);          /* substract voltage at cathode */
 
   /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
   R_DDR = Probes.Rl_2;                  /* pull down cathode via Rl */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate */
-  U2_Rl = ReadU_5ms(Probes.Pin_1);      /* get voltage at anode */
-  U2_Rl -= ReadU(Probes.Pin_2);         /* substract voltage at cathode */
+  U2_Rl = ReadU_5ms(Probes.ID_1);       /* get voltage at anode */
+  U2_Rl -= ReadU(Probes.ID_2);          /* substract voltage at cathode */
 
   ADC_DDR = 0;                     /* stop pulling up */
 
@@ -538,8 +330,8 @@ void CheckDiode(void)
 
     /* save data */
     Diode = &Diodes[Check.Diodes];
-    Diode->A = Probes.Pin_1;
-    Diode->C = Probes.Pin_2;
+    Diode->A = Probes.ID_1;
+    Diode->C = Probes.ID_2;
     Diode->V_f = U2_Rl;       /* Vf for high measurement current */
     Diode->V_f2 = U2_Rh;      /* Vf for low measurement current */
     Check.Diodes++;
@@ -606,6 +398,214 @@ void VerifyMOSFET(void)
 
 
 /*
+ *  measure the gate threshold voltage of a depletion-mode MOSFET
+ *
+ *  requires:
+ *  - Type: n-channel or p-channel
+ */
+
+void GetGateThreshold(uint8_t Type)
+{
+  int32_t           Ugs = 0;       /* gate threshold voltage / Vth */
+  uint8_t           Drain_Rl;      /* Rl bitmask for drain */
+  uint8_t           Drain_ADC;     /* ADC port bitmask for drain */
+  uint8_t           PullMode;
+  uint8_t           Counter;       /* loop counter */
+
+  /*
+   *  init variables
+   */
+
+  if (Type & TYPE_N_CHANNEL)       /* n-channel */
+  {
+    /* we assume: probe-1 = D / probe-2 = S / probe-3 = G */
+    /* probe-2 is still pulled down directly */
+    /* probe-1 is still pulled up via Rl */
+
+    Drain_Rl =  Probes.Rl_1;
+    Drain_ADC = Probes.Pin_1;
+    PullMode = FLAG_10MS | FLAG_PULLDOWN;
+  }
+  else                             /* p-channel */
+  {
+    /* we assume: probe-1 = S / probe-2 = D / probe-3 = G */
+    /* probe-2 is still pulled down via Rl */
+    /* probe-1 is still pulled up directly */
+
+    Drain_Rl =  Probes.Rl_2;
+    Drain_ADC = Probes.Pin_2;
+    PullMode = FLAG_10MS | FLAG_PULLUP;
+  }
+
+
+  /*
+   *  For low reaction times we use the ADC directly.
+   */
+
+  /* sanitize bit mask for drain to prevent a never-ending loop */ 
+  Drain_ADC &= 0b00000111;              /* drain */
+  ADMUX = Probes.ID_3 | (1 << REFS0);   /* select probe-3 for ADC input */
+
+  /* sample 10 times */
+  for (Counter = 0; Counter < 10; Counter++) 
+  {
+    wdt_reset();                         /* reset watchdog */
+
+    /* discharge gate via Rl for 10 ms */
+    PullProbe(Probes.Rl_3, PullMode);
+
+    /* pull up/down gate via Rh to slowly charge gate */
+    R_DDR = Drain_Rl | Probes.Rh_3;
+
+    /* wait until FET conducts */
+    if (Type & TYPE_N_CHANNEL)          /* n-channel */
+    {
+      /* FET conducts when the voltage at drain reaches low level */
+      while (ADC_PIN & Drain_ADC);
+    }
+    else                                /* p-channel */
+    {
+      /* FET conducts when the voltage at drain reaches high level */
+      while (!(ADC_PIN & Drain_ADC));             
+    }
+
+    R_DDR = Drain_Rl;                   /* set probe-3 to HiZ mode */
+
+    /* get voltage of gate */
+    ADCSRA |= (1 << ADSC);              /* start ADC conversion */
+    while (ADCSRA & (1 << ADSC));       /* wait until conversion is done */
+
+    /* add ADC reading */
+    if (Type & TYPE_N_CHANNEL)          /* n-channel */
+    {
+      Ugs += ADCW;                        /* Ugs = U_g */
+    }
+    else                                /* p-channel */
+    {
+      Ugs -= (1023 - ADCW);               /* Ugs = - (Vcc - U_g) */
+    }
+  }
+
+  /* calculate V_th */
+  Ugs /= 10;                     /* average of 10 samples */
+  Ugs *= Config.Vcc;             /* convert to voltage */
+  Ugs /= 1024;                   /* using 10 bit resolution */
+
+  /* save data */
+  Semi.U_2 = (int16_t)Ugs;       /* gate threshold voltage (in mV) */
+}
+
+
+
+/*
+ *  measure hFE of BJT in common collector circuit (emitter follower)
+ *
+ *  requires:
+ *  - Type: NPN or PNP
+ *
+ *  returns:
+ *  - hFE
+ */
+
+uint32_t Get_hFE_C(uint8_t Type)
+{
+  uint32_t          hFE;           /* return value */
+  uint16_t          U_R_e;         /* voltage across emitter resistor */
+  uint16_t          U_R_b;         /* voltage across base resistor */
+  uint16_t          Ri;            /* internal resistance of MCU */
+
+
+  /*
+   *  measure hFE for a BJT in common collector circuit
+   *  (emitter follower):
+   *  - hFE = (I_e - I_b) / I_b
+   *  - measure the voltages across the resistors and calculate the currents
+   *    (resistor values are well known)
+   *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
+   */
+
+  /*
+   *  setup probes and get voltages
+   */
+
+  if (Type == TYPE_NPN)            /* NPN */
+  {
+    /* we assume: probe-1 = C / probe-2 = E / probe-3 = B */
+    /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
+    ADC_DDR = Probes.Pin_1;             /* set probe-1 to output */
+    ADC_PORT = Probes.Pin_1;            /* pull up collector directly */
+    R_DDR = Probes.Rl_2 | Probes.Rl_3;  /* select Rl for probe-2 & Rl for probe-3 */
+    R_PORT = Probes.Rl_3;               /* pull up base via Rl */
+
+    U_R_e = ReadU_5ms(Probes.ID_2);               /* U_R_e = U_e */
+    U_R_b = Config.Vcc - ReadU(Probes.ID_3);      /* U_R_b = Vcc - U_b */
+  }
+  else                             /* PNP */
+  {
+    /* we assume: probe-1 = E / probe-2 = C / probe-3 = B */
+    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
+    ADC_PORT = 0;                       /* set ADC port low */
+    ADC_DDR = Probes.Pin_2;             /* pull down collector directly */
+    R_PORT = Probes.Rl_1;               /* pull up emitter via Rl */
+    R_DDR = Probes.Rl_1 | Probes.Rl_3;  /* pull down base via Rl */
+
+    U_R_e = Config.Vcc - ReadU_5ms(Probes.ID_1);  /* U_R_e = Vcc - U_e */
+    U_R_b = ReadU(Probes.ID_3);                   /* U_R_b = U_b */
+  }
+
+  if (U_R_b < 10)             /* I_b < 14µA -> Darlington */
+  {
+    /* change base resistor from Rl to Rh and measure again */
+    if (Type == TYPE_NPN)            /* NPN */
+    {    
+      R_DDR = Probes.Rl_2 | Probes.Rh_3;     /* select Rl for probe-2 & Rh for probe-3 */
+      R_PORT = Probes.Rh_3;                  /* pull up base via Rh */
+
+      U_R_e = ReadU_5ms(Probes.ID_2);             /* U_R_e = U_e */
+      U_R_b = Config.Vcc - ReadU(Probes.ID_3);    /* U_R_b = Vcc - U_b */
+
+      Ri = NV.RiL;                           /* get internal resistor */
+    }
+    else                             /* PNP */
+    {
+      R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* pull down base via Rh */
+
+      U_R_e = Config.Vcc - ReadU_5ms(Probes.ID_1);     /* U_R_e = Vcc - U_e */
+      U_R_b = ReadU(Probes.ID_3);                      /* U_R_b = U_b */
+
+      Ri = NV.RiH;                           /* get internal resistor */
+    }
+
+    /*
+     *  Since I_b is so small vs. I_e we'll neglect it and use
+     *  hFE = I_e / I_b
+     *      = (U_R_e / R_e) / (U_R_b / R_b)
+     *      = (U_R_e * R_b) / (U_R_b * R_e)
+     */
+
+    if (U_R_b < 1) U_R_b = 1;                /* prevent division by zero */
+    hFE =  U_R_e * R_HIGH;                   /* U_R_e * R_b */
+    hFE /= U_R_b;                            /* / U_R_b */
+    hFE *= 10;                               /* upscale to 0.1 */
+    hFE /= (R_LOW * 10) + Ri;                /* / R_e in 0.1 Ohm */
+  }
+  else                        /* I_b > 14µA -> standard */
+  {
+    /*
+     *  Both resistors are the same (R_e = R_b): 
+     *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
+     *  -     = (U_R_e - U_R_b) / U_R_b 
+     */
+
+    hFE = (uint32_t)((U_R_e - U_R_b) / U_R_b);
+  }
+
+  return hFE;
+}
+
+
+
+/*
  *  check for BJT or enhancement-mode MOSFET
  *
  *  requires:
@@ -645,8 +645,8 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
     R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* enable Rl for probe-1 & Rh for probe-3 */
     R_PORT = Probes.Rl_1 | Probes.Rh_3; /* pull up collector via Rl and base via Rh */
     wait50ms();                         /* wait to skip gate charging of a FET */
-    U_R_c = Config.Vcc - ReadU(Probes.Pin_1);     /* U_R_c = Vcc - U_c */ 
-    U_R_b = Config.Vcc - ReadU(Probes.Pin_3);     /* U_R_b = Vcc - U_b */
+    U_R_c = Config.Vcc - ReadU(Probes.ID_1);      /* U_R_c = Vcc - U_c */ 
+    U_R_b = Config.Vcc - ReadU(Probes.ID_3);      /* U_R_b = Vcc - U_b */
   }
   else                        /* PNP / p-channel */
   {
@@ -663,8 +663,8 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
      */
 
     R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* pull down base via Rh */
-    U_R_c = ReadU_5ms(Probes.Pin_2);    /* U_R_c = U_c */
-    U_R_b = ReadU(Probes.Pin_3);        /* U_R_b = U_b */
+    U_R_c = ReadU_5ms(Probes.ID_2);     /* U_R_c = U_c */
+    U_R_b = ReadU(Probes.ID_3);         /* U_R_b = U_b */
   }
 
 
@@ -748,13 +748,13 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
       /* save data */
       Semi.F_1 = hFE_E;            /* hFE */
       Semi.I_1 = I_CE0;            /* leakage current */
-      Semi.A = Probes.Pin_3;       /* base pin */
+      Semi.A = Probes.ID_3;        /* base pin */
 
       /* update Collector and Emitter pins */
       if (BJT_Type == TYPE_NPN)    /* NPN */
       {
-        Semi.B = Probes.Pin_1;     /* collector pin */
-        Semi.C = Probes.Pin_2;     /* emitter pin */
+        Semi.B = Probes.ID_1;      /* collector pin */
+        Semi.C = Probes.ID_2;      /* emitter pin */
 
         #ifdef SW_SYMBOLS
         Check.Symbol = SYMBOL_BJT_NPN;  /* set symbol ID */
@@ -762,8 +762,8 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
       }
       else                         /* PNP */
       {
-        Semi.B = Probes.Pin_2;     /* collector pin */
-        Semi.C = Probes.Pin_1;     /* emitter pin */
+        Semi.B = Probes.ID_2;      /* collector pin */
+        Semi.C = Probes.ID_1;      /* emitter pin */
 
         #ifdef SW_SYMBOLS
         Check.Symbol = SYMBOL_BJT_PNP;  /* set symbol ID */
@@ -788,7 +788,7 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
      *  it's R_DS_on and the current. An IGBT got a much higher voltage drop.
      */
 
-    I_CE0= ReadU(Probes.Pin_1) - ReadU(Probes.Pin_2);
+    I_CE0= ReadU(Probes.ID_1) - ReadU(Probes.ID_2);
 
     if (I_CE0 < 250)          /* MOSFET */
     {
@@ -829,17 +829,17 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
     GetGateThreshold(FET_Type);
 
     /* save data */
-    Semi.A = Probes.Pin_3;          /* gate pin */
+    Semi.A = Probes.ID_3;           /* gate pin */
 
     if (FET_Type == TYPE_N_CHANNEL)     /* n-channel */
     {
-      Semi.B = Probes.Pin_1;       /* drain pin */
-      Semi.C = Probes.Pin_2;       /* source pin */
+      Semi.B = Probes.ID_1;        /* drain pin */
+      Semi.C = Probes.ID_2;        /* source pin */
     }
     else                                /* p-channel */
     {
-      Semi.B = Probes.Pin_2;       /* drain pin */
-      Semi.C = Probes.Pin_1;       /* source pin */
+      Semi.B = Probes.ID_2;        /* drain pin */
+      Semi.C = Probes.ID_1;        /* source pin */
     }
   }
 }
@@ -877,10 +877,10 @@ void CheckDepletionModeFET(void)
     /* we assume: probe-1 = D / probe-2 = S / probe-3 = G */
     /* probes already set to: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
     R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* pull down gate via Rh */
-    U_1 = ReadU_20ms(Probes.Pin_2);     /* voltage at source */
+    U_1 = ReadU_20ms(Probes.ID_2);      /* voltage at source */
 
     R_PORT = Probes.Rh_3;               /* pull up gate via Rh */
-    U_2 = ReadU_20ms(Probes.Pin_2);     /* voltage at source */
+    U_2 = ReadU_20ms(Probes.ID_2);      /* voltage at source */
     Diff_1 = U_2 - U_1;                 /* source voltage difference */
 
     /*
@@ -901,14 +901,14 @@ void CheckDepletionModeFET(void)
 
       /* we simulate: probe-1 = S / probe-2 = D / probe-3 = G */
       /* set probes: Gnd -- Rl -- probe-1 / probe-2 -- Vcc */
-      ADC_PORT = Probes.ADC_2;               /* set ADC port to high */
-      ADC_DDR = Probes.ADC_2;                /* pull up drain directly */
+      ADC_PORT = Probes.Pin_2;               /* set ADC port to high */
+      ADC_DDR = Probes.Pin_2;                /* pull up drain directly */
       R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* enable Rl for source and Rh for gate */
       R_PORT = 0;                            /* pull down source via Rl / pull down gate via Rh */
-      U_1 = ReadU_20ms(Probes.Pin_1);        /* voltage at source */
+      U_1 = ReadU_20ms(Probes.ID_1);         /* voltage at source */
 
       R_PORT = Probes.Rh_3;                  /* pull up gate via Rh */
-      U_2 = ReadU_20ms(Probes.Pin_1);        /* voltage at source */
+      U_2 = ReadU_20ms(Probes.ID_1);         /* voltage at source */
       Diff_2 = U_2 - U_1;                    /* source voltage difference */
 
 
@@ -918,11 +918,11 @@ void CheckDepletionModeFET(void)
 
       /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
       ADC_PORT = 0;                          /* set ADC port to low */
-      ADC_DDR = Probes.ADC_2;                /* pull down source directly */
+      ADC_DDR = Probes.Pin_2;                /* pull down source directly */
       R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* enable Rl for probe-1 & Rh for probe-3 */
       R_PORT = Probes.Rl_1 | Probes.Rh_3;    /* pull up drain via Rl / pull up gate via Rh */
 
-      U_1 = ReadU_20ms(Probes.Pin_3);        /* get voltage at gate */
+      U_1 = ReadU_20ms(Probes.ID_3);         /* get voltage at gate */
 
       if (U_1 > 3911)              /* MOSFET */
       {
@@ -956,13 +956,13 @@ void CheckDepletionModeFET(void)
     /* we assume: probe-1 = S / probe-2 = D / probe-3 = G */
     /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
     ADC_PORT = 0;                       /* set ADC port to Gnd */
-    ADC_DDR = Probes.ADC_2;             /* pull down drain directly */
+    ADC_DDR = Probes.Pin_2;             /* pull down drain directly */
     R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* enable Rl for probe-1 & Rh for probe-3 */
     R_PORT = Probes.Rl_1 | Probes.Rh_3; /* pull up source via Rl / pull up gate via Rh */
-    U_1 = ReadU_20ms(Probes.Pin_1);     /* get voltage at source */
+    U_1 = ReadU_20ms(Probes.ID_1);      /* get voltage at source */
 
     R_PORT = Probes.Rl_1;               /* pull down gate via Rh */
-    U_2 = ReadU_20ms(Probes.Pin_1);     /* get voltage at source */
+    U_2 = ReadU_20ms(Probes.ID_1);      /* get voltage at source */
     Diff_1 = U_1 - U_2;                 /* source voltage difference */
 
     /*
@@ -983,13 +983,13 @@ void CheckDepletionModeFET(void)
 
       /* we simulate: probe-1 = D / probe-2 = S / probe-3 = G */
       /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc */
-      ADC_DDR = Probes.ADC_1;             /* pull down drain directly */
+      ADC_DDR = Probes.Pin_1;             /* pull down drain directly */
       R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* enable Rl for probe-2 & Rh for probe-3 */
       R_PORT = Probes.Rl_2 | Probes.Rh_3; /* pull up source via Rl / pull up gate via Rh */
-      U_1 = ReadU_20ms(Probes.Pin_2);     /* get voltage at source */
+      U_1 = ReadU_20ms(Probes.ID_2);      /* get voltage at source */
 
       R_PORT = Probes.Rl_2;               /* pull down gate via Rh */
-      U_2 = ReadU_20ms(Probes.Pin_2);     /* get voltage at source */
+      U_2 = ReadU_20ms(Probes.ID_2);      /* get voltage at source */
       Diff_2 = U_1 - U_2;                 /* source voltage difference */
 
 
@@ -998,10 +998,10 @@ void CheckDepletionModeFET(void)
        */
 
       /* set probes: probe-2 = HiZ / probe-1 -- Vcc */
-      ADC_PORT = Probes.ADC_1;          /* pull up source directly */
-      ADC_DDR = Probes.ADC_1;           /* enable pull up for source */
+      ADC_PORT = Probes.Pin_1;          /* pull up source directly */
+      ADC_DDR = Probes.Pin_1;           /* enable pull up for source */
       /* gate is still pulled down via Rh */
-      U_1 = ReadU_20ms(Probes.Pin_3);   /* get voltage at gate */
+      U_1 = ReadU_20ms(Probes.ID_3);    /* get voltage at gate */
 
       if (U_1 < 977)               /* MOSFET */
       {
@@ -1034,7 +1034,7 @@ void CheckDepletionModeFET(void)
     /* common stuff */
     Check.Found = COMP_FET;
     Check.Done = 1;
-    Semi.A = Probes.Pin_3;         /* gate pin */
+    Semi.A = Probes.ID_3;          /* gate pin */
 
     /*
      *  drain & source pinout
@@ -1043,13 +1043,13 @@ void CheckDepletionModeFET(void)
 
     if (Diff_1 > Diff_2)      /* drain and source as assumed */
     {
-      Semi.B = Probes.Pin_1;       /* drain pin */
-      Semi.C = Probes.Pin_2;       /* source pin */
+      Semi.B = Probes.ID_1;        /* drain pin */
+      Semi.C = Probes.ID_2;        /* source pin */
     }
     else                      /* drain and source reversed */
     {
-      Semi.B = Probes.Pin_2;       /* drain pin */
-      Semi.C = Probes.Pin_1;       /* source pin */
+      Semi.B = Probes.ID_2;        /* drain pin */
+      Semi.C = Probes.ID_1;        /* source pin */
     }
 
     /*
@@ -1109,19 +1109,19 @@ uint8_t CheckThyristorTriac(void)
   /*            probe-1 = MT2 / probe-2 = MT1 / probe-3 = G for a triac */  
 
   /* V_GT (gate trigger voltage) */
-  U_1 = ReadU(Probes.Pin_3);            /* voltage at gate */
-  U_2 = ReadU(Probes.Pin_2);            /* voltage at cathode */
+  U_1 = ReadU(Probes.ID_3);             /* voltage at gate */
+  U_2 = ReadU(Probes.ID_2);             /* voltage at cathode */
   V_GT = U_1 - U_2;                     /* = Ug - Uc */
 
   /* discharge gate and check load current */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);    /* discharge gate */
-  U_1 = ReadU_5ms(Probes.Pin_1);        /* get voltage at anode */
+  U_1 = ReadU_5ms(Probes.ID_1);         /* get voltage at anode */
 
   /* simulate short loss of current and check load current again */ 
   R_PORT = 0;                           /* pull down anode */
   wait5ms();
   R_PORT = Probes.Rl_1;                 /* and pull up anode again */
-  U_2 = ReadU_5ms(Probes.Pin_1);        /* get voltage at anode (below Rl) */
+  U_2 = ReadU_5ms(Probes.ID_1);         /* get voltage at anode (below Rl) */
 
   /* voltages at anode match behaviour of thyristor or triac */
   if ((U_1 < 1600) && (U_2 > 4400))
@@ -1139,13 +1139,13 @@ uint8_t CheckThyristorTriac(void)
     /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc  */
     R_DDR = 0;                          /* disable all probe resistors */
     R_PORT = 0;
-    ADC_PORT = Probes.ADC_2;            /* pull up Cathode directly */
+    ADC_PORT = Probes.Pin_2;            /* pull up Cathode directly */
     wait5ms();
     R_DDR = Probes.Rl_1;                /* pull down Anode via Rl */ 
     /* probe-3 = gate is in HiZ mode */
 
     /* check if DUT doesn't conduct */
-    U_1 = ReadU_5ms(Probes.Pin_1);      /* get voltage at Anode */
+    U_1 = ReadU_5ms(Probes.ID_1);       /* get voltage at Anode */
 
     if (U_1 <= 244)      /* voltage at Anode is low (no current) */
     {
@@ -1153,7 +1153,7 @@ uint8_t CheckThyristorTriac(void)
       PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);
 
       /* check for conduction */
-      U_1 = ReadU_5ms(Probes.Pin_1);    /* get voltage at Anode */
+      U_1 = ReadU_5ms(Probes.ID_1);     /* get voltage at Anode */
 
       if (U_1 < 733)         /* no current -> Thyristor */
       {
@@ -1178,7 +1178,7 @@ uint8_t CheckThyristorTriac(void)
         R_PORT = 0;                     /* and pull down MT2 via Rl */
 
         /* and check load current again */
-        U_2 = ReadU_5ms(Probes.Pin_1);  /* get voltage at MT2 */
+        U_2 = ReadU_5ms(Probes.ID_1);   /* get voltage at MT2 */
 
         if (U_2 <= 244)       /* no current */
         {
@@ -1217,9 +1217,9 @@ uint8_t CheckThyristorTriac(void)
   if (Flag == 2)         /* save data and signal success */
   {
     /* save data */
-    Semi.A = Probes.Pin_3;    /* Gate pin */
-    Semi.B = Probes.Pin_1;    /* Anode/MT2 pin */
-    Semi.C = Probes.Pin_2;    /* Cathode/MT1 pin */
+    Semi.A = Probes.ID_3;     /* Gate pin */
+    Semi.B = Probes.ID_1;     /* Anode/MT2 pin */
+    Semi.C = Probes.ID_2;     /* Cathode/MT1 pin */
     Semi.U_1 = V_GT;          /* gate trigger voltage (in mV) */
 
     Flag = 1;                 /* signal success */

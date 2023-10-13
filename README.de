@@ -11,7 +11,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2016-01-01
+Letzte Änderung:  2016-03-24
 
 Inhaltsübersicht:
   - Über den Tester
@@ -39,6 +39,7 @@ Inhaltsübersicht:
     - Drehencoder
     - Kontrast
     - IR-Fernbedienungsdetektor
+    - Opto-Koppler-Test
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -503,6 +504,44 @@ Hinweis:
   Versorgungsspannungsbereich von ca. 2,5 - 5V voraus. Wenn du ein 5V-Modul
   hast, kannst du in config.h den Widerstand auf eigene Gefahr abschalten.
   Ein Kurzschluss kann allerdings die MCU zerstören.
+
+
++ Opto-Koppler-Test
+
+Dieser Test prüft Opto-Koppler und gibt V_f der LED, den CTR-Wert und t_on
+bzw. t_off Zeiten (für Transistortypen) aus. Unterstützt werden Standard-
+NPN-Transistoren, NPN-Darlington-Stufen und TRIACs. Für die CTR-Messung wird
+der I/O-Pin der MCU kurzzeitig für ca. 3ms überlastet. Das Datenblatt gibt
+einen maximalen Ausgangsstrom vom 20mA an, wir überlasten den Pin aber bis zu
+ca. 100mA. Daher ist der maximale CTR-Wert begrenzt, und Werte über 2000%
+sollte man mit Vorsicht geniessen.
+
+Der maximale Strom für die LED ist 5mA, was bei TRIAC-Typen zu beachten ist.
+Relais-Typen (MOSFET back to back) werden als Transistor erkannt und der
+CTR-Wert ist dann bedeutungslos. Typen mit anti-parallelen LEDs werden
+ignoriert.
+
+Zum Testen brauchst du einen einfachen Adapter mit folgenden drei Testpunkten:
+
+Transistor-Typ:
+- Anode der LED
+- Kathode der LED und Emitter vom Transistor miteinander verbunden
+- Kollektor vom Transistor
+
+TRIAC-Typ:
+- Anode der LED
+- Kathode der LED und MT1 vom TRIAC miteinander verbunden
+- MT1 vom TRIAC
+
+Du kannst den Adapter nach Belieben mit den drei Testpins vom Tester
+verbinden. Der Tester findet die Anschlußbelegung dann automatisch.
+
+Nach dem Starten bitte den Adapter mit den Testpins vom Tester verbinden und
+kurz die Taste zum Prüfen drücken. Wenn ein Opto-Koppler gefunden wurde, zeigt
+der Tester den Typen und verschiedene Infos an. Wurde keiner erkannt, erfolgt
+die Anzeige von "keiner". Ein blinkender Cursor weist darauf hin, daß ein
+Tastendruck für die nächste Prüfung erwartet wird. Zwei kurze Testendrücke
+beenden, wie üblich, den Test.
 
 
 + Selbsttest

@@ -2,7 +2,7 @@
  *
  *   inductor measurements
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -167,19 +167,19 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   if (Mode & MODE_LOW_CURRENT)     /* low current */
   {
     R_DDR = Probes.Rl_2;                /* pull down probe-2 via Rl */
-    ADC_DDR = Probes.ADC_1;             /* pull down probe-1 directly */
+    ADC_DDR = Probes.Pin_1;             /* pull down probe-1 directly */
   }
   else                             /* high current */
   {
     R_DDR = 0;                          /* disable probe resistors */
     /* pull down probe-1 and probe-2 directly */
-    ADC_DDR = Probes.ADC_1 | Probes.ADC_2;
+    ADC_DDR = Probes.Pin_1 | Probes.Pin_2;
   }
 
   /* setup analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
-  ADMUX = (1 << REFS0) | Probes.Pin_2;  /* switch ADC multiplexer to probe-2 */
+  ADMUX = (1 << REFS0) | Probes.ID_2;   /* switch ADC multiplexer to probe-2 */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   wait200us();                          /* allow bandgap reference to settle */
@@ -202,7 +202,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
     Test = (CPU_FREQ / 1000000);        /* MCU cycles per µs */
 
     /* change probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
-    ADC_PORT = Probes.ADC_1;            /* pull up probe-1 directly */
+    ADC_PORT = Probes.Pin_1;            /* pull up probe-1 directly */
 
     /*
      *  delay timer by about 3-4µs to skip capacitive effects of large inductors
@@ -223,7 +223,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   {
     TCCR1B |= (1 << CS10);              /* start timer (1/1 clock divider) */
     /* change probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
-    ADC_PORT = Probes.ADC_1;            /* pull up probe-1 directly */
+    ADC_PORT = Probes.Pin_1;            /* pull up probe-1 directly */
   }
 
 

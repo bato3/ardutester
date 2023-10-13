@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -189,7 +189,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   ADC_PORT = 0;               /* set ADC port to low */
   ADMUX = Probe1;             /* set input channel to probe 1 & set bandgap ref */
   wait10ms();                 /* time for voltage stabilization */
-  ADC_DDR = Probes.ADC_2;     /* pull down probe 2 directly */
+  ADC_DDR = Probes.Pin_2;     /* pull down probe 2 directly */
   R_PORT = Probes.Rl_1;       /* pull up probe 1 via Rl */
   R_DDR = Probes.Rl_1;        /* enable resistor */
   DelayTimer();               /* wait 1/2 pulse */
@@ -213,7 +213,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
      *  set probes: GND -- probe 1 -- Rl -- 5V / probe 2 -- HiZ
      */
 
-    ADC_DDR = Probes.ADC_1;        /* pull down probe 1 directly to GND */
+    ADC_DDR = Probes.Pin_1;        /* pull down probe 1 directly to GND */
     R_PORT = Probes.Rl_1;          /* pull up probe 1 via Rl */
     R_DDR = Probes.Rl_1;           /* enable resistor */
     ADMUX = Probe1;                /* set input channel to probe 1 & set bandgap ref */
@@ -257,7 +257,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
      *  set probes: GND -- probe 2 -- Rl -- 5V / probe 1 -- HiZ
      */
 
-    ADC_DDR = Probes.ADC_2;        /* pull down probe 2 directly */
+    ADC_DDR = Probes.Pin_2;        /* pull down probe 2 directly */
     R_PORT = Probes.Rl_2;          /* pull up probe 2 via Rl */
     R_DDR = Probes.Rl_2;           /* enable resistor */
     ADMUX = Probe2;                /* set input channel to probe 2 & set bandgap ref */
@@ -327,7 +327,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
       /* charge cap a little bit more (positive pulse) */
 
       /* set probes: GND -- probe 1 / probe 2 -- Rl -- 5V */
-      ADC_DDR = Probes.ADC_1;      /* pull down probe 1 directly */
+      ADC_DDR = Probes.Pin_1;      /* pull down probe 1 directly */
       R_PORT = Probes.Rl_2;        /* pull up probe 2 via Rl */
       R_DDR = Probes.Rl_2;         /* enable pull up */
       wait2us();
@@ -496,10 +496,10 @@ large_cap:
 
   /* setup probes: Gnd -- probe 1 / probe 2 -- Rl -- Vcc */
   ADC_PORT = 0;                    /* set ADC port to low */
-  ADC_DDR = Probes.ADC_2;          /* pull-down probe 2 directly */
+  ADC_DDR = Probes.Pin_2;          /* pull-down probe 2 directly */
   R_PORT = 0;                      /* set resistor port to low */
   R_DDR = 0;                       /* set resistor port to HiZ */
-  U_Zero = ReadU(Probes.Pin_1);    /* get zero voltage (noise) */
+  U_Zero = ReadU(Probes.ID_1);     /* get zero voltage (noise) */
 
   /* charge DUT with up to 500 pulses until it reaches 300mV */
   Pulses = 0;
@@ -508,7 +508,7 @@ large_cap:
   {
     Pulses++;
     PullProbe(Probes.Rl_1, Mode);       /* charging pulse */
-    U_Cap = ReadU(Probes.Pin_1);        /* get voltage */
+    U_Cap = ReadU(Probes.ID_1);         /* get voltage */
 
     /* zero offset */
     if (U_Cap > U_Zero)            /* voltage higher than zero offset */
@@ -563,7 +563,7 @@ large_cap:
     while (TempInt > 0)
     {
       TempInt--;                        /* descrease timeout */
-      U_Drop = ReadU(Probes.Pin_1);     /* get voltage */
+      U_Drop = ReadU(Probes.ID_1);      /* get voltage */
       U_Drop -= U_Zero;                 /* zero offset */
       wdt_reset();                      /* reset watchdog */
     }
@@ -605,8 +605,8 @@ large_cap:
     else Value /= 104;                    /* -4% for mid cap */
 
     /* copy data */
-    Cap->A = Probes.Pin_2;    /* pull-down probe pin */
-    Cap->B = Probes.Pin_1;    /* pull-up probe pin */
+    Cap->A = Probes.ID_2;     /* pull-down probe pin */
+    Cap->B = Probes.ID_1;     /* pull-up probe pin */
     Cap->Scale = Scale;       /* -9 or -6 */
     Cap->Raw = Raw;
     Cap->Value = Value;       /* max. 4.3*10^6nF or 100*10^3µF */ 
@@ -675,7 +675,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   /* setup analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
-  ADMUX = (1 << REFS0) | Probes.Pin_1;  /* switch ADC multiplexer to probe 1 */
+  ADMUX = (1 << REFS0) | Probes.ID_1;   /* switch ADC multiplexer to probe 1 */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   wait200us();
@@ -693,11 +693,11 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   if (Check.Found == COMP_FET)
   {
     /* keep all probe pins pulled down but probe-1 */
-    TempByte = (((1 << TP1) | (1 << TP2) | (1 << TP3)) & ~(1 << Probes.Pin_1));    
+    TempByte = (((1 << TP1) | (1 << TP2) | (1 << TP3)) & ~(1 << Probes.ID_1));    
   }
   else
   {
-    TempByte = Probes.ADC_2;            /* keep just probe-1 pulled down */
+    TempByte = Probes.Pin_2;            /* keep just probe-1 pulled down */
   }
 
   /* start timer by setting clock prescaler (1/1 clock divider) */
@@ -751,7 +751,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
   /* get voltage of DUT */
-  U_c = ReadU(Probes.Pin_1);       /* get voltage of cap */
+  U_c = ReadU(Probes.ID_1);        /* get voltage of cap */
 
   /* start discharging DUT */
   R_PORT = 0;                      /* pull down probe-2 via Rh */
@@ -802,8 +802,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     }
 
     /* copy data */
-    Cap->A = Probes.Pin_2;    /* pull-down probe pin */
-    Cap->B = Probes.Pin_1;    /* pull-up probe pin */
+    Cap->A = Probes.ID_2;     /* pull-down probe pin */
+    Cap->B = Probes.ID_1;     /* pull-up probe pin */
     Cap->Scale = Scale;       /* -12 or -9 */
     Cap->Raw = Raw;
     Cap->Value = Value;       /* max. 5.1*10^6pF or 125*10^3nF */
@@ -829,7 +829,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        *  reference. The common voltage source is the cap we just measured.
        */
 
-       while (ReadU(Probes.Pin_1) > 980)
+       while (ReadU(Probes.ID_1) > 980)
        {
          /* keep discharging */
        }
@@ -837,9 +837,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        R_DDR = 0;                       /* stop discharging */
 
        Config.AutoScale = 0;            /* disable auto scaling */
-       Ticks = ReadU(Probes.Pin_1);     /* U_c with Vcc reference */
+       Ticks = ReadU(Probes.ID_1);      /* U_c with Vcc reference */
        Config.AutoScale = 1;            /* enable auto scaling again */
-       Ticks2 = ReadU(Probes.Pin_1);    /* U_c with bandgap reference */
+       Ticks2 = ReadU(Probes.ID_1);     /* U_c with bandgap reference */
 
        R_DDR = Probes.Rh_1;             /* resume discharging */
 

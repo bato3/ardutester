@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -33,7 +33,7 @@
  *  HD44780, 4 bit parallel
  */
 
-#if 0
+//#if 0
 #define LCD_HD44780_PAR4
 #define LCD_TEXT                        /* character display */
 #define LCD_PORT         PORTD          /* port data register */
@@ -45,7 +45,7 @@
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
 #define FONT_HD44780_INT                /* internal 5x7 font, international */
-#endif
+//#endif
 
 
 /*
@@ -54,7 +54,7 @@
  *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
  */
 
-//#if 0
+#if 0
 #define LCD_ST7565R_SPI
 #define LCD_GRAPHIC                     /* monochrome graphic display */
 #define LCD_PORT         PORTD          /* port data register */
@@ -73,13 +73,13 @@
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
 #define FONT_8X8_V                      /* 8x8 font, vertically aligned */
 #define SYMBOLS_24X24_V                 /* 24x24 symbols, vertically aligned */
-//#endif
+#endif
 
 
 
 /*
  *  M12864 DIY Transistor Tester
- *  - ST7585 display
+ *  - ST7565 display
  *  - rotary encoder at PD1/3
  */
 
@@ -94,7 +94,7 @@
 #define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
-#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     11             /* default contrast (0-63) */
@@ -105,7 +105,7 @@
 
 
 /*
- *  Chinese clone T3/T4 with ST7585 display
+ *  Chinese clone T3/T4 with ST7565 display
  *  - thanks to tom666 @ EEVblog forum 
  */
 
@@ -183,6 +183,7 @@
 
 /*
  *  ADS7843 / XPT2046 (SPI interface)
+ *  - not supported yet
  */
 
 #if 0
@@ -211,7 +212,7 @@
  *    rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
@@ -321,8 +322,8 @@
 
 
 /*
- *  IR remote control detection
- *  - requires TSOP IR receiver module
+ *  IR remote control detection/decoder
+ *  - requires IR receiver module, e.g. TSOP series
  *  - uncomment to enable
  */
 
@@ -337,6 +338,14 @@
  */
 
 //#define SW_IR_DISABLE_RESISTOR
+
+
+/*
+ *  check for opto couplers
+ *  - uncomment to enable
+ */
+
+#define SW_OPTO_COUPLER
 
 
 
@@ -434,6 +443,7 @@
 /*
  *  LCD module with cyrillic character set
  *  - uncomment if you are using such an LCD
+ *  - obsolete
  */
 
 //#define LCD_CYRILLIC
@@ -627,7 +637,7 @@
 /*
  *  selection of ADC clock 
  *  - ADC clock can be 125000 or 250000 
- *  - 250kHz is out of the full accuracy specification!
+ *  - 250kHz is outside of the full accuracy specification!
  */
 
 #define ADC_FREQ    125000

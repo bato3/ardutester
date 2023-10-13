@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -463,7 +463,7 @@ uint8_t ReadEncoder(void)
  *  - 2 if key was pressed long
  *  - 3 if rotary encoder was turned right
  *  - 4 if rotary encoder was turned left
- *  The turning velocity is returned by Enc.Velocity.
+ *  The turning velocity is returned via Enc.Velocity.
  */
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
@@ -1033,7 +1033,7 @@ void AdjustmentMenu(uint8_t Mode)
 
 uint8_t PresentMainMenu(void)
 {
-  #define MENU_ITEMS  14
+  #define MENU_ITEMS  15
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1084,6 +1084,11 @@ uint8_t PresentMainMenu(void)
   #ifdef SW_IR_RECEIVER
   MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
   MenuID[Item] = 13;
+  Item++;
+  #endif
+  #ifdef SW_OPTO_COUPLER
+  MenuItem[Item] = (void *)OptoCoupler_str;  /* opto coupler tool */
+  MenuID[Item] = 14;
   Item++;
   #endif
 
@@ -1213,6 +1218,12 @@ void MainMenu(void)
     #ifdef SW_IR_RECEIVER
     case 13:             /* IR RC detection */
       IR_Detector();
+      break;
+    #endif
+
+    #ifdef SW_OPTO_COUPLER
+    case 14:             /* opto coupler tool */
+      OptoCoupler_Tool();
       break;
     #endif
   }

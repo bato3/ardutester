@@ -10,6 +10,10 @@
 
 ------------------------------------------------------------------------------
 
+v1.22m 2016-03
+- Test für Opto-Koppler mit Ausgabe von V_f der LED, CTR und t_on bzw. t_off
+  Zeiten (Typen mit Transistorausgang).
+
 v1.21m 2016-01
 - Lizenziert unter der EUPL V.1.1
 - Laden und Speichern von Abgleichwerten optimiert und Unterstützung von

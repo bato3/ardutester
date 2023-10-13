@@ -11,7 +11,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2016-01-01
+Last edit:  2016-03-24
 
 Content
   - About
@@ -39,6 +39,7 @@ Content
     - Rotary Encoder
     - Contrast
     - IR RC detector
+    - Opto Coupler Tool
     - Selftest
     - Self Adjustment
     - Save/Load
@@ -488,6 +489,42 @@ Hint:
   supply voltage range of about 2.5 to 5V. If you got a 5V only module you can
   disable the resistor in the config.h file on your own risk. Any short
   circuit may destroy the MCU.
+
+
++ Opto Coupler Tool
+
+This tool checks opto couplers and shows you the LED's V_f, the CTR and t_on
+and t_off delays (BJT types). It supports standard NPN BJTs, NPN Darlington
+stages and TRIACs. For the CTR measurement the MCU's I/O pin is overloaded for
+about 3ms. The datasheet specifies a maximum output current of 20mA, but we
+overload the I/O pin up to about 100mA. Therefore the maximal CTR value is
+limited and any CTR over 2000% should be considered with caution.
+
+The maximum drive current for the LED is about 5mA, which should be considered
+for TRIAC types. Relay types (MOSFET back to back) are detected as BJT and the
+CTR will be meaningless. Types with anti-parallel LEDs are ignored.
+
+For testing you need a simple adapter with following three test points:
+
+BJT type:
+- LED's anode
+- LED's cathode and BJT's emitter connected together
+- BJT's collector
+
+TRIAC type:
+- LED's anode
+- LED's cathode and TRIAC's MT1 connected together
+- TRIAC's MT2
+
+You may connect the adapter any way to the three probes of the component
+tester. It will detect the pinout automatically.
+
+After entering the tool please connect the adapter and press the test key
+briefly to scan for an opto coupler. If one is found the tester displays
+the type and various details. Or it displays "none" when no opto coupler was
+detected. A blinking cursor indicates that you have to press the test key
+(or turn the rotary encoder) for a new scan. Two short key presses end the
+tool as usual.
 
 
 + Selftest

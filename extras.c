@@ -917,13 +917,13 @@ uint8_t CheckEncoder(uint8_t *History)
   R_PORT = Probes.Rl_1 | Probes.Rl_2;   /* pullup via Rl */
   R_DDR =  Probes.Rl_1 | Probes.Rl_2;   /* enable pull-up resistors */
   ADC_PORT = 0;                         /* pull down directly */
-  ADC_DDR = Probes.ADC_3;               /* enable Gnd for probe-3 */
+  ADC_DDR = Probes.Pin_3;               /* enable Gnd for probe-3 */
   wait500us();                          /* settle time */
 
   /* get A & B signals */
   Temp = ADC_PIN;
-  if (Temp & Probes.ADC_1) AB = 0b00000010;
-  if (Temp & Probes.ADC_2) AB |= 0b00000001;
+  if (Temp & Probes.Pin_1) AB = 0b00000010;
+  if (Temp & Probes.Pin_2) AB |= 0b00000001;
 
   R_DDR = 0;                  /* reset probes */
   ADC_DDR = 0;
@@ -979,16 +979,16 @@ uint8_t CheckEncoder(uint8_t *History)
 
           if (Dir == DIR_RIGHT)         /* right */
           {
-            Semi.A = Probes.Pin_1;
-            Semi.B = Probes.Pin_2;
+            Semi.A = Probes.ID_1;
+            Semi.B = Probes.ID_2;
           }
           else                          /* left */
           {
-            Semi.A = Probes.Pin_2;
-            Semi.B = Probes.Pin_1;
+            Semi.A = Probes.ID_2;
+            Semi.B = Probes.ID_1;
           }
 
-          Semi.C = Probes.Pin_3;        /* Common */
+          Semi.C = Probes.ID_3;         /* Common */
 
           /* display pinout */
           Show_SemiPinout('A', 'B', 'C');
@@ -1092,6 +1092,357 @@ void Encoder_Tool(void)
   }
 }
 
+#endif
+
+
+
+/* ************************************************************************
+ *   opto couplers
+ * ************************************************************************ */
+
+
+#ifdef SW_OPTO_COUPLER
+
+/*
+ *  check for LED
+ *  - simple wrapper for CheckDiode()
+ *
+ *  requires:
+ *  - Probe1: ID of positive probe (anode)
+ *  - Probe2: ID of negative probe (cathode)
+ */
+
+void Check_LED(uint8_t Probe1, uint8_t Probe2)
+{
+  uint8_t           Probe3;             /* ID of probe #3 */
+  uint16_t          U1;                 /* voltage */
+
+  /* update all three probes */
+  Probe3 = GetThirdProbe(Probe1, Probe2);    /* get third one */
+  UpdateProbes(Probe1, Probe2, Probe3);      /* update probes */
+
+  /* we assume: probe-1 = A / probe2 = C */
+  /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
+  R_PORT = 0;                      /* set resistor port to Gnd */
+  R_DDR = Probes.Rl_2;             /* pull down probe-2 via Rl */
+  ADC_DDR = Probes.Pin_1;          /* set probe-1 to output */
+  ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
+
+  U1 = ReadU_5ms(Probes.ID_2);     /* voltage at Rl (cathode) */
+
+  if (U1 >= 977)         /*  not just a leakage current (> 1.4mA) */
+  {
+    CheckDiode();        /* run standard diode check */
+  }
+}
+
+
+
+/*
+ *  check opto couplers
+ *  - pins which have to be connected (common Gnd):
+ *    - LED's cathode and BJT's emitter 
+ *    - LED's cathode and TRIAC's MT2
+ *  - supports:
+ *    - BJT
+ *    - Triac (with and without zero crossing circuit)
+ */
+
+void OptoCoupler_Tool(void)
+{
+  uint8_t           Run = 1;            /* loop control */
+  uint8_t           Test;               /* user input */
+  uint16_t          U1, U2;             /* voltages */
+  uint16_t          U3, U4;             /* voltages */
+  uint32_t          CTR = 0;            /* CTR in % */
+
+  /* init */
+  LCD_NextLine_Mode(MODE_KEEP | MODE_KEY);   /* set line mode */
+
+  /* display info */
+  LCD_Clear();
+  LCD_EEString(OptoCoupler_str);        /* display: Opto Coupler */
+  LCD_NextLine_EEString(Start_str);     /* display: Start */
+
+  while (Run)
+  {
+    /* user input */
+    Test = TestKey(0, 2);          /* get user input */
+
+    if (Test == 1)                 /* short key press */
+    {
+      /* a second key press ends tool */
+      MilliSleep(50);
+      Test = TestKey(300, 0);
+      if (Test > 0) Run = 0;       /* end loop */
+    }
+
+    if (Run)                       /* check opto coupler */
+    {
+      LCD_Clear();
+      LCD_EEString(OptoCoupler_str);    /* display: Opto Coupler */
+      LCD_NextLine();
+      Test = 0;
+
+      /*
+       *  scan for LED
+       */
+
+      Check.Found = COMP_NONE;          /* reset component search */
+      Check.Diodes = 0;                 /* reset number of diodes */
+
+      /* check all possible probe combinations */
+      Check_LED(TP1, TP2);
+      Check_LED(TP2, TP1);
+      Check_LED(TP1, TP3);
+      Check_LED(TP3, TP1);
+      Check_LED(TP2, TP3);
+      Check_LED(TP3, TP2);
+
+      if (Check.Diodes == 1)       /* got one */
+      {
+        /* update all three probes for remaining checks */
+        Test = GetThirdProbe(Diodes[0].A, Diodes[0].C);  /* get third probe */
+        UpdateProbes(Diodes[0].A, Diodes[0].C, Test);    /* update probes */
+
+        Test = 50;                      /* proceed with other checks */
+      }
+
+
+      /*
+       *  we assume:
+       *  probe-1 = LED's anode
+       *  probe-2 = LED's cathode & BJT's emitter or TRIAC's MT2
+       *  probe-3 = BJT's collector or TRIAC's MT1
+       */
+
+
+      /*
+       *  check for BJT and TRIAC
+       *  - BJT conducts only while LED is lit.
+       *  - TRIAC keeps conducting as long as load current flows.
+       *    Some types with zero crossing circuit got an inhibit voltage
+       *    of about 5V.
+       */
+
+      if (Test == 50)
+      {
+        /* set probes: probe-2 -- Gnd / probe-3 -- Rl -- Vcc */
+        ADC_DDR = Probes.Pin_2;              /* set probe-2 to output */
+        ADC_PORT = 0;                        /* pull down probe-2 directly */
+        R_DDR = Probes.Rl_1 | Probes.Rl_3;   /* select Rl for probe-1 & Rl for probe-3 */
+        R_PORT = Probes.Rl_3;                /* pull up collector via Rl */
+        U1 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is off */
+
+        /* make sure we have no conduction without the LED lit */
+        if (U1 > 4000)        /* allow a leakage current of 1.5mA */
+        {
+          /* simulate zero crossing in case of a TRIAC with zero crossing circuit */
+          R_PORT = Probes.Rl_1;                /* turn on LED */
+          wait1ms();                           /* wait a tad */
+          R_PORT = Probes.Rl_1 | Probes.Rl_3;  /* also pull up collector via Rl */
+          U1 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is on */
+
+          R_PORT = Probes.Rl_3;                /* turn off LED */
+          U2 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is off */
+
+          /* we should have conduction when the LED is lit */
+          if (U1 <= 4000)          /* more than 1.5mA */
+          {
+            if (U2 >= 4000)        /* no conduction, allow some leakage current */
+            {
+              Test = 100;          /* BJT type */
+            }
+            else                   /* conduction */
+            {
+              /* check if both voltages are about the same */
+              U3 = U1;
+              U3 /= 8;             /* 12.5% */
+              U4 = U1 - U3;        /* lower threshold */
+              U3 += U1;            /* upper threshold */
+              if ((U2 > U4) && (U2 < U3))
+              {
+                Test = 101;        /* TRIAC type */
+              }
+            }
+          }
+        }
+
+        R_DDR = Probes.Rl_1;                 /* set probe-3 to HiZ */
+      }
+
+
+      /*
+       *  measure CRT for BJT type
+       */
+
+      if (Test == 100)          /* got BJT type */
+      {
+        /* change probes: probe-3 -- Vcc */
+        ADC_DDR = Probes.Pin_2 | Probes.Pin_3;    /* set probe-3 to output */
+        ADC_PORT = Probes.Pin_3;                  /* pull up probe-3 directly */
+
+        /* get voltages at current shunts */
+        Config.Samples = 10;            /* just a few samples for 1ms runtime */
+        R_PORT = Probes.Rl_1;           /* turn LED on */
+        wait1ms();                      /* time for propagation delay */
+        U1 = ReadU(Probes.ID_1);        /* voltage at LED's anode (Rl) */
+        U2 = ReadU(Probes.ID_2);        /* voltage at emitter (RiL) */
+        R_PORT = 0;                     /* turn LED off */
+        Config.Samples = ADC_SAMPLES;   /* reset samples to default */
+
+        /* calculate LED's If */
+        /* If = (Vcc - U1) / (RiH + Rl) */
+        U3 = Config.Vcc - U1;           /* Vcc - U1 (mV) */
+        CTR = (uint32_t)U3;
+        CTR *= 10000;                   /* scale to 0.0001 mV */
+        U4 = NV.RiH + (R_LOW * 10);     /* RiH + Rl (0.1 Ohms) */
+        CTR /= U4;                      /* If = U/R in µA */
+        U1 = (uint16_t)CTR;             /* If in µA */
+
+        /* calculate BJT's Ie */
+        /* Ie = I_total - If = (U2 / RiL) - If */
+        CTR = (uint32_t)U2;             /* U2 (mV) */
+        CTR *= 10000;                   /* scale to 0.0001 mV */
+        CTR /= NV.RiL;                  /* /RiL in 0.1 Ohms -> I_total (µA) */ 
+        CTR -= U1;                      /* Ie = I_total - If (µA) */
+
+        /* calculate CTR */
+        /* CTR = Ie / If */
+        CTR *= 100;                     /* scale up to % */
+        CTR /= U1;                      /* Ie / If (%) */
+      }
+
+
+      /*
+       *  Measure turn-on and turn-off times
+       *  - Unfortunately we can't use the analog comparator in conjunction
+       *    with Timer1, because the 1.1V bandgap reference would limit the
+       *    time measurement to opto couplers with a CTR > 200%.
+       */
+
+      if (Test == 100)
+      {
+        U1 = UINT16_MAX;           /* reset value */
+        U2 = UINT16_MAX;
+
+        ADC_DDR = Probes.Pin_2;              /* set probe-2 to output */
+        ADC_PORT = 0;                        /* pull down probe-2 directly */
+        R_DDR = Probes.Rl_1 | Probes.Rl_3;   /* select Rl for probe-1 & Rl for probe-3 */
+        R_PORT = Probes.Rl_3;                /* pull up collector via Rl */
+
+        U1 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is off */
+
+        /* make sure we have no conduction without the LED lit */
+        if (U1 > 4000)        /* allow a leakage current of 1.5mA */
+        {
+          Test = Probes.Pin_3;     /* port pin mask for probe-3 */
+
+          /*
+           *  turn-on delay
+           */
+
+          Run = 0;                                /* zero counter */
+          R_PORT = Probes.Rl_1 | Probes.Rl_3;     /* turn on LED */
+
+          /*
+           *  wait for logic low level (<2.0V)
+           *  - MCU cycles for full loop run: 7
+           */
+
+          while (ADC_PIN & Test)
+          {
+            Run++;                      /* increase counter */
+            if (Run > 250) break;       /* check for overflow */
+          }
+
+          if (Run <= 250)          /* no overrun */
+          {
+            U1 = Run * 70;                   /* delay (0.1 MCU cycles) */
+            U1 /= (CPU_FREQ / 1000000);      /* delay (0.1 µs) */
+          }
+
+
+          /*
+           *  turn-off delay
+           */
+
+          Run = 0;                                /* zero counter */
+          R_PORT = Probes.Rl_3;                   /* turn off LED */
+
+          /*
+           *  wait for logic high level (>2.5V)
+           *  - MCU cycles for full loop run: 7
+           */
+
+          while (!(ADC_PIN & Test))
+          {
+            Run++;                      /* increase counter */
+            if (Run > 250) break;       /* check for overflow */
+          }
+
+          if (Run <= 250)          /* no overrun */
+          {
+            U2 = Run * 70;                   /* delay (0.1 MCU cycles) */
+            U2 /= (CPU_FREQ / 1000000);      /* delay (0.1 µs) */
+          }
+
+          Run = 1;            /* reset value */
+          Test = 100;         /* reset value */
+        }
+      }
+
+
+      /*
+       *  display result
+       */
+
+      if (Test == 100)          /* got BJT type */
+      {
+        LCD_EEString(BJT_str);          /* display: BJT */
+
+        LCD_NextLine_EEString_Space(CTR_str);     /* display: CTR */
+        DisplayValue(CTR, 0, '%');                /* display CTR */
+
+        if (U1 < UINT16_MAX)       /* valid t_on */
+        {
+          LCD_NextLine_EEString_Space(t_on_str);   /* display: t_on */
+          if (U1 < 10)        /* < 1µs */
+          {
+            LCD_Char('<');
+            U1 = 10;          /* 1µs */
+          }
+          DisplayValue(U1, -7, 's');
+        }
+
+        if (U2 < UINT16_MAX)       /* valid t_off */
+        {
+          LCD_NextLine_EEString_Space(t_off_str);  /* display: t_off */
+          if (U2 < 10)        /* < 1µs */
+          {
+            LCD_Char('<');
+            U2 = 10;          /* 1µs */
+          }
+          DisplayValue(U2, -7, 's');
+        }
+
+        LCD_NextLine_EEString_Space(Vf_str);      /* display: Vf */
+        DisplayValue(Diodes[0].V_f, -3, 'V');     /* display Vf */
+      }
+      else if (Test == 101)     /* got TRIAC type */
+      {
+        LCD_EEString(Triac_str);        /* display: TRIAC */
+
+        LCD_NextLine_EEString_Space(Vf_str);      /* display: Vf */
+        DisplayValue(Diodes[0].V_f, -3, 'V');     /* display Vf */
+      }
+      else                      /* none found */
+      {
+        LCD_EEString(None_str);         /* display: None */
+      }
+    }
+  }
+}
 
 #endif
 

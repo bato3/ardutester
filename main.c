@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -82,7 +82,7 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   {
     for (j = 0; j <= 2; j++)       /* loop through component pins */
     {
-      if (i == Pin[j])        /* probe pin matches */
+      if (i == Pin[j])             /* probe pin matches */
       {
         LCD_Char(ID[j]);           /* show ID */
       }

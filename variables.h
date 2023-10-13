@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -123,7 +123,11 @@
     #ifdef SW_IR_RECEIVER
       const unsigned char IR_Detector_str[] EEMEM = "IR-Detektor";
     #endif
-
+    #ifdef SW_OPTO_COUPLER
+      const unsigned char OptoCoupler_str[] EEMEM = "Optokoppler";
+      const unsigned char Start_str[] EEMEM = "Start";
+      const unsigned char None_str[] EEMEM = "Keiner";
+    #endif
 
   /* language specific: Czech */
   #elif defined (UI_CZECH)
@@ -169,7 +173,11 @@
     #ifdef SW_IR_RECEIVER
       const unsigned char IR_Detector_str[] EEMEM = "IR detector";
     #endif
-
+    #ifdef SW_OPTO_COUPLER
+      const unsigned char OptoCoupler_str[] EEMEM = "Opto Coupler";
+      const unsigned char Start_str[] EEMEM = "Start";
+      const unsigned char None_str[] EEMEM = "None";
+    #endif
 
   /* language specific: English (default) */
   #else
@@ -215,6 +223,12 @@
     #ifdef SW_IR_RECEIVER
       const unsigned char IR_Detector_str[] EEMEM = "IR detector";
     #endif
+    #ifdef SW_OPTO_COUPLER
+      const unsigned char OptoCoupler_str[] EEMEM = "Opto Coupler";
+      const unsigned char Start_str[] EEMEM = "Start";
+      const unsigned char None_str[] EEMEM = "None";
+    #endif
+
   #endif
 
   /* language independent */
@@ -282,7 +296,11 @@
     const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
   #endif
-
+  #ifdef SW_OPTO_COUPLER
+    const unsigned char CTR_str[] EEMEM = "CTR";
+    const unsigned char t_on_str[] EEMEM = "t_on";
+    const unsigned char t_off_str[] EEMEM = "t_off";
+  #endif
 
   /* component symbols */
   const unsigned char Cap_str[] EEMEM = {'-', LCD_CHAR_CAP, '-',0};
@@ -291,7 +309,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.21m";
+  const unsigned char Version_str[] EEMEM = "v1.22m";
 
 
   /*
@@ -339,8 +357,11 @@
   /* bitmasks for Rh probe resistors based on probe ID */
   const unsigned char Rh_table[] EEMEM = {(2 << (TP1 * 2)), (2 << (TP2 * 2)), (2 << (TP3 * 2))};
 
-  /* bitmasks for ADC pins based on probe ID */
-  const unsigned char ADC_table[] EEMEM = {(1 << TP1), (1 << TP2), (1 << TP3)};
+  /* bitmasks for pins (ADC port) based on probe ID */
+  const unsigned char Pin_table[] EEMEM = {(1 << TP1), (1 << TP2), (1 << TP3)};
+
+  /* bitmasks for ADC MUX input addresses based on probe ID */
+//const unsigned char ADC_table[] EEMEM = {TP1, TP2, TP3};
 
 
 
@@ -412,6 +433,9 @@
   extern const unsigned char DischargeFailed_str[];
   extern const unsigned char Error_str[];
   extern const unsigned char Exit_str[];
+  extern const unsigned char Vf_str[];
+  extern const unsigned char BJT_str[];
+  extern const unsigned char Triac_str[];
 
   extern const unsigned char URef_str[];
   extern const unsigned char RhLow_str[];
@@ -474,6 +498,14 @@
     extern const unsigned char IR_Sharp_str[];
     extern const unsigned char IR_SIRC_str[];
   #endif
+  #ifdef SW_OPTO_COUPLER
+    extern const unsigned char OptoCoupler_str[];
+    extern const unsigned char Start_str[];
+    extern const unsigned char None_str[];
+    extern const unsigned char CTR_str[];
+    extern const unsigned char t_on_str[];
+    extern const unsigned char t_off_str[];
+  #endif
 
 
   /*
@@ -514,8 +546,11 @@
   /* bitmasks for Rl probe resistors based on probe ID */
   extern const unsigned char Rl_table[];
 
-  /* bitmasks for ADC pins based on probe ID */
-  extern const unsigned char ADC_table[];
+  /* bitmasks for pins (ADC port) based on probe ID */
+  extern const unsigned char Pin_table[];
+
+  /* bitmasks for ADC MUX input addresses based on probe ID */
+//extern const unsigned char ADC_table[];
 
 #endif
 

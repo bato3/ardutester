@@ -20,7 +20,11 @@ int main(void)
 {
     // switch on
     ON_DDR = (1 << ON_PIN);
+#ifdef PULLUP_DISABLE
     ON_PORT = (1 << ON_PIN); // switch power on
+#else
+    ON_PORT = (1 << ON_PIN) | (1 << RST_PIN); // switch power on , enable internal Pullup for Start-Pin
+#endif
     uint8_t tmp;
     // ADC-Init
     ADCSRA = (1 << ADEN) | AUTO_CLOCK_DIV; // prescaler=8 or 64 (if 8Mhz clock)
@@ -125,7 +129,8 @@ start:
     ADC_PORT = TXD_VAL;
     ADC_DDR = (1 << TPREF) | TXD_MSK; // switch pin with reference to GND
     wait1ms();
-    ADC_DDR = TXD_MSK;                 // switch pin with reference back to input
+    ADC_DDR = TXD_MSK; // switch pin with reference back to input
+#if FLASHEND > 0x1fff
     trans.uBE[1] = W5msReadADC(TPREF); // read voltage of precision reference
     if ((trans.uBE[1] > 2250) && (trans.uBE[1] < 2750))
     {
@@ -133,13 +138,14 @@ start:
         WithReference = 1;
         ADCconfig.U_AVCC = (unsigned long)((unsigned long)ADCconfig.U_AVCC * 2495) / trans.uBE[1];
     }
+#endif
     lcd_line1(); // 1. row
 
 #ifdef WITH_AUTO_REF
     (void)ReadADC(0x0e);         // read Reference-voltage
     ref_mv = W20msReadADC(0x0e); // read Reference-voltage
 #else
-    ref_mv = DEFAULT_BAND_GAP;   // set to default Reference Voltage
+    ref_mv = DEFAULT_BAND_GAP;                // set to default Reference Voltage
 #endif
     ADCconfig.U_Bandgap = ADC_internal_reference; // set internal reference voltage for ADC
     ADCconfig.Samples = ANZ_MESS;                 // set to configured number of ADC samples
@@ -184,7 +190,7 @@ start:
         lcd_fix_string(OK_str); // "OK"
     }
 #else
-    lcd_fix_string(VERSION_str); // if no Battery check, Version .. in row 1
+    lcd_fix_string(VERSION_str);              // if no Battery check, Version .. in row 1
 #endif
 #ifdef WDT_enabled
     wdt_enable(WDTO_2S); // Watchdog on
@@ -195,20 +201,15 @@ start:
 #ifdef AUTO_RH
     RefVoltage(); // compute RHmultip = f(reference voltage)
 #endif
+#if FLASHEND > 0x1fff
     if (WithReference)
     {
         lcd_line2();
         lcd_fix_string(VCC_str);                    // VCC=
         DisplayValue(ADCconfig.U_AVCC, -3, 'V', 3); // Display 3 Digits of this mV units
-#if 0
-     lcd_space();
-     trans.uBE[0] = ReadADC((1<<REFS1)|(1<<REFS0)|8); 	//read temperature sensor
-     lcd_string(itoa(trans.uBE[0] - 345, outval, 10));    //output correction voltage
-     lcd_data(LCD_CHAR_DEGREE); // output degree
-     lcd_data('C');
-#endif
         wait1s();
     }
+#endif
 
     lcd_line2();                 // LCD position row2, column 1
     lcd_fix_string(TestRunning); // String: testing...
@@ -243,6 +244,8 @@ start:
     {
         EntladePins(); // discharge capacities
         // measurement of capacities in all 3 combinations
+        cap.cval_max = 0;   // set max to zero
+        cap.cpre_max = -12; // set max to pF unit
         ReadCapacity(TP3, TP1);
         ReadCapacity(TP3, TP2);
         ReadCapacity(TP2, TP1);
@@ -406,7 +409,11 @@ start:
         }
         if (NumOfDiodes > 2)
         { // Transistor with protection diode
+#ifdef EBC_STYLE
             if (PartMode == PART_MODE_NPN)
+#else
+            if (((PartMode == PART_MODE_NPN) && (trans.c > trans.e)) || ((PartMode != PART_MODE_NPN) && (trans.c < trans.e)))
+#endif
             {
                 lcd_fix_string(AnKat); //"->|-"
             }
@@ -415,10 +422,23 @@ start:
                 lcd_fix_string(KatAn); //"-|<-"
             }
         }
+#ifdef EBC_STYLE
         lcd_fix_string(EBC_str); //" EBC="
         lcd_testpin(trans.e);
         lcd_testpin(trans.b);
         lcd_testpin(trans.c);
+#else
+        lcd_fix_string(N123_str); //" 123="
+        for (ii = 0; ii < 3; ii++)
+        {
+            if (ii == trans.e)
+                lcd_data('E'); // Output Character in right order
+            if (ii == trans.b)
+                lcd_data('B');
+            if (ii == trans.c)
+                lcd_data('C');
+        }
+#endif
         lcd_line2();             // 2. row
         lcd_fix_string(hfe_str); //"B="  (hFE)
         DisplayValue(trans.hfe[0], 0, 0, 3);
@@ -459,14 +479,31 @@ start:
         {
             lcd_fix_string(mosfet_str); //"-MOS "
         }
+#ifdef EBC_STYLE
         lcd_fix_string(GDS_str); //"GDS="
         lcd_testpin(trans.b);
         lcd_testpin(trans.c);
         lcd_testpin(trans.e);
+#else
+        lcd_fix_string(N123_str); //" 123="
+        for (ii = 0; ii < 3; ii++)
+        {
+            if (ii == trans.e)
+                lcd_data('S'); // Output Character in right order
+            if (ii == trans.b)
+                lcd_data('G');
+            if (ii == trans.c)
+                lcd_data('D');
+        }
+#endif
         if ((NumOfDiodes > 0) && (PartMode < PART_MODE_N_D_MOS))
         {
             // MOSFET with protection diode; only with enhancement-FETs
+#ifdef EBC_STYLE
             if (PartMode & 1)
+#else
+            if (((PartMode & 1) && (trans.c < trans.e)) || ((!(PartMode & 1)) && (trans.c > trans.e)))
+#endif
             {
                 lcd_data(LCD_CHAR_DIODE1); // show Diode symbol >|
             }
@@ -600,7 +637,7 @@ start:
         lcd_fix_string(CapZeich); // capacitor sign
         lcd_testpin(cap.cb);      // Pin number 2
         lcd_line2();              // 2. row
-        DisplayValue(cap.cval, cap.cpre, 'F', 4);
+        DisplayValue(cap.cval_max, cap.cpre_max, 'F', 4);
 #if FLASHEND > 0x1fff
         GetESR(); // get ESR of capacitor
 #endif
@@ -678,7 +715,7 @@ end2:
         }
     }
 #else
-    goto start;                  // POWER_OFF not selected, repeat measurement
+    goto start; // POWER_OFF not selected, repeat measurement
 #endif
     return 0;
 } // end main

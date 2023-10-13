@@ -177,7 +177,7 @@ End of configuration
 #endif
 
 // RH_OFFSET : systematic offset of resistor measurement with RH (470k)
-// resolution is 0.1 Ohm, 7000 defines a offset of 700 Ohm
+// resolution is 0.1 Ohm, 3500 defines a offset of 350 Ohm
 #define RH_OFFSET 3500
 
 // TP2_CAP_OFFSET is a additionally offset for TP2 capacity measurements in pF units
@@ -318,16 +318,16 @@ End of configuration
 #define SHORT_WAIT_TIME 5000
 
 #ifdef POWER_OFF
-// if POWER OFF function is selected, wait 10s
-// if POWER_OFF with parameter > 2, wait only 3s before repeating
+// if POWER OFF function is selected, wait 14s
+// if POWER_OFF with parameter > 2, wait only 5s before repeating
 #if (POWER_OFF + 0) > 2
 #define OFF_WAIT_TIME SHORT_WAIT_TIME
 #else
 #define OFF_WAIT_TIME LONG_WAIT_TIME
 #endif
 #else
-// if POWER OFF function is not selected, wait 3s before repeat measurement
-#define OFF_WAIT_TIME SHORT_WAIT_TIME
+// if POWER OFF function is not selected, wait 14s before repeat measurement
+#define OFF_WAIT_TIME LONG_WAIT_TIME
 #endif
 
 //**********************************************************
@@ -443,3 +443,5 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 // define a default zero value for ESR measurement (0.01 Ohm units)
 #define ESR_ZERO 23
 #endif
+// with EBC_STYLE you can select the Pin-description in EBC= style instead of 123=??? style
+// #define EBC_STYLE

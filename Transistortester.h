@@ -68,9 +68,9 @@ const unsigned char TestFailed1[] MEM_TEXT = "Kein,unbek. oder";
 const unsigned char OrBroken[] MEM_TEXT = "oder defekt "; // �";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
-const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
-const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-const unsigned char ATE[] MEM_TEXT = "Selftest End";
+const unsigned char SELFTEST[] MEM2_TEXT = "Selbsttest ..";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Test Ende";
 #endif
 #endif
 
@@ -90,8 +90,8 @@ const unsigned char OrBroken[] MEM_TEXT = "or damaged ";        // ��";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
-const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-const unsigned char ATE[] MEM_TEXT = "Selftest End";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Test End";
 #endif
 #endif
 
@@ -111,8 +111,8 @@ const unsigned char OrBroken[] MEM_TEXT = "lub uszkodz. ";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
-const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-const unsigned char ATE[] MEM_TEXT = "Selftest End";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Test End";
 #endif
 #endif
 
@@ -132,8 +132,8 @@ const unsigned char OrBroken[] MEM_TEXT = "nebo vadna ";       // ��";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
-const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-const unsigned char ATE[] MEM_TEXT = "Selftest End";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Test End";
 #endif
 #endif
 
@@ -153,8 +153,8 @@ const unsigned char OrBroken[] MEM_TEXT = "alebo vadna ";       // �";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
-const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-const unsigned char ATE[] MEM_TEXT = "Selftest End";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Test End";
 #endif
 #endif
 
@@ -174,8 +174,28 @@ const unsigned char OrBroken[] MEM_TEXT = "ali zanic ";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
-const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-const unsigned char ATE[] MEM_TEXT = "Selftest End";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Test End";
+#endif
+#endif
+#if defined(LANG_DUTCH) // dutch
+const unsigned char TestRunning[] MEM_TEXT = "Testen...";
+const unsigned char BatWeak[] MEM_TEXT = "laag";
+const unsigned char BatEmpty[] MEM_TEXT = "leeg!";
+const unsigned char TestFailed2[] MEM_TEXT = "defect ";
+const unsigned char Bauteil[] MEM_TEXT = "component";
+const unsigned char Diode[] MEM_TEXT = "Diode: ";
+const unsigned char GAK[] MEM_TEXT = "GAC=";
+const unsigned char Triac[] MEM_TEXT = "Triac";
+const unsigned char Thyristor[] MEM_TEXT = "Thyristor";
+const unsigned char Unknown[] MEM_TEXT = " onbekend";
+const unsigned char TestFailed1[] MEM_TEXT = "Geen, onbekend,";
+const unsigned char OrBroken[] MEM_TEXT = "of defect ";
+const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#ifdef WITH_SELFTEST
+const unsigned char SELFTEST[] MEM2_TEXT = "Zelftest mode..";
+const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe";
+const unsigned char ATE[] MEM_TEXT = "Test Einde";
 #endif
 #endif
 
@@ -209,8 +229,13 @@ const unsigned char GateCap_str[] MEM_TEXT = "C=";
 const unsigned char hfe_str[] MEM_TEXT = "B=";
 const unsigned char NPN_str[] MEM_TEXT = "NPN ";
 const unsigned char PNP_str[] MEM_TEXT = "PNP ";
+#ifdef EBC_STYLE
 const unsigned char EBC_str[] MEM_TEXT = " EBC=";
 const unsigned char GDS_str[] MEM_TEXT = " GDS=";
+#else
+const unsigned char N123_str[] MEM_TEXT = " 123=";
+// const unsigned char N123_str[] MEM_TEXT = " Pin=";
+#endif
 const unsigned char Uf_str[] MEM_TEXT = "Uf=";
 const unsigned char vt_str[] MEM_TEXT = " Vt=";
 const unsigned char Vgs_str[] MEM_TEXT = "@Vgs=";
@@ -225,7 +250,7 @@ const unsigned char AnKat[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
 const unsigned char KatAn[] MEM_TEXT = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Dioden[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
 const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
-const unsigned char VERSION_str[] MEM_TEXT = "Version 1.03k";
+const unsigned char VERSION_str[] MEM_TEXT = "Version 1.04k";
 
 #ifdef WITH_SELFTEST
 const unsigned char URefT[] MEM2_TEXT = "Ref=";
@@ -240,6 +265,7 @@ const unsigned char RHRH[] MEM2_TEXT = "+RH- 12 13 23";
 #ifdef CHECK_CALL
 const unsigned char RIHI[] MEM_TEXT = "Ri_Hi=";
 const unsigned char RILO[] MEM_TEXT = "Ri_Lo=";
+const unsigned char C0_str[] MEM_TEXT = "C0 ";
 const unsigned char T50HZ[] MEM2_TEXT = " 50Hz";
 #endif
 #ifdef AUTO_CAL
@@ -440,12 +466,14 @@ COMMON uint8_t ii; // multipurpose counter
 COMMON struct cap_t
 {
     unsigned long cval;             // capacitor value
+    unsigned long cval_max;         // capacitor with maximum value
     unsigned long cval_uncorrected; // capacity value without corrections
 #if FLASHEND > 0x1fff
     unsigned int esr; // serial resistance of C in 0.01 Ohm
 #endif
-    uint8_t ca, cb; // pins of capacitor
-    int8_t cpre;    // Prefix for capacitor value  -12=p, -9=n, -6=�, -3=m
+    uint8_t ca, cb;  // pins of capacitor
+    int8_t cpre;     // Prefix for capacitor value  -12=p, -9=n, -6=�, -3=m
+    int8_t cpre_max; // Prefix of the biggest capacitor
 } cap;
 COMMON int16_t load_diff; // difference voltage of loaded capacitor and internal reference
 

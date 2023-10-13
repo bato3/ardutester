@@ -3,12 +3,50 @@
         Configuration
 */
 #ifndef ADC_PORT
-//#define DebugOut 3		// if set, output of voltages of resistor measurements in row 2,3,4
-//#define DebugOut 4		// if set, output of voltages of Diode measurement in row 3+4
-//#define DebugOut 5		// if set, output of Transistor checks in row 2+3
-//#define DebugOut 10		// if set, output of capacity measurements (ReadCapacity) in row 3+4 
-//#define DebugOut 11		// if set, output of load time (ReadCapacity) in row 3 for C at pins 1+3
+// #define DebugOut 3		// if set, output of voltages of resistor measurements in row 2,3,4
+// #define DebugOut 4		// if set, output of voltages of Diode measurement in row 3+4
+// #define DebugOut 5		// if set, output of Transistor checks in row 2+3
+// #define DebugOut 10		// if set, output of capacity measurements (ReadCapacity) in row 3+4
+// #define DebugOut 11		// if set, output of load time (ReadCapacity) in row 3 for C at pins 1+3
 
+// select the right Processor Typ
+#if defined(__AVR_ATmega48__)
+#define PROCESSOR_TYP 168
+#elif defined(__AVR_ATmega48P__)
+#define PROCESSOR_TYP 168
+#elif defined(__AVR_ATmega88__)
+#define PROCESSOR_TYP 168
+#elif defined(__AVR_ATmega88P__)
+#define PROCESSOR_TYP 168
+#elif defined(__AVR_ATmega168__)
+#define PROCESSOR_TYP 168
+#elif defined(__AVR_ATmega168P__)
+#define PROCESSOR_TYP 168
+#elif defined(__AVR_ATmega328__)
+#define PROCESSOR_TYP 328
+#elif defined(__AVR_ATmega328P__)
+#define PROCESSOR_TYP 328
+#elif defined(__AVR_ATmega324__)
+#define PROCESSOR_TYP 644
+#elif defined(__AVR_ATmega324P__)
+#define PROCESSOR_TYP 644
+#elif defined(__AVR_ATmega644__)
+#define PROCESSOR_TYP 644
+#elif defined(__AVR_ATmega644P__)
+#define PROCESSOR_TYP 644
+#elif defined(__AVR_ATmega1284__)
+#define PROCESSOR_TYP 644
+#elif defined(__AVR_ATmega1284P__)
+#define PROCESSOR_TYP 644
+#elif defined(__AVR_ATmega640__)
+#define PROCESSOR_TYP 1280
+#elif defined(__AVR_ATmega1280__)
+#define PROCESSOR_TYP 1280
+#elif defined(__AVR_ATmega2560__)
+#define PROCESSOR_TYP 1280
+#else
+#define PROCESSOR_TYP 8
+#endif
 
 /* Port , that is directly connected to the probes.
   This Port must have an ADC-Input  (ATmega8:  PORTC).
@@ -17,46 +55,78 @@
   The TPREF pin can be connected with a 2.5V precision voltage reference
   The TPext can be used with a 10:1 resistor divider as external voltage probe up to 50V
 */
-
+#if PROCESSOR_TYP == 644
+// ################# for m324, m644, m1284 port A is the Analog input
+#define ADC_PORT PORTA
+#define ADC_DDR DDRA
+#define ADC_PIN PINA
+#define TP1 PA0
+#define TP2 PA1
+#define TP3 PA2
+// Port pin for external Voltage measurement (zener voltage extension)
+// The pin number gives the right MUX2:0 setting
+#define TPext PA3
+// Port pin for 2.5V precision reference used for VCC check (optional)
+#define TPREF PA4
+// Port pin for Battery voltage measuring
+#define TPBAT PA5
+#elif PROCESSOR_TYP == 1280
+// ################# for mega1280, mega2560 port F is the Analog input
+#define ADC_PORT PORTF
+#define ADC_DDR DDRF
+#define ADC_PIN PINF
+#define TP1 PF0
+#define TP2 PF1
+#define TP3 PF2
+// Port pin for external Voltage measurement (zener voltage extension)
+#define TPext PF3
+// Port pin for 2.5V precision reference used for VCC check (optional)
+#define TPREF PF4
+// Port pin for Battery voltage measuring
+#define TPBAT PF5
+#else
+// ############### default for mega8, mega168 and mega328
 #define ADC_PORT PORTC
 #define ADC_DDR DDRC
 #define ADC_PIN PINC
 #define TP1 PC0
 #define TP2 PC1
 #define TP3 PC2
-#define TPext PC3
-// Port pin for 2.5V precision reference used for VCC check (optional)
-#define TPREF PC4
-// Port pin for Battery voltage measuring
-#define TPBAT PC5
-
-
-/*
-  exact values of used resistors (Ohm).
-  The standard value for R_L is 680 Ohm, for R_H 470kOhm.
-  
-  To calibrate your tester the resistor-values can be adjusted:
-*/
-#ifndef R_L_VAL
-  #define R_L_VAL 6800          // standard value 680 Ohm, multiplied by 10 for 0.1 Ohm resolution
-#else
-  #warning "no standard RL !=680"
+// Port pin for external Voltage measurement (zener voltage extension) PC3
+#define TPext ((1 << MUX1) | (1 << MUX0))
+// Port pin for 2.5V precision reference used for VCC check (optional) PC4
+#define TPREF (1 << MUX2)
+// Port pin for Battery voltage measuring PC5
+#define TPBAT ((1 << MUX2) | (1 << MUX0))
 #endif
-//  #define R_L_VAL 6690          // this will be define a 669 Ohm
-#ifndef R_H_VAL
-  #define R_H_VAL 47000         // standard value 470000 Ohm, multiplied by 10, divided by 100 
-#else
-  #warning "no standard RH !=470k"
-#endif
-//  #define R_H_VAL 47900               // this will be define a 479000 Ohm, divided by 100 
 
-#define R_DDR DDRB
-#define R_PORT PORTB
+// setting for voltage devider of Batterie voltage measurement 10K and 3.3k
+#ifndef BAT_NUMERATOR
+// factor corresponding to the sum of both resistors (10k + 3.3k)
+#define BAT_NUMERATOR 133
+#endif
+#ifndef BAT_DENOMINATOR
+// divider corresponding to the resistor at the GND side (3.3k)
+#define BAT_DENOMINATOR 33
+#endif
+
+// setting for Voltage divider of the external Voltage measurement 180k and 20k
+#ifndef EXT_NUMERATOR
+// smallest factor correcponding to the sum of both resistors (180k + 20k)
+#define EXT_NUMERATOR 10
+#endif
+#ifndef EXT_DENOMINATOR
+// smallest divider corresponding to the resistor at the GND side (20k)
+#define EXT_DENOMINATOR 1
+#endif
 
 /* Port for the Test resistors
   The Resistors must be connected to the lower 6 Pins of the Port in following sequence:
   RLx = 680R-resistor for Test-Pin x
   RHx = 470k-resistor for Test-Pin x
+  For ATmega328 you can define any pin number for every resistor in any order.
+  For other processors the RHx pin must one number higher than the RLx.
+  The default layout is:
 
   RL1 an Pin 0
   RH1 an Pin 1
@@ -65,59 +135,187 @@
   RL3 an Pin 4
   RH3 an Pin 5
 */
+#if PROCESSOR_TYP == 644
+// ################# for m324, m664, m1284 use port D
+#define R_DDR DDRD
+#define R_PORT PORTD
 
+#define PIN_RL1 PD2
+#define PIN_RL2 PD4
+#define PIN_RL3 PD6
+#define PIN_RH1 PD3
+#define PIN_RH2 PD5
+#define PIN_RH3 PD7
+#elif PROCESSOR_TYP == 1280
+// ################# for mega1280, mega2560 use port K
+#define R_DDR DDRK
+#define R_PORT PORTK
+
+#define PIN_RL1 PK0
+#define PIN_RL2 PK2
+#define PIN_RL3 PK4
+#define PIN_RH1 PK1
+#define PIN_RH2 PK3
+#define PIN_RH3 PK5
+#else
+// ############### default for mega8, mega168 and mega328
+#define R_DDR DDRB
+#define R_PORT PORTB
+
+#define PIN_RL1 PB0
+#define PIN_RL2 PB2
+#define PIN_RL3 PB4
+#define PIN_RH1 PB1
+#define PIN_RH2 PB3
+#define PIN_RH3 PB5
+#endif
+
+#if PROCESSOR_TYP == 644
+#define ON_DDR DDRB
+#define ON_PORT PORTB
+#define ON_PIN PD1 // This Pin is switched to high to switch power on
+#elif PROCESSOR_TYP == 1280
+#define ON_DDR DDRA
+#define ON_PORT PORTA
+#define ON_PIN PA6 // This Pin is switched to high to switch power on
+#else
 #define ON_DDR DDRD
 #define ON_PORT PORTD
-#define ON_PIN_REG PIND
-#define ON_PIN PD6      //Pin, must be switched to high to switch power on
+#define ON_PIN PD6 // This Pin is switched to high to switch power on
+#endif
 
 #ifdef STRIP_GRID_BOARD
 // Strip Grid board version
-#define RST_PIN PD0     //Pin, is switched to low, if push button is pressed
+#if PROCESSOR_TYP == 644
+#define RST_PORT PORTC
+#define RST_PIN_REG PINC
+#define RST_PIN PC7 // Pin, is switched to low, if push button is pressed
+#elif PROCESSOR_TYP == 1280
+#define RST_PORT PORTA
+#define RST_PIN_REG PINA
+#define RST_PIN PA0 // Pin, is switched to low, if push button is pressed
+#else
+#define RST_PORT PORTD
+#define RST_PIN_REG PIND
+#define RST_PIN PD0 // Pin, is switched to low, if push button is pressed
+#endif
 #else
 // normal layout version
-#define RST_PIN PD7     //Pin, is switched to low, if push button is pressed
+#if PROCESSOR_TYP == 644
+#define RST_PORT PORTC
+#define RST_PIN_REG PINC
+#define RST_PIN PC7 // Pin, is switched to low, if push button is pressed
+#elif PROCESSOR_TYP == 1280
+#define RST_PORT PORTA
+#define RST_PIN_REG PINA
+#define RST_PIN PA7 // Pin, is switched to low, if push button is pressed
+#else
+#define RST_PORT PORTD
+#define RST_PIN_REG PIND
+#define RST_PIN PD7 // Pin, is switched to low, if push button is pressed
 #endif
-
+#endif
 
 /*
        Port(s) / Pins for LCD
 */
 #ifdef STRIP_GRID_BOARD
- // special Layout for strip grid board
- #define HW_LCD_EN_PORT         PORTD
- #define HW_LCD_EN_PIN          5
+// special Layout for strip grid board
+#if PROCESSOR_TYP == 644
+#define HW_LCD_EN_PORT PORTB
+#define HW_LCD_EN_PIN 2
 
- #define HW_LCD_RS_PORT         PORTD
- #define HW_LCD_RS_PIN          7
+#define HW_LCD_RS_PORT PORTB
+#define HW_LCD_RS_PIN 3
 
- #define HW_LCD_B4_PORT         PORTD
- #define HW_LCD_B4_PIN          4
- #define HW_LCD_B5_PORT         PORTD
- #define HW_LCD_B5_PIN          3
- #define HW_LCD_B6_PORT         PORTD
- #define HW_LCD_B6_PIN          2
- #define HW_LCD_B7_PORT         PORTD
- #define HW_LCD_B7_PIN          1
+#define HW_LCD_B4_PORT PORTB
+#define HW_LCD_B4_PIN 4
+#define HW_LCD_B5_PORT PORTB
+#define HW_LCD_B5_PIN 5
+#define HW_LCD_B6_PORT PORTB
+#define HW_LCD_B6_PIN 6
+#define HW_LCD_B7_PORT PORTB
+#define HW_LCD_B7_PIN 7
+#elif PROCESSOR_TYP == 1280
+#define HW_LCD_EN_PORT PORTA
+#define HW_LCD_EN_PIN 5
+
+#define HW_LCD_RS_PORT PORTA
+#define HW_LCD_RS_PIN 7
+
+#define HW_LCD_B4_PORT PORTA
+#define HW_LCD_B4_PIN 4
+#define HW_LCD_B5_PORT PORTA
+#define HW_LCD_B5_PIN 3
+#define HW_LCD_B6_PORT PORTA
+#define HW_LCD_B6_PIN 2
+#define HW_LCD_B7_PORT PORTA
+#define HW_LCD_B7_PIN 1
 #else
- // normal Layout
- #define HW_LCD_EN_PORT         PORTD
- #define HW_LCD_EN_PIN          5
+#define HW_LCD_EN_PORT PORTD
+#define HW_LCD_EN_PIN 5
 
- #define HW_LCD_RS_PORT         PORTD
- #define HW_LCD_RS_PIN          4
+#define HW_LCD_RS_PORT PORTD
+#define HW_LCD_RS_PIN 7
 
- #define HW_LCD_B4_PORT         PORTD
- #define HW_LCD_B4_PIN          0
- #define HW_LCD_B5_PORT         PORTD
- #define HW_LCD_B5_PIN          1
- #define HW_LCD_B6_PORT         PORTD
- #define HW_LCD_B6_PIN          2
- #define HW_LCD_B7_PORT         PORTD
- #define HW_LCD_B7_PIN          3
+#define HW_LCD_B4_PORT PORTD
+#define HW_LCD_B4_PIN 4
+#define HW_LCD_B5_PORT PORTD
+#define HW_LCD_B5_PIN 3
+#define HW_LCD_B6_PORT PORTD
+#define HW_LCD_B6_PIN 2
+#define HW_LCD_B7_PORT PORTD
+#define HW_LCD_B7_PIN 1
 #endif
+#else
+// normal Layout
+#if PROCESSOR_TYP == 644
+#define HW_LCD_EN_PORT PORTB
+#define HW_LCD_EN_PIN 2
 
+#define HW_LCD_RS_PORT PORTB
+#define HW_LCD_RS_PIN 3
 
+#define HW_LCD_B4_PORT PORTB
+#define HW_LCD_B4_PIN 4
+#define HW_LCD_B5_PORT PORTB
+#define HW_LCD_B5_PIN 5
+#define HW_LCD_B6_PORT PORTB
+#define HW_LCD_B6_PIN 6
+#define HW_LCD_B7_PORT PORTB
+#define HW_LCD_B7_PIN 7
+#elif PROCESSOR_TYP == 1280
+#define HW_LCD_EN_PORT PORTA
+#define HW_LCD_EN_PIN 5
+
+#define HW_LCD_RS_PORT PORTA
+#define HW_LCD_RS_PIN 4
+
+#define HW_LCD_B4_PORT PORTA
+#define HW_LCD_B4_PIN 0
+#define HW_LCD_B5_PORT PORTA
+#define HW_LCD_B5_PIN 1
+#define HW_LCD_B6_PORT PORTA
+#define HW_LCD_B6_PIN 2
+#define HW_LCD_B7_PORT PORTA
+#define HW_LCD_B7_PIN 3
+#else
+#define HW_LCD_EN_PORT PORTD
+#define HW_LCD_EN_PIN 5
+
+#define HW_LCD_RS_PORT PORTD
+#define HW_LCD_RS_PIN 4
+
+#define HW_LCD_B4_PORT PORTD
+#define HW_LCD_B4_PIN 0
+#define HW_LCD_B5_PORT PORTD
+#define HW_LCD_B5_PIN 1
+#define HW_LCD_B6_PORT PORTD
+#define HW_LCD_B6_PIN 2
+#define HW_LCD_B7_PORT PORTD
+#define HW_LCD_B7_PIN 3
+#endif
+#endif
 
 // U_VCC defines the VCC Voltage of the ATmega in mV units
 
@@ -130,325 +328,31 @@
 // too much capacity for capacitors with internal parallel resistance.
 // #define NO_CAP_HOLD_TIME
 
-
 // U_SCALE can be set to 4 for better resolution of ReadADC function for resistor measurement
 #define U_SCALE 4
 
 // R_ANZ_MESS can be set to a higher number of measurements (up to 200) for resistor measurement
 #define R_ANZ_MESS 190
 
-//Watchdog
+// Watchdog
 #define WDT_enabled
 /* If you remove the "#define WDT_enabled" , the Watchdog will not be activated.
   This is only for Test or debugging usefull.
  For normal operation please activate the Watchdog !
 */
 
-/*########################################################################################
-End of configuration 
-*/
-
-#if R_ANZ_MESS < ANZ_MESS
- #undef R_ANZ_MESS
- #define R_ANZ_MESS ANZ_MESS
-#endif
-#if U_SCALE < 0
- // limit U_SCALE
- #undef U_SCALE
- #define U_SCALE 1
-#endif
-#if U_SCALE > 4
- // limit U_SCALE
- #undef U_SCALE
- #define U_SCALE 4
-#endif
-#ifndef REF_L_KORR
- #define REF_L_KORR 50
-#endif
-
-// the following definitions specify where to load external data from: EEprom or flash
-#ifdef USE_EEPROM
- #define MEM_TEXT EEMEM
- #if E2END > 0X1FF
-  #define MEM2_TEXT EEMEM
-  #define MEM2_read_byte(a)  eeprom_read_byte(a)
-  #define MEM2_read_word(a)  eeprom_read_word(a)
-  #define lcd_fix2_string(a)  lcd_fix_string(a)
- #else
-  #define MEM2_TEXT PROGMEM
-  #define MEM2_read_byte(a)  pgm_read_byte(a)
-  #define MEM2_read_word(a)  pgm_read_word(a)
-  #define lcd_fix2_string(a)  lcd_pgm_string(a)
-  #define use_lcd_pgm
- #endif
- #define MEM_read_word(a)  eeprom_read_word(a)
- #define MEM_read_byte(a)  eeprom_read_byte(a)
-#else
- #define MEM_TEXT PROGMEM
- #define MEM2_TEXT PROGMEM
- #define MEM_read_word(a)  pgm_read_word(a)
- #define MEM_read_byte(a)  pgm_read_byte(a)
- #define MEM2_read_byte(a)  pgm_read_byte(a)
- #define MEM2_read_word(a)  pgm_read_word(a)
- #define lcd_fix2_string(a)  lcd_pgm_string(a)
- #define use_lcd_pgm
-#endif
-
-// RH_OFFSET : systematic offset of resistor measurement with RH (470k) 
+// RH_OFFSET : systematic offset of resistor measurement with RH (470k)
 // resolution is 0.1 Ohm, 3500 defines a offset of 350 Ohm
-#define RH_OFFSET 3500 
+#define RH_OFFSET 3500
 
 // TP2_CAP_OFFSET is a additionally offset for TP2 capacity measurements in pF units
 #define TP2_CAP_OFFSET 2
 
 // CABLE_CAP defines the capacity (pF) of 12cm cable with clip at the terminal pins
 #define CABLE_CAP 3
-// select the right Processor Typ
-#if defined(__AVR_ATmega48__)
- #define PROCESSOR_TYP 168
-#elif defined(__AVR_ATmega48P__)
- #define PROCESSOR_TYP 168
-#elif defined(__AVR_ATmega88__)
- #define PROCESSOR_TYP 168
-#elif defined(__AVR_ATmega88P__)
- #define PROCESSOR_TYP 168
-#elif defined(__AVR_ATmega168__)
- #define PROCESSOR_TYP 168
-#elif defined(__AVR_ATmega168P__)
- #define PROCESSOR_TYP 168
-#elif defined(__AVR_ATmega328__)
- #define PROCESSOR_TYP 328
-#elif defined(__AVR_ATmega328P__)
- #define PROCESSOR_TYP 328
-#elif defined(__AVR_ATmega640__)
- #define PROCESSOR_TYP 1280
-#elif defined(__AVR_ATmega1280__)
- #define PROCESSOR_TYP 1280
-#elif defined(__AVR_ATmega2560__)
- #define PROCESSOR_TYP 1280
-#else
- #define PROCESSOR_TYP 8
-#endif
-// automatic selection of right call type
-#if FLASHEND > 0X1FFF
- #define ACALL call
-#else
- #define ACALL rcall
-#endif
-// automatic selection of option and parameters for different AVR s
-
-//------------------=========----------
-#if PROCESSOR_TYP == 168
-//------------------=========----------
-  #define MCU_STATUS_REG MCUCR
-  #define ADC_COMP_CONTROL ADCSRB
-  #define TI1_INT_FLAGS TIFR1
-  #define DEFAULT_BAND_GAP 1070
- #if R_H_VAL == 10000
-  #define DEFAULT_RH_FAKT 4022      // mega168 1101 mV, 100.0 kOhm
- #else
-  #define DEFAULT_RH_FAKT  856      // mega168 1101 mV, 470.0 kOhm
- #endif
-// LONG_HFE  activates computation of current amplification factor with long variables
-  #define LONG_HFE
-  #define MEGA168A 17
-  #define MEGA168PA 18
-
-// Pin resistor values of ATmega168
-//  #define PIN_RM 196
-//  #define PIN_RP 225
-  #define PIN_RM 190
-  #define PIN_RP 220
-// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
-  #define CC0 36
-// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
-  #define COMP_SLEW1 4000
-  #define COMP_SLEW2 220
-  #define C_NULL CC0+CABLE_CAP+(COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
-  #define MUX_INT_REF 0x0e	/* channel number of internal 1.1 V */
-
-//------------------=========----------
-#elif PROCESSOR_TYP == 328
-//------------------=========----------
-  #define MCU_STATUS_REG MCUCR
-  #define ADC_COMP_CONTROL ADCSRB
-  #define TI1_INT_FLAGS TIFR1
-  #define DEFAULT_BAND_GAP 1070
- #if R_H_VAL == 10000
-  #define DEFAULT_RH_FAKT 4022      // mega328 1101 mV, 100.0 kOhm
- #else
-  #define DEFAULT_RH_FAKT  856      // mega328 1101 mV, 470.0 kOhm
- #endif
-// LONG_HFE  activates computation of current amplification factor with long variables
-  #define LONG_HFE
-
-  #define PIN_RM 200
-  #define PIN_RP 220
-// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
-  #define CC0 36
-// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
-  #define COMP_SLEW1 4000
-  #define COMP_SLEW2 180
-  #define C_NULL CC0+CABLE_CAP+(COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
-  #define MUX_INT_REF 0x0e	/* channel number of internal 1.1 V */
-
-//------------------=========----------
-#elif PROCESSOR_TYP == 1280
-//------------------=========----------
-  #define MCU_STATUS_REG MCUCR
-  #define ADC_COMP_CONTROL ADCSRB
-  #define TI1_INT_FLAGS TIFR1
-  #define DEFAULT_BAND_GAP 1070
- #if R_H_VAL == 10000
-  #define DEFAULT_RH_FAKT 4022      // mega1280 1101 mV, 100.0 kOhm
- #else
-  #define DEFAULT_RH_FAKT  856      // mega1280 1101 mV, 470.0 kOhm
- #endif
-// LONG_HFE  activates computation of current amplification factor with long variables
-  #define LONG_HFE
-
-  #define PIN_RM 200
-  #define PIN_RP 220
-// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
-  #define CC0 36
-// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
-  #define COMP_SLEW1 4000
-  #define COMP_SLEW2 180
-  #define C_NULL CC0+CABLE_CAP+(COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
-  #define MUX_INT_REF 0x1e	/* channel number of internal 1.1 V */
-
-
-//------------------=========----------
-#else
-//                   ATmega8
-//------------------=========----------
-  #define MCU_STATUS_REG MCUCSR
-  #define ADC_COMP_CONTROL SFIOR
-  #define TI1_INT_FLAGS TIFR
-  #define DEFAULT_BAND_GAP 1298		//mega8 1298 mV
- #if R_H_VAL == 10000
-  #define DEFAULT_RH_FAKT 3328      // mega8 1298 mV, 100.0 kOhm
- #else
-  #define DEFAULT_RH_FAKT  740      // mega8 1250 mV, 470.0 kOhm
- //#define DEFAULT_RH_FAKT  708      // mega8 1298 mV, 470.0 kOhm
- #endif
-// LONG_HFE  activates computation of current amplification factor with long variables
-  #define LONG_HFE
-
-  #define PIN_RM 196
-  #define PIN_RP 240
-// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
-  #define CC0 27
-// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
-  #define COMP_SLEW1 0
-  #define COMP_SLEW2 33
-  #define C_NULL CC0+CABLE_CAP+(COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
-  #define MUX_INT_REF 0x0e	/* channel number of internal 1.1 V */
- #ifndef INHIBIT_SLEEP_MODE
-  #define INHIBIT_SLEEP_MODE	/* do not use the sleep mode of ATmega */
- #endif
-#endif
-#if PROCESSOR_TYP == 8
- // 2.54V reference voltage + correction (fix for ATmega8)
- #ifdef AUTO_CAL
-  #define ADC_internal_reference (2560 + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
- #else
-  #define ADC_internal_reference (2560 + REF_R_KORR)
- #endif
-#else
- // all other processors use a 1.1V reference
- #ifdef AUTO_CAL
-  #define ADC_internal_reference (ref_mv + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
- #else
-  #define ADC_internal_reference (ref_mv + REF_R_KORR)
- #endif
-#endif
-
-#ifndef REF_R_KORR
- #define REF_R_KORR 0
-#endif
-#ifndef REF_C_KORR
- #define REF_C_KORR 0
-#endif
 
 #define LONG_WAIT_TIME 28000
 #define SHORT_WAIT_TIME 5000
-
-#ifdef POWER_OFF
-// if POWER OFF function is selected, wait 28s
-// if POWER_OFF with parameter > 2, wait only 5s before repeating
- #if (POWER_OFF+0) > 2
-  #define OFF_WAIT_TIME SHORT_WAIT_TIME
- #else
-  #define OFF_WAIT_TIME LONG_WAIT_TIME
- #endif
-#else
-// if POWER OFF function is not selected, wait 28s before repeat measurement
- #define OFF_WAIT_TIME  LONG_WAIT_TIME
-#endif
-
-//**********************************************************
-// defines for the selection of a correctly  ADC-Clock 
-// will match for 1MHz, 2MHz, 4MHz, 8MHz and 16MHz
-// ADC-Clock can be 125000 or 250000 
-// 250 kHz is out of the full accuracy specification!
-// clock divider is 4, when CPU_Clock==1MHz and ADC_Clock==250kHz
-// clock divider is 128, when CPU_Clock==16MHz and ADC_Clock==125kHz
-#define F_ADC 125000
-//#define F_ADC 250000
-#if F_CPU/F_ADC == 2
- #define AUTO_CLOCK_DIV (1<<ADPS0) 
-#endif
-#if F_CPU/F_ADC == 4
- #define AUTO_CLOCK_DIV (1<<ADPS1) 
-#endif
-#if F_CPU/F_ADC == 8
- #define AUTO_CLOCK_DIV (1<<ADPS1) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC == 16
- #define AUTO_CLOCK_DIV (1<<ADPS2)
-#endif
-#if F_CPU/F_ADC == 32
- #define AUTO_CLOCK_DIV (1<<ADPS2) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC == 64
- #define AUTO_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1)
-#endif
-#if F_CPU/F_ADC == 128
- #define AUTO_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0)
-#endif
-//**********************************************************
-#define F_ADC_F 500000
-#if F_CPU/F_ADC_F == 2
- #define FAST_CLOCK_DIV (1<<ADPS0) 
-#endif
-#if F_CPU/F_ADC_F == 4
- #define FAST_CLOCK_DIV (1<<ADPS1) 
-#endif
-#if F_CPU/F_ADC_F == 8
- #define FAST_CLOCK_DIV (1<<ADPS1) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC_F == 16
- #define FAST_CLOCK_DIV (1<<ADPS2)
-#endif
-#if F_CPU/F_ADC_F == 32
- #define FAST_CLOCK_DIV (1<<ADPS2) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC_F == 64
- #define FAST_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1)
-#endif
-#if F_CPU/F_ADC_F == 128
- #define FAST_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0)
-#endif
-
-#ifndef PIN_RP
-  #define PIN_RP  220           //estimated internal resistance PORT to VCC
-                                //will only be used, if not set before in config.h
-#endif
-#ifndef PIN_RM
-  #define PIN_RM  190           //estimated internal resistance PORT to GND
-                                //will only be used, if not set before in config.h
-#endif
 
 //**********************************************************
 
@@ -456,7 +360,7 @@ End of configuration
 /*
 With define SWUART_INVERT you can specify, if the software-UART operates normal or invers.
 in the normal mode the UART sends with usual logik level (Low = 0; High = 1).
-You can use this mode for direct connection to a µC, or a level converter like MAX232.
+You can use this mode for direct connection to a ï¿½C, or a level converter like MAX232.
 
 With invers mode the UART sends with invers logik (Low = 1, High = 0).
 This is the level of a standard RS232 port of a PC.
@@ -466,168 +370,35 @@ Is a simple but unclean solution.
 
 Is SWUART_INVERT defined, the UART works is inverse mode
 */
-//#define SWUART_INVERT
+// #define SWUART_INVERT
 
-#define TxD PC3	//TxD-Pin of Software-UART; must be at Port C !
+#define TxD PC3 // TxD-Pin of Software-UART; must be at Port C !
 #ifdef WITH_UART
- #define TXD_MSK (1<<TxD)
-#else
- #define TXD_MSK 0
-#endif
-
+#define TXD_MSK (1 << TxD)
 #ifdef SWUART_INVERT
-  #define TXD_VAL 0
+#define TXD_VAL 0
 #else
-  #define TXD_VAL TXD_MSK
+#define TXD_VAL TXD_MSK
 #endif
-
-#ifdef INHIBIT_SLEEP_MODE
- // save memory, do not use the sleep mode
- #define wait_about5ms() wait5ms()
- #define wait_about10ms() wait10ms()
- #define wait_about20ms() wait20ms()
- #define wait_about30ms() wait30ms()
- #define wait_about50ms() wait50ms()
- #define wait_about100ms() wait100ms()
- #define wait_about200ms() wait200ms()
- #define wait_about300ms() wait300ms()
- #define wait_about400ms() wait400ms()
- #define wait_about500ms() wait500ms()
- #define wait_about1s() wait1s()
- #define wait_about2s() wait2s()
- #define wait_about3s() wait3s()
- #define wait_about4s() wait4s()
 #else
- // use sleep mode to save current for user interface
- #define wait_about5ms() sleep_5ms(1)
- #define wait_about10ms() sleep_5ms(2)
- #define wait_about20ms() sleep_5ms(4)
- #define wait_about30ms() sleep_5ms(6)
- #define wait_about50ms() sleep_5ms(10)
- #define wait_about100ms() sleep_5ms(20)
- #define wait_about200ms() sleep_5ms(40)
- #define wait_about300ms() sleep_5ms(60)
- #define wait_about400ms() sleep_5ms(80)
- #define wait_about500ms() sleep_5ms(100)
- #define wait_about1s() sleep_5ms(200)
- #define wait_about2s() sleep_5ms(400)
- #define wait_about3s() sleep_5ms(600)
- #define wait_about4s() sleep_5ms(800)
+// without UART
+// If you use any pin of port C for output, you should define all used pins in TXD_MSK.
+// With TXD_VAL you can specify the default level of output pins for all port C output pins.
+#define TXD_MSK 0
+#define TXD_VAL 0
 #endif
 
-#undef AUTO_RH
-#ifdef WITH_AUTO_REF
- #define AUTO_RH
-#else
- #ifdef AUTO_CAL
-  #define AUTO_RH
- #endif
-#endif
+// define a default zero value for ESR measurement (0.01 Ohm units)
+// #define ESR_ZERO 20
 
-#undef CHECK_CALL
-#ifdef WITH_SELFTEST
- // AutoCheck Function is needed
- #define CHECK_CALL
-#endif
+// all capacity measurement results does not go C_LIMIT_TO_UNCALIBRATED pF below the calibrated zero capacity.
+#define C_LIMIT_TO_UNCALIBRATED 20
 
-#ifdef AUTO_CAL
-  // AutoCheck Function is needed
-  #define CHECK_CALL
-  #define RR680PL resis680pl
-  #define RR680MI resis680mi
-  #define RRpinPL pin_rpl
-  #define RRpinMI pin_rmi
-#else
-  #define RR680PL (R_L_VAL + PIN_RP)
-  #define RR680MI (R_L_VAL + PIN_RM)
-  #define RRpinPL (PIN_RP)
-  #define RRpinMI (PIN_RM)
-#endif
+// all ESR measurements results does not go R_LIMIT_TO_UNCALIBRATED 0.01 Ohm units below the calibrated zero resistance.
+#define R_LIMIT_TO_UNCALIBRATED 20
 
-#ifndef ESR_ZERO
- //define a default zero value for ESR measurement (0.01 Ohm units)
- #define ESR_ZERO 20
+/*########################################################################################
+End of configuration
+*/
+#include "autoconf.h"
 #endif
-
-#ifndef RESTART_DELAY_TICS
- // define the processor restart delay for crystal oscillator 16K
- // only set, if no preset (Makefile) exists.
- #define RESTART_DELAY_TICS 16384
- // for ceramic oscillator 258 or 1024 Clock tics can be selected with fuses
- // for external oscillator or RC-oscillator is only a delay of 6 clock tics.
-#endif
-
-// with EBC_STYLE you can select the Pin-description in EBC= style instead of 123=??? style
-//#define EBC_STYLE
-#if EBC_STYLE == 123
- // unset the option for the 123 selection, since this style is default.
- #undef EBC_STYLE
-#endif
-
-//self build characters 
-#define LCD_CHAR_DIODE1  1      //Diode-Icon; will be generated as custom character
-#define LCD_CHAR_DIODE2  2      //Diode-Icon;  will be generated as custom character
-#define LCD_CHAR_CAP 3          //Capacitor-Icon;  will be generated as custom character
-        // numbers of RESIS1 and RESIS2 are swapped for OLED display, which shows a corrupt RESIS1 character otherwise ???
-#define LCD_CHAR_RESIS1 7       // Resistor left part will be generated as custom character
-#define LCD_CHAR_RESIS2 6       // Resistor right part will be generated as custom character
-
-#ifdef LCD_CYRILLIC
-        #define LCD_CHAR_OMEGA  4       //Omega-character 
-        #define LCD_CHAR_U  5           //µ-character 
-#else
-        #define LCD_CHAR_OMEGA  244     //Omega-character
-        #define LCD_CHAR_U  228         //µ-character
-#endif
-#ifdef LCD_DOGM
-	#undef LCD_CHAR_OMEGA
-	#define LCD_CHAR_OMEGA 0x1e	//Omega-character for DOGM module
-        #undef LCD_CHAR_U
-        #define LCD_CHAR_U  5           //µ-character for DOGM module loadable
-#endif
-
-#define LCD_CHAR_DEGREE 0xdf            // Character for degree
-
-#endif
-
-// COMMON_COLLECTOR activates measurement of current amplification factor in common collector circuit  (Emitter follower)
-#ifndef NO_COMMON_COLLECTOR_HFE
- #define COMMON_COLLECTOR
-#endif
-/* the hFE (B) can also be determined with  common emitter circuit (not for atmega8) */
-#if FLASHEND > 0x1fff
- #ifndef NO_COMMON_EMITTER_HFE
-   // only define the common emitter, if the extended tests are not explicitly requested
-   #define COMMON_EMITTER
- #endif
-#endif
-
-// automatic check, if the extended tests are possible!
-#ifdef COMMON_EMITTER
- #ifdef COMMON_COLLECTOR
-  // both measurement methodes
-  #if FLASHEND > 0x3fff
-    // extended tests are only possible with enough memory!
-    #define EXTENDED_TESTS
-  #endif
- #else
-    // by only selecting one hFE measurement methode, the extended tests are always possible!
-    #define EXTENDED_TESTS
- #endif
-#endif
-
-#ifdef COMMON_COLLECTOR
- #ifndef COMMON_EMITTER
-    // by only selecting one hFE measurement methode, the extended tests are always possible!
-    #define EXTENDED_TESTS
- #endif
-#else
- #ifndef COMMON_EMITTER
-    // both measurement methodes are unselected, use COMMON_COLLECTOR
-    #warning "No hFE measurement type selected, common collector circuit choosed!"
-    #define COMMON_COLLECTOR
-    // by only selecting one hFE measurement methode, the extended tests are always possible!
-    #define EXTENDED_TESTS
- #endif
-#endif
-

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
  .GLOBAL GetESR
+ .func GetESR
 
 /* MAX_CNT is the maximum loop counter for repetition of mesurement */
 #define MAX_CNT 128
@@ -202,7 +203,7 @@
 
 //=================================================================
 //void GetESR() {
-.text
+ .section .text
 GetESR:
        	push	r2
        	push	r3
@@ -315,11 +316,14 @@ ad_35fe:
 ad_3604:
        	ldi	r24, lo8(ESR_str);
        	ldi	r25, hi8(ESR_str);
- 	call	lcd_fix_string;		/* lcd_fix_string(ESR_str);	// " ESR=" */
+#ifdef USE_EEPROM
+ 	call	lcd_fix_string;		/* lcd_MEM_string(ESR_str);	// " ESR=" */
+#else
+ 	call	lcd_mem_string;		/* lcd_MEM_string(ESR_str);	// " ESR=" */
+#endif
  	lds	r14, cap+ca;		/* LoADC = pgm_read_byte(&PinADCtab[cap.ca]) | TXD_MSK; */
         mov	SelectLowPin,r14
-        ldi	r30, lo8(PinADCtab);
-        ldi	r31, hi8(PinADCtab);
+        LDIZ	PinADCtab;
         add	r30, r14
 	adc	r31, zero_reg
         lpm	r24, Z+;
@@ -327,26 +331,23 @@ ad_3604:
        	std	Y+LoADC, r24;
  	lds	r15, cap+cb;		/* HiADC = pgm_read_byte(&PinADCtab[cap.cb]) | TXD_MSK; */
         mov	SelectHighPin,r15
-        ldi	r30, lo8(PinADCtab);
-        ldi	r31, hi8(PinADCtab);
+        LDIZ	PinADCtab;
         add	r30, r15
 	adc	r31, zero_reg
         lpm	r24, Z+;
        	ori	r24, TXD_MSK;
        	std	Y+HiADC, r24;
-        ldi	r30, lo8(PinRLtab);	/* LoPinR_L = pgm_read_byte(&PinRLtab[cap.ca]);  //R_L mask for LowPin R_L load */
-        ldi	r31, hi8(PinRLtab);
+        LDIZ	PinRLtab;	/* LoPinR_L = pgm_read_byte(&PinRLtab[cap.ca]);  //R_L mask for LowPin R_L load */
         add	r30, r14
 	adc	r31, zero_reg
         lpm	LoPinR_L, Z+;
-        ldi	r30, lo8(PinRLtab);	/* HiPinR_L = pgm_read_byte(&PinRLtab[cap.cb]);	//R_L mask for HighPin R_L load */
-        ldi	r31, hi8(PinRLtab);
+        LDIZ	PinRLtab;	/* HiPinR_L = pgm_read_byte(&PinRLtab[cap.cb]);	//R_L mask for HighPin R_L load */
         add	r30, r15
 	adc	r31, zero_reg
         lpm	HiPinR_L, Z+;
 
 
-#if PROCESSOR_TYP == 1280
+#if (PROCESSOR_TYP == 644) || (PROCESSOR_TYP == 1280)
     /* ATmega640/1280/2560 1.1V Reference with REFS0=0 */
 //  SelectLowPin = (cap.ca | (1<<REFS1) | (0<<REFS0));	// switch ADC to LowPin, Internal Ref. 
        	ldi	r25, (1<<REFS1)|(0<<REFS0);	0xC0
@@ -848,3 +849,4 @@ ad_exit:
        	pop	r3
        	pop	r2
        	ret
+ .endfunc

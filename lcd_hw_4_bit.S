@@ -40,6 +40,8 @@
 #define set_b7_output          sbi             (_SFR_IO_ADDR(HW_LCD_B7_PORT) - 1), HW_LCD_B7_PIN
 
 
+#define RCALL rcall
+
 ;----------------------------------------------------------------------
 ;
 ; "_lcd_hw_write"
@@ -50,6 +52,8 @@
 ;----------------------------------------------------------------------
        .global _lcd_hw_write
        .func _lcd_hw_write
+       .extern wait1us
+
 _lcd_hw_write:
                
 
@@ -85,7 +89,7 @@ _lcd_hw_write:
 
                nop			; wait for data setup time
                set_en_low		; force data read from LCD controller
-               ACALL    wait1us
+               RCALL    wait1us
 
                ; skip sending low nibble for init commands
                sbrc    preg_1, 7
@@ -110,7 +114,7 @@ _lcd_hw_write:
 
                nop			; wait for data setup time
                set_en_low		; force data read from LCD controller
-               ACALL    wait1us
+               RCALL    wait1us
 
 _lcd_hw_write_exit:
                ret

@@ -2,6 +2,9 @@
  *
  *   self adjustment functions
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz K�bbeler
+ *
  * ************************************************************************ */
 
 /*
@@ -123,10 +126,10 @@ void LoadAdjust(void)
     {
         /* tell user */
         lcd_clear();
-        lcd_fix_string(Checksum_str); /* display: Checksum */
+        lcd_fixed_string(Checksum_str); /* display: Checksum */
         lcd_space();
-        lcd_fix_string(Error_str); /* display: error! */
-        MilliSleep(2000);          /* give user some time to read */
+        lcd_fixed_string(Error_str); /* display: error! */
+        MilliSleep(2000);            /* give user some time to read */
 
         /* set default values */
         Config.RiL = R_MCU_LOW;
@@ -150,44 +153,44 @@ void ShowAdjust(void)
 {
     /* display RiL and RiH */
     lcd_clear();
-    lcd_fix_string(RiLow_str); /* display: Ri- */
+    lcd_fixed_string(RiLow_str); /* display: Ri- */
     lcd_space();
     DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
 
     lcd_line(2);
-    lcd_fix_string(RiHigh_str); /* display: Ri+ */
+    lcd_fixed_string(RiHigh_str); /* display: Ri+ */
     lcd_space();
     DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
 
-    TestKey(3000, 1); /* let the user read */
+    TestKey(3000, 11); /* let the user read */
 
     /* display C-Zero */
     lcd_clear();
-    lcd_fix_string(CapOffset_str); /* display: C0 */
+    lcd_fixed_string(CapOffset_str); /* display: C0 */
     lcd_space();
     DisplayValue(Config.CapZero, -12, 'F'); /* display C0 offset */
 
     /* display R-Zero */
     lcd_line(2);
-    lcd_fix_string(ROffset_str); /* display: R0 */
+    lcd_fixed_string(ROffset_str); /* display: R0 */
     lcd_space();
     DisplayValue(Config.RZero, -2, LCD_CHAR_OMEGA); /* display R0 */
 
-    TestKey(3000, 1); /* let the user read */
+    TestKey(3000, 11); /* let the user read */
 
     /* display offset of bandgap reference */
     lcd_clear();
-    lcd_fix_string(URef_str); /* display: Vref */
+    lcd_fixed_string(URef_str); /* display: Vref */
     lcd_space();
     DisplaySignedValue(Config.RefOffset, -3, 'V');
 
     /* display offset of analog comparator */
     lcd_line(2);
-    lcd_fix_string(CompOffset_str);
+    lcd_fixed_string(CompOffset_str); /* display: AComp */
     lcd_space();
     DisplaySignedValue(Config.CompOffset, -3, 'V');
 
-    TestKey(3000, 1); /* let the user read */
+    TestKey(3000, 11); /* let the user read */
 }
 
 /*
@@ -242,10 +245,10 @@ uint8_t SelfAdjust(void)
 
             switch (Test)
             {
-            case 1:                          /* resistance of probe leads (probes shorted) */
-                lcd_fix_string(ROffset_str); /* display: R0 */
+            case 1:                            /* resistance of probe leads (probes shorted) */
+                lcd_fixed_string(ROffset_str); /* display: R0 */
                 lcd_space();
-                lcd_fix_string(ProbeComb_str); /* display: 12 13 23 */
+                lcd_fixed_string(ProbeComb_str); /* display: 12 13 23 */
 
                 UpdateProbes(TP2, TP1, 0);
                 Val1 = SmallResistor();
@@ -279,8 +282,8 @@ uint8_t SelfAdjust(void)
                 DisplayFlag = 0; /* reset display flag */
                 break;
 
-            case 3:                        /* internal resistance of �C in pull-down mode */
-                lcd_fix_string(RiLow_str); /* display: Ri- */
+            case 3:                          /* internal resistance of �C in pull-down mode */
+                lcd_fixed_string(RiLow_str); /* display: Ri- */
 
                 /* TP1:  Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
                 ADC_PORT = 0;
@@ -307,8 +310,8 @@ uint8_t SelfAdjust(void)
                 RiL_Counter += 3;
                 break;
 
-            case 4:                         /* internal resistance of �C in pull-up mode */
-                lcd_fix_string(RiHigh_str); /* display: Ri+ */
+            case 4:                           /* internal resistance of �C in pull-up mode */
+                lcd_fixed_string(RiHigh_str); /* display: Ri+ */
 
                 /* TP1: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
                 R_PORT = 0;
@@ -335,10 +338,10 @@ uint8_t SelfAdjust(void)
                 RiH_Counter += 3;
                 break;
 
-            case 5:                            /* capacitance offset (PCB and probe leads) */
-                lcd_fix_string(CapOffset_str); /* display: C0 */
+            case 5:                              /* capacitance offset (PCB and probe leads) */
+                lcd_fixed_string(CapOffset_str); /* display: C0 */
                 lcd_space();
-                lcd_fix_string(ProbeComb_str); /* display: 12 13 23 */
+                lcd_fixed_string(ProbeComb_str); /* display: 12 13 23 */
 
                 MeasureCap(TP2, TP1, 0);
                 Val1 = (unsigned int)Caps[0].Raw;
@@ -519,10 +522,10 @@ uint8_t SelfTest(void)
 
             switch (Test)
             {
-            case 1:                       /* reference voltage */
-                Val0 = ReadU(0x0e);       /* dummy read for bandgap stabilization */
-                Val0 = ReadU(0x0e);       /* read bandgap reference voltage */
-                lcd_fix_string(URef_str); /* display: Vref */
+            case 1:                         /* reference voltage */
+                Val0 = ReadU(0x0e);         /* dummy read for bandgap stabilization */
+                Val0 = ReadU(0x0e);         /* read bandgap reference voltage */
+                lcd_fixed_string(URef_str); /* display: Vref */
 
                 lcd_line(2);
                 DisplayValue(Val0, -3, 'V'); /* display voltage in mV */
@@ -530,10 +533,10 @@ uint8_t SelfTest(void)
                 DisplayFlag = 0; /* reset flag */
                 break;
 
-            case 2:                     /* compare Rl resistors (probes still shorted) */
-                lcd_fix_string(Rl_str); /* display: +Rl- */
+            case 2:                       /* compare Rl resistors (probes still shorted) */
+                lcd_fixed_string(Rl_str); /* display: +Rl- */
                 lcd_space();
-                lcd_fix_string(ProbeComb_str); /* display: 12 13 23 */
+                lcd_fixed_string(ProbeComb_str); /* display: 12 13 23 */
 
                 /* set up a voltage divider with the Rl's */
                 /* substract theoretical voltage of voltage divider */
@@ -557,10 +560,10 @@ uint8_t SelfTest(void)
 
                 break;
 
-            case 3:                     /* compare Rh resistors (probes still shorted) */
-                lcd_fix_string(Rh_str); /* display: +Rh- */
+            case 3:                       /* compare Rh resistors (probes still shorted) */
+                lcd_fixed_string(Rh_str); /* display: +Rh- */
                 lcd_space();
-                lcd_fix_string(ProbeComb_str); /* display: 12 13 23 */
+                lcd_fixed_string(ProbeComb_str); /* display: 12 13 23 */
 
                 /* set up a voltage divider with the Rh's */
 
@@ -589,8 +592,8 @@ uint8_t SelfTest(void)
                 DisplayFlag = 0; /* reset flag */
                 break;
 
-            case 5:                        /* Rh resistors pulled down */
-                lcd_fix_string(RhLow_str); /* display: Rh- */
+            case 5:                          /* Rh resistors pulled down */
+                lcd_fixed_string(RhLow_str); /* display: Rh- */
 
                 /* TP1: Gnd -- Rh -- probe */
                 R_PORT = 0;
@@ -607,8 +610,8 @@ uint8_t SelfTest(void)
 
                 break;
 
-            case 6:                         /* Rh resistors pulled up */
-                lcd_fix_string(RhHigh_str); /* display: Rh+ */
+            case 6:                           /* Rh resistors pulled up */
+                lcd_fixed_string(RhHigh_str); /* display: Rh+ */
 
                 /* TP1: probe -- Rh -- Vcc */
                 R_DDR = 2 << (TP1 * 2);

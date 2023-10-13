@@ -58,6 +58,10 @@
 #define MODE_CONTINOUS 0 /* continous */
 #define MODE_AUTOHOLD 1  /* auto hold */
 
+/* multiplicator tables */
+#define TABLE_SMALL_CAP 1
+#define TABLE_LARGE_CAP 2
+
 /* ************************************************************************
  *   structures
  * ************************************************************************ */
@@ -66,11 +70,14 @@
 typedef struct
 {
     uint8_t Samples;    /* number of ADC samples */
-    uint8_t RefFlag;    /* control flag for ADC */
+    uint8_t AutoScale;  /* flag to disable/enable ADC auto scaling */
+    uint8_t RefFlag;    /* internal control flag for ADC */
     uint16_t U_Bandgap; /* voltage of internal bandgap reference (mV) */
-    uint16_t RiH;       /* internal pin resistance of �C in high mode (0.1 Ohms) */
     uint16_t RiL;       /* internal pin resistance of �C in low mode (0.1 Ohms) */
-    uint16_t CapZero;   /* capacity zero offset (input + leads) (pF)*/
+    uint16_t RiH;       /* internal pin resistance of �C in high mode (0.1 Ohms) */
+    uint8_t CapZero;    /* capacity zero offset (input + leads) (pF) */
+    int8_t RefOffset;   /* voltage offset of bandgap reference (mV) */
+    int8_t CompOffset;  /* voltage offset of analog comparator (mV) */
 } Config_Type;
 
 /* resistor */
@@ -105,11 +112,11 @@ typedef struct
 /* bipolar junction transistor */
 typedef struct
 {
-    uint8_t B;    /* probe pin connected to base */
-    uint8_t C;    /* probe pin connected to collector */
-    uint8_t E;    /* probe pin connected to emitter */
-    uint16_t hfe; /* current amplification factor */
-                  /* BE voltage */
+    uint8_t B;         /* probe pin connected to base */
+    uint8_t C;         /* probe pin connected to collector */
+    uint8_t E;         /* probe pin connected to emitter */
+    unsigned long hfe; /* current amplification factor */
+                       /* BE voltage */
 } BJT_Type;
 
 /* FET */

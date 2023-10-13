@@ -106,7 +106,7 @@ Since the range overlaps with the low test current we may use a single table.
 
 */
 
-#ifdef FLASH_32K
+#ifdef EXTRA
 
 /*
  *  measure inductance between two probe pins
@@ -321,7 +321,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
  *
  *  returns:
  *  - 1 on success
- *  -0 on any error
+ *  - 0 on any error
  */
 
 uint8_t MeasureInductor(Resistor_Type *Resistor)
@@ -411,10 +411,10 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
          */
 
         /* calculate ratio */
-        Value = Config.U_Bandgap + Config.CompOffset; /* = U_ref (in mV) */
-        Value *= R_total;                             /* * R_total (in 0.1 Ohms) */
-        Value /= Factor;                              /* / R_shunt (in 0.1 Ohms) */
-        Value /= 5;                                   /* / 5000mV, * 10^3 */
+        Value = Config.Bandgap + Config.CompOffset; /* = U_ref (in mV) */
+        Value *= R_total;                           /* * R_total (in 0.1 Ohms) */
+        Value /= Factor;                            /* / R_shunt (in 0.1 Ohms) */
+        Value /= 5;                                 /* / 5000mV, * 10^3 */
 
         /* get ratio based factor */
         Factor = GetFactor((unsigned int)Value, TABLE_INDUCTOR);
@@ -436,6 +436,12 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
 
         Value *= R_total; /* * R_total (in 0.1 Ohms) */
         Value /= 10000;
+
+        while (Value > 1000) /* re-scale to reduce resolution */
+        {
+            Value /= 10;
+            Scale++;
+        }
 
         /* update data */
         Inductor.Scale = Scale;

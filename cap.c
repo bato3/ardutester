@@ -414,7 +414,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
         }
 
         /* multiply with factor from table */
-        Raw *= GetFactor(Config.U_Bandgap + Config.CompOffset, TABLE_SMALL_CAP);
+        Raw *= GetFactor(Config.Bandgap + Config.CompOffset, TABLE_SMALL_CAP);
 
         /* divide by CPU frequency to get the time and multiply with table scale */
         Raw /= (CPU_FREQ / 10000);
@@ -487,8 +487,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
                  */
 
                 TempLong = Offset;
-                TempLong *= Config.U_Bandgap; /* * U_ref */
-                TempLong /= Ticks2;           /* / U_c */
+                TempLong *= Config.Bandgap; /* * U_ref */
+                TempLong /= Ticks2;         /* / U_c */
 
                 Config.RefOffset = (int8_t)TempLong;
             }
@@ -502,7 +502,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
              *  U_c = U_bandgap - U_offset -> U_offset = U_c - U_bandgap
              */
 
-            Offset = U_c - Config.U_Bandgap;
+            Offset = U_c - Config.Bandgap;
 
             /* limit offset to a valid range of -50mV - 50mV */
             if ((Offset > -50) && (Offset < 50))

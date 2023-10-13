@@ -230,10 +230,30 @@
 #define ENCODER_B        PD3       /* rotary encoder B signal */
 
 
+/*
+ *  frequency counter
+ *  - must be pin PD4/T0
+ */
+
+#define COUNTER_PORT     PORTD     /* port data register */ 
+#define COUNTER_DDR      DDRD      /* port data direction register */
+#define COUNTER_IN       PD4       /* signal input T0 */
+
+
 
 /* ************************************************************************
  *   internal stuff
  * ************************************************************************ */
+
+
+/* ADC reference selection: AVcc */
+#define ADC_REF_VCC           (1 << REFS0)
+
+/* ADC reference selection: internal 1.1V bandgap */
+#define ADC_REF_BANDGAP       ((1 << REFS1) | (1 << REFS0))
+
+/* ADC reference selection bit mask */
+#define ADC_REF_MASK          ((1 << REFS1) | (1 << REFS0))
 
 /* ADC MUX channel for internal 1.1V bandgap reference */
 #define ADC_BANDGAP      0x0e      /* 1110 */
@@ -257,8 +277,8 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
+  /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
+  #define COMPARATOR_OFFSET   0
 
   /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
   #define CAP_PCB             32

@@ -98,6 +98,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 # header files
 HEADERS = config.h common.h variables.h functions.h colors.h
 HEADERS += config_328.h config_644.h
+HEADERS += $(wildcard var_*.h)
 HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h
 HEADERS += ADS7843.h
 

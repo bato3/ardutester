@@ -11,7 +11,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2016-09-25
+Letzte Änderung:  2016-12-02
 
 Inhaltsübersicht:
   - Über den Tester
@@ -49,6 +49,7 @@ Inhaltsübersicht:
     - Exit
   - Widerstände
   - Kondensatoren
+  - Induktivitäten
   - Bauteile entladen
   - ADC Oversampling
   - Vf (V_BE) von Bipolartransistoren
@@ -220,14 +221,21 @@ Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
 - ST7735 (grafisches Farb-Display 128x160)
 - PCD8544 (grafisches Display 84x48)
 
-Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
-mit PD5 und setze LCD_CS in config_<MCU>.h (nur für grafische LCD-Module).
-Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
-zu fehlerhaften Ausgaben führen.
-
 Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
 nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
+
+Die LCD-Module mit SPI-Schnittstelle können per Bit-Bang oder Hardware SPI
+angesteuert werden. Beim Tester mit ATmega 328 ist durch die Schaltung nur
+Bit-Bang SPI möglich. Beim ATmega 324/644/1284 mit mehr I/O Pins ist neben
+dem Bit-Bang SPI auch das deutlich schnellere Hardware SPI nutzbar. Für das
+Hardware SPI müssen natürlich die festen SPI-Pins der MCU genommen werden.
+
+Hinweis zu ATmega 328:
+Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
+mit PD5 und setze LCD_CS in config_328.h (nur für grafische LCD-Module).
+Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
+zu fehlerhaften Ausgaben führen.
 
 
 + HD44780
@@ -246,8 +254,7 @@ Der HD44780 wird im 4-Bit-Modu bestrieben. Die Pins sind:
 
 + ST7565R
 
-Der ST7565R wird mittels 4/5-Line SPI im Bit-Bang-Modus gesteuert. Die Pins
-sind:
+Der ST7565R wird mittels 4/5-Line SPI gesteuert. Die Pins sind:
 
   Modul       config.h           Standard   Hinweis
   /RES        LCD_RESET          PD0
@@ -262,8 +269,7 @@ X-Offset experimentieren.
 
 + ILI9341/ILI9342
 
-Der ILI9341/ILI9342 wird mittel SPI im Bit-Bang-Modus gesteuert. Die Pins
-sind:
+Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
 
   Modul       config.h           Standard   Hinweis
   /RES        LCD_RES            PD4        optional
@@ -282,12 +288,13 @@ Einfarben oder Mehrfarben-Modus über die LCD_COLOR Definition im LCD-Bereich
 in config.h wählen (Standard: Einfarben-Modus).
 
 Aufgrund der hohen Pixelzahl ist die Ausgabe etwas langsam. Das Löschen der
-kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt.
+kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang
+SPI genutzt wird.
 
 
 + ST7735
 
-Der ST7735 wird mittel SPI im Bit-Bang-Modus gesteuert. Die Pins sind:
+Der ST7735 wird mittels SPI gesteuert. Die Pins sind:
 
   Modul       config.h           Standard   Hinweis
   /RESX       LCD_RES            PD4
@@ -302,7 +309,7 @@ experimentieren.
 
 + PCD8544
 
-Der PCD8544 wird mittel SPI im Bit-Bang-Modus gesteuert. Die Pins sind:
+Der PCD8544 wird mittels SPI gesteuert. Die Pins sind:
 
   Modul       config.h           Standard   Hinweis
   /RES        LCD_RES            PD4
@@ -337,8 +344,8 @@ erwartete Eingabe hier klar sein sollte.
 Mit einem Drehencoder erhält die Bedienung zusätzliche Funktionalität, die
 kontextabhängig ist. Die Details werden in den weiteren Abschnitten erklärt. 
 
-Der Algorithmus zum Lesen des Drehencoders wurde bisher nur mit Encodern
-der EC11 Serie von ALPS getestet, da ich keine anderen Typen habe. Eine
+Der Algorithmus zum Lesen des Drehencoders wurde bisher nur mit Encodern der
+EC11 und EC12 Serien von ALPS getestet, da ich keine anderen Typen habe. Eine
 Rückmeldung über andere Typen würde mich sehr interessieren. Sollte die
 Drehrichtung verdreht sein, einfach die Pin-Definitionen für A und B in
 config_<MCU>.h vertauschen.
@@ -709,6 +716,14 @@ Eine Logik zum Verhindern, daß große Kondensatoren als Widerstände erkannt
 werden, wurde hinzugefügt. Widerstände kleiner als 10 Ohm werden zusätzlich
 auf Kapazität geprüft.
 
+Der Tester versucht den ESR bei Kondensatoren größer als 180nF zu messen.
+Da aber die Messung nicht per Wechselstrom mit einer bestimmten Frequenz
+durchgefüghrt wird, bitte keine supergenauen Ergebnisse erwarten. Die
+benutzte Methode entspricht vielleicht der Messung mit 1kHz. Für die
+Prüfung von Elkos ist die Messung mehr als ausreichend. Bei Filmkondensatoren
+mit kleinen Werten, können je nach MCU-Taktrate unterschiedliche Werte
+zustande kommen. Ich denke, Herr Fourier könnte dies erklären.
+
 Ein gemessener Kapazitätswert von mehr als 5pF (incl. Nulloffset) wird
 als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch
 Verschiedenes, wie z.B. anderes Platzieren der Messkabel, verursacht werden.
@@ -720,6 +735,33 @@ Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:
   - 330-470µF   4-5µA
   - 470-820µF   4-7µs
   - >1000µF     5-7µA pro 1000µF
+
+
+* Induktivitäten
+
+The Induktivitätsmessung ist nicht sonderloch genau, und Dinge wie z.B. der
+MCU-Takt und die Platine haben Auswirkungen auf das Ergebnis. Die Messung
+selber basiert auf der Bestimmung der Zeit zwischen dem Einschalten des
+Stroms und dem Erreichen eines bestimmten Stroms. Für große Induktivitäten
+gibt es eine Niedrigstrommessung, und für kleine Induktivitäten eine Hoch-
+strommessung, welche das Stromlimit der MCU-Pins kurzzeitig überschreitet (bis
+zu etwa 25 Microsekunden).
+
+Bei der Untersuchung der Effekte des MCU-Takts und anderer Dinge habe ich ein
+Muster an Abweichungen gefunden, welches zum Kompensieren genutzt werden kann.
+Je nach Tester kann eine Anpassung notwendig sein. In der Datei inductance.c
+in der Funktion MeasureInductor() gibt es die Variable "Offset" zur
+Kompensation. Sie ist ein Offset für die Referenzspannung. Ein positiver
+Wert verkleinert die Induktivität, und ein negativer Wert vergrößert die
+Induktivität.
+
+Die Kompensation für die Hochstrommessung basiert auf den MCU-Takt und ist in
+drei Zeitbereiche unterteilt. Für die Niedrigstrommessung gibt es momentan nur
+eine einfache Kompensation, da hier noch weitere Tests notwendig sind. Wenn du
+größere Abweichungen beim Vergleich mit einem "richtigen" LCR-Meter siehst,
+kannst du die Offsetwerte entsprechend deinem Tester anpassen.
+
+Hinweis: Bei unerwarteten Messwerten bitte die Messung wiederholen.
 
 
 * Bauteile entladen
@@ -821,6 +863,8 @@ V_BO von 20-200V ist.
 - Bei Verwendung eines Schaltnetzteiles oder DC-DC-Konverters zur Strom-
   versorgung gibt der Tester manchmal fälschlicherweise einen Elko um
   die 50µF aus, obwohl kein Bauteil angeschlossen ist.
+- Der ESR kann bei Kondensatoren mit 180 - 220nF je nach MCU-Takt
+  variieren.
 
 
 * Firmware-Änderungen

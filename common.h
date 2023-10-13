@@ -102,6 +102,14 @@
 #define FLAG_10MS             0b00010000
 
 
+/* test push button / rotary encoder */
+#define KEY_TIMEOUT           0    /* timeout */
+#define KEY_SHORT             1    /* short key press */
+#define KEY_LONG              2    /* long key press */
+#define KEY_TURN_RIGHT        3    /* rotary encoder: right turn */
+#define KEY_TURN_LEFT         4    /* rotary encoder: left turn */
+
+
 /* tester operation modes */
 #define MODE_CONTINOUS        0    /* continous */
 #define MODE_AUTOHOLD         1    /* auto hold */

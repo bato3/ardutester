@@ -10,12 +10,14 @@
 
 /*
  *  hints:
- *  - pin assignment for bit-bang SPI
+ *  - pin assignment for SPI
  *    /RESX    LCD_RES (optional)
  *    /CSX     LCD_CS (optional)
  *    D/CX     LCD_DC
  *    SCL      LCD_SCL
  *    SDA      LCD_SDA
+ *    For hardware SPI, LCD_SCL and LCD_SDA have to be the MCU's SCK and
+ *    MOSI pins.
  *  - max. SPI clock: 15.1MHz write, 6.6MHz read 
  */
 
@@ -300,6 +302,187 @@ void LCD_Data2(uint16_t Data)
     Data <<= 1;               /* shift bits one step left */
     n--;                      /* next bit */
   }
+
+  /* deselect chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT = LCD_PORT | (1 << LCD_CS);     /* set /CSX high */
+  #endif
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   low level functions for hardware SPI interface
+ * ************************************************************************ */
+
+
+#ifdef LCD_SPI_HARDWARE
+
+/*
+ *  set up interface bus
+ *  - should be called at firmware startup
+ */
+
+void LCD_BusSetup(void)
+{
+  uint8_t           Bits;          /* bitmask */
+
+
+  /*
+   *  set port pin's data direction
+   */
+
+  Bits = LCD_DDR;                       /* get current directions */
+
+  /* basic output pins */
+  Bits |= (1 << LCD_DC) | (1 << LCD_SCL) | (1 << LCD_SDA);
+
+  /* optional output pins */
+  #ifdef LCD_RES
+    Bits |= (1 << LCD_RES);        /* /RESX */
+  #endif 
+  #ifdef LCD_CS
+    Bits |= (1 << LCD_CS);         /* /CSX */
+  #endif
+
+  LCD_DDR = Bits;                       /* set new directions */
+
+
+  /*  set default levels:
+   *  - /CSX high, if pin available
+   *  - /RESX high, if pin available
+   */
+
+  /* optional pins */
+  #ifdef LCD_CS
+    /* disable chip */
+    LCD_PORT |= (1 << LCD_CS);          /* set /CSX high */
+  #endif
+
+  #ifdef LCD_RES
+    /* disable reset */
+    LCD_PORT |= (1 << LCD_RES);         /* set /RESX high */
+  #endif
+
+
+  /*
+   *  set up hardware SPI
+   *  - master mode
+   *  - SPI mode 0 (CPOL = 0, CPHA = 0)
+   *  - MSB first (DORD = 0)
+   *  - polling mode (SPIE = 0)
+   *  - SPI clock rate (max. 15 MHz)
+   *    max. MCU clock 20MHz / 2 = 10MHz
+   *    f_osc/2 (SPR1 = 0, SPR0 = 0, SPI2X = 1)
+   */
+
+  /* set mode and enable SPI */
+  SPCR = (1 << SPE) | (1 << MSTR);
+
+  /* set SPI2X for double SPI speed */
+  SPSR = (1 << SPI2X);
+
+  /* clear SPI interrupt flag, just in case */
+  Bits = SPSR;           /* read flag */
+  Bits = SPDR;           /* clear flag by reading data */
+}
+
+
+
+/*
+ *  send a byte (data or command) to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+
+void LCD_Send(uint8_t Byte)
+{
+  /* select chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT = LCD_PORT & ~(1 << LCD_CS);    /* set /CSX low */
+  #endif
+
+  /* send byte */
+  SPDR = Byte;                     /* start transmission */
+  while (!(SPSR & (1 << SPIF)))    /* wait for flag */
+  Byte = SPDR;                     /* clear flag by reading data */
+
+  /* deselect chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT = LCD_PORT | (1 << LCD_CS);     /* set /CSX high */
+  #endif
+}
+
+
+
+/*
+ *  send a command to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+ 
+void LCD_Cmd(uint8_t Cmd)
+{
+  /* indicate command mode */
+  LCD_PORT = LCD_PORT & ~(1 << LCD_DC);      /* set D/CX low */
+
+  LCD_Send(Cmd);              /* send command */
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+
+void LCD_Data(uint8_t Data)
+{
+  /* indicate data mode */
+  LCD_PORT = LCD_PORT | (1 << LCD_DC);       /* set D/CX high */
+
+  LCD_Send(Data);             /* send data */
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - 2-byte value to send
+ */
+
+void LCD_Data2(uint16_t Data)
+{
+  uint8_t           Byte;     /* data byte */
+
+  /* indicate data mode */
+  LCD_PORT = LCD_PORT | (1 << LCD_DC);       /* set D/CX high */
+
+  /* select chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT = LCD_PORT & ~(1 << LCD_CS);    /* set /CSX low */
+  #endif
+
+  Byte = (uint8_t)Data;            /* save LSB */
+  Data >>= 8;                      /* get MSB */
+
+  /* send data: MSB */
+  SPDR = (uint8_t)Data;            /* start transmission */
+  while (!(SPSR & (1 << SPIF)))    /* wait for flag */
+  Data = SPDR;                     /* clear flag by reading data */
+
+  /* send data: LSB */
+  SPDR = Byte;                     /* start transmission */
+  while (!(SPSR & (1 << SPIF)))    /* wait for flag */
+  Data = SPDR;                     /* clear flag by reading data */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS

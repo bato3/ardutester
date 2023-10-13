@@ -140,8 +140,8 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   Probe1 = Probes.ADC_1;                /* ADC MUX for probe-1 */
   Probe2 = Probes.ADC_2;                /* ADC MUX for probe-2 */
 
-  Probe1 |= (1 << REFS1) | (1 << REFS0);     /* select bandgap reference */
-  Probe2 |= (1 << REFS1) | (1 << REFS0);     /* select bandgap reference */
+  Probe1 |= ADC_REF_BANDGAP;            /* select bandgap reference */
+  Probe2 |= ADC_REF_BANDGAP;            /* select bandgap reference */
 
   /* bitmask to enable and start ADC */
   ADC_Mask = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
@@ -247,6 +247,25 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
 
     /*
+     *  prevent runaway of cap's charge
+     */
+
+    if (U_2 <= 100)
+    {
+      /* charge cap a little bit more (positive pulse) */
+
+      /* set probes: GND -- probe-1 / probe-2 -- Rl -- 5V */
+      /* probe-1 is still pulled down directly */
+      R_PORT = Probes.Rl_2;        /* pull up probe-2 via Rl */
+      R_DDR = Probes.Rl_2;         /* enable pull up */
+      wait2us();
+      DelayTimer();                /* wait 1/2 pulse */
+      R_DDR = 0;                   /* disable any pull up */      
+      R_PORT = 0;                  /* reset probe resistors */
+    }
+
+
+    /*
      *  reverse mode, probe-2 only (probe-1 in HiZ mode)
      *  get voltage at probe 2 (facing Gnd)
      *  set probes: GND -- probe-2 -- Rl -- 5V / probe-1 -- HiZ
@@ -291,16 +310,6 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
 
     /*
-     *  manage measured values
-     */
-
-    U_1 += U_3;          /* sum of both measurements without pulses/load */
-    Sum_1 += U_1;        /* add to total no-load sum */
-    U_2 += U_4;          /* sum of both measurements with pulses/load */
-    Sum_2 += U_2;        /* add to total with-load sum */
-
-
-    /*
      *  prevent runaway of cap's charge
      */
 
@@ -313,24 +322,20 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
       R_PORT = Probes.Rl_1;        /* pull up probe-1 via Rl */
       R_DDR = Probes.Rl_1;         /* enable pull up */
       wait2us();
-      R_DDR = 0;                   /* disable any pull up */      
-      R_PORT = 0;                  /* reset probe resistors */
-    }
-
-    if (U_2 <= 100)
-    {
-      /* charge cap a little bit more (positive pulse) */
-
-      /* set probes: GND -- probe-1 / probe-2 -- Rl -- 5V */
-      ADC_DDR = Probes.Pin_1;      /* pull down probe-1 directly */
-      R_PORT = Probes.Rl_2;        /* pull up probe-2 via Rl */
-      R_DDR = Probes.Rl_2;         /* enable pull up */
-      wait2us();
       DelayTimer();                /* wait 1/2 pulse */
-      DelayTimer();                /* wait another 1/2 pulse */
       R_DDR = 0;                   /* disable any pull up */      
       R_PORT = 0;                  /* reset probe resistors */
     }
+
+
+    /*
+     *  manage measured values
+     */
+
+    U_1 += U_3;          /* sum of both measurements without pulses/load */
+    Sum_1 += U_1;        /* add to total no-load sum */
+    U_2 += U_4;          /* sum of both measurements with pulses/load */
+    Sum_2 += U_2;        /* add to total with-load sum */
 
     n--;                 /* next loop run */
   }
@@ -354,9 +359,9 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   /*
    *  calculate ESR
    *  - ESR = U_ESR / I_ESR
-   *    with U_ESR = (U2 or U4) and I_ESR = (U1 or U3)/RiL
+   *    with U_ESR = (U2 or U4) and I_ESR = (U1 or U3) / RiL
    *    ESR = (U2 or U4) * RiL / (U1 or U3)
-   *  - since we devide (U2 or U4) by (U1 or U3), we don't need to convert
+   *  - since we divide (U2 or U4) by (U1 or U3), we don't need to convert
    *    the ADC value into a voltage and simply desample the sums.
    *  - so ESR = Sum_2 * RiL / Sum_1
    *  - for a resolution of 0.01 Ohms we have to scale RiL to 0.01 Ohms
@@ -375,7 +380,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   }
 
   /* update Uref flag for next ADC run */
-  Config.RefFlag = (1 << REFS1);        /* set REFS1 bit flag */
+  Config.RefFlag = ADC_REF_BANDGAP;     /* update flag */
 
   return ESR;
 }
@@ -691,7 +696,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
   /*
-   *  Measurement method used for small caps < 50uF:
+   *  Measurement method used for small caps < 4.7uF (was 50µF):
    *  We need a much better resolution for the time measurement. Therefore we
    *  use the MCUs internal 16-bit counter and analog comparator. The counter
    *  inceases until the comparator detects that the voltage of the DUT is as
@@ -723,7 +728,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
-  ADMUX = (1 << REFS0) | Probes.ID_1;   /* switch ADC multiplexer to probe 1 */
+  ADMUX = ADC_REF_VCC | Probes.ADC_1;   /* switch ADC multiplexer to probe 1 */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   wait200us();
@@ -802,7 +807,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   U_c = ReadU(Probes.ADC_1);       /* get voltage of cap */
 
   /* start discharging DUT */
-  R_PORT = 0;                      /* pull down probe-2 via Rh */
+  R_PORT = 0;                      /* pull down probe-1 via Rh */
   R_DDR = Probes.Rh_1;             /* enable Rh for probe-1 again */
 
   /* skip measurement if charging took too long */
@@ -810,7 +815,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
   /*
-   *  calculate capacitance (<50uF)
+   *  calculate capacitance
    *  - use factor from pre-calculated SmallCap_table
    */
 
@@ -911,12 +916,12 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
       /*
-       *  In the cap measurement above the analog comparator compared
-       *  the voltages of the cap and the bandgap reference. Since the MCU
-       *  has an internal voltage drop for the bandgap reference the
-       *  MCU used actually U_bandgap - U_offset. We get that offset by
+       *  In the cap measurement using the analog comparator we compared
+       *  the voltage of the cap to the bandgap reference. Since the MCU
+       *  has an internal voltage offset for the analog comparator, the
+       *  MCU used actually U_bandgap + U_offset. We get that offset by
        *  comparing the bandgap reference with the voltage of the cap:
-       *  U_c = U_bandgap - U_offset -> U_offset = U_c - U_bandgap
+       *  U_c = U_bandgap + U_offset -> U_offset = U_c - U_bandgap
        */
 
       Offset = U_c - Config.Bandgap;
@@ -1060,6 +1065,76 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   R_DDR = 0;                       /* set resistor port to input */
   R_PORT = 0;                      /* set resistor port low */
 }
+
+
+
+#ifdef HW_ADJUST_CAP
+
+/*
+ *  measure fixed reference cap to determine voltage offsets
+ *  - cap: 100nF - 1000nF
+ *  - uses method from SmallCap() for caps < 4.7µF
+ *
+ *  returns:
+ *  - 3 on success
+ *  - 2 if capacitance is too low
+ *  - 1 if capacitance is too high
+ *  - 0 on any problem
+ */
+
+uint8_t RefCap(void)
+{
+  uint8_t           Flag = 3;      /* return value */
+  uint8_t           TempByte;      /* temp. value */
+  int8_t            Scale;         /* capacitance scale */
+  uint16_t          Ticks;         /* timer counter */
+  uint16_t          Ticks2;        /* timer overflow counter */
+  uint16_t          U_c;           /* voltage of capacitor */
+  uint32_t          Raw;           /* raw capacitance value */
+  uint32_t          Value;         /* corrected capacitance value */
+
+  /*
+   *  fixed setup:
+   *  Gnd -- cap -- ADC pin -- Rh -- resistor control pin
+   */
+
+  ADJUST_DDR |= (1 << ADJUST_RH);       /* set Rh control pin to output */
+
+
+  /*
+   *  discharge cap
+   */
+
+  ADJUST_PORT &= ~(1 << ADJUST_RH);     /* pull down cap via Rh */
+
+
+
+  /*
+   *  setup hardware for measurement
+   */
+
+
+  /*
+   *  timer loop
+   */
+
+
+  /*
+   *  calculate capacitance
+   */
+
+
+  /*
+   *  get offsets
+   */
+
+
+
+
+  return Flag;
+}
+
+#endif
 
 
 

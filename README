@@ -11,7 +11,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2016-09-25
+Last edit:  2016-12-02
 
 Content
   - About
@@ -48,7 +48,8 @@ Content
     - Show Values
     - Exit
   - Resistors
-  - Measuring Capacitance
+  - Capacitors
+  - Inductors
   - Discharging Components
   - ADC Oversampling
   - Vf (V_BE) of BJTs
@@ -214,14 +215,20 @@ At the moment following LCD controllers are supported:
 - ST7735 (color graphic display 128x160)
 - PCD8544 (graphic display 84x48)
 
-If you connect a rotary encoder to PD2/PD3, please connect the module's /CS
-to PD5 and set LCD_CS in config_<MCU>.h (applies to graphic displays).
-Otherwise the rotary encoder would screw up the display by interfering with
-the data bus.
-
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. If the display doesn't show anything after double checking the
 wiring, please try different contrast settings (config_<MCU>.h).
+
+LCD modules with SPI interface can be driven by bit-bang or hardware SPI. The
+tester with ATmega 328 supports only bit-bang SPI because of the circuit. The
+ATmega 324/644/1284 with more I/O pins allows to use bit-bang SPI and also the
+much faster hardware SPI. For hardware SPI the fixed SPI pins of the MCU have
+to be used, of course.
+
+Hint for ATmega 328:
+If you connect a rotary encoder to PD2/PD3, please connect the module's /CS to
+PD5 and set LCD_CS in config_328.h (applies to graphic displays). Otherwise
+the rotary encoder would screw up the display by interfering with the data bus.
 
 
 + HD44780
@@ -240,8 +247,7 @@ The HD44780 is driven in 4 bit mode. The pin assignment is:
 
 + ST7565R
 
-The ST7565R is driven by 4/5 line SPI in bit-bang mode. The pin assignment
-is:
+The ST7565R is driven by 4/5 line SPI. The pin assignment is:
 
   display     config.h           default   remark
   /RES        LCD_RESET          PD0
@@ -256,8 +262,7 @@ the correct orientation for your display.
 
 + ILI9341/ILI9342
 
-The ILI9341/ILI9342 is driven by a SPI in bit-bang mode. The pin assignment
-is:
+The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
 
   display     config.h           default   remark
   /RES        LCD_RES            PD4       optional
@@ -276,12 +281,13 @@ you like single color (default) or multi color support by the "LCD_COLOR"
 definition in the display section of config.h.
 
 Based on the relative high number of pixels the display output is somewhat
-slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock.
+slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock,
+when using the bit-bang SPI.
 
 
 + ST7735
 
-The ST7735 is driven by a SPI in bit-bang mode. The pin assignment is:
+The ST7735 is driven by SPI. The pin assignment is:
 
   display     config.h           default   remark
   /RESX       LCD_RES            PD4
@@ -296,7 +302,7 @@ orientation for your display.
 
 + PCD8544
 
-The PCD8544 is driven by a SPI in bit-bang mode. The pin assignment is:
+The PCD8544 is driven by SPI. The pin assignment is:
 
   display     config.h           default   remark
   /RES        LCD_RES            PD4
@@ -331,8 +337,8 @@ With a rotary encoder you'll get some extra functionality with the user
 interface, but that's context specific. The additional functionality
 is described in the sections below, if applicable.
 
-The algorithm for reading the encoder is tested only with ALPS EC11 series
-encoders, since I don't got any other rotary decoders yet. So I would
+The algorithm for reading the encoder is tested only with ALPS EC11 and EC12
+series encoders, since I don't got any other rotary decoders yet. So I would
 appreciate any feedback on other encoders. In case the enoder's turning
 direction is reversed, simply swap the MCU pin definitions for A and B
 in config_<MCU>.h.
@@ -673,7 +679,7 @@ In some rare cases the tester might not be able to detect a very low
 resistance. In that case simply re-run the test.
 
 
-* Measuring Capacitance
+* Capacitors
 
 The measurement of capacitance is split into three methods. Large caps >47µF
 are measured by the charging cycle method with 10ms impulses. Mid-sized
@@ -687,7 +693,7 @@ method, since the ADC conversion after the charging impuls needs some time
 during which the cap looses some charge due to internal resistive losses. So
 it takes longer to charge the cap and the cap seems to have a larger
 capacitance. A discharge measurement later on tries to compensate that, but
-the capacitance is still too large. 
+the capacitance is still too large.
 
 A logic for preventing large caps to be detected as resistors was added.
 Resistors < 10 Ohms are checked for being large caps.
@@ -695,6 +701,13 @@ Resistors < 10 Ohms are checked for being large caps.
 A measured capacitance value more than 5pF (incl. the zero offset) is
 considered valid. Lower values are too uncertain and could be caused by
 placing the probe leads a little bit differently and things like that.
+
+The tester tries to measure the ESR for capacitors with more than 180nF. But
+since the ESR measurement isn't done via an AC signal with a specific
+frequency, please don't expect a solid result. The method used might be
+comparable with a 1kHz test. Anyway, the results are good enough to check
+electrolytic caps. For low value film caps you could get different results
+based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.  
 
 Another measurement taken is the self-discharge leakage current for
 capacitors larger than 4.7µF. It gives a hint about the state of an 
@@ -704,6 +717,32 @@ cap seems to be about:
   - 330-470µF   4-5µA
   - 470-820µF   4-7µs
   - >1000µF     5-7µA per 1000µF
+
+
+* Inductors
+
+The inductance measurement isn't very accurate, and things like the MCU clock
+speed and the PCB layout have an inpact on the results. Basically it's based
+on measuring the time between switching on current flow and reaching a specific
+current. For high inductances there's a low current check, and for low
+inductances a high current check, which exceeds the MCU's pin drive limit
+for a very short time (up to about 25 micro seconds).
+
+While investigating the effects of the MCU clock and other things I've found a
+pattern of deviations, which can be used for compensation. Based on the tester
+you got some custom tweaking might be necessary. In inductance.c in the
+function MeasureInductor() there the variable "Offset" for compensation. That
+variable is an offset for the reference voltage. A positive offset will
+decrease the inductance, and a negative value will increase the inductance.
+
+The compensation for the high current check is based on the MCU clock, and its
+divided in three time ranges, each one with a dedicated offset. For the low
+current check there's just a simple compensation at the moment, as it needs
+further tests. If you see any major deviations when compairing the measurement
+results with a proper LCR meter, you can adjust the offsets to match your
+tester.
+
+Hint: When getting unexpected results please re-run the test.
 
 
 * Discharging Components
@@ -798,7 +837,8 @@ a V_BO of 20-200V.
   anti-parallel diodes. The capacitance measurement isn't able to determine  
   an acceptable value either.
 - When using a SMPS or DC-DC converter as power supply the tester will
-  sometimes detect a capacitor around 50µF even if no component is connected. 
+  sometimes detect a capacitor around 50µF even if no component is connected.
+- The ESR of a cap with 180 - 220nF may vary with the MCU clock.
 
 
 * Change Log

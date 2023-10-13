@@ -87,15 +87,15 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
   while (Mode > 0)
   {
     /* set up measurement */
-    if (Mode & MODE_HIGH) Probe = Probes.ID_1;
-    else Probe = Probes.ID_2;
+    if (Mode & MODE_HIGH) Probe = Probes.ADC_1;
+    else Probe = Probes.ADC_2;
 
     wdt_reset();              /* reset watchdog */
     Counter = 0;              /* reset loop counter */
     Value = 0;                /* reset sample value */
 
     /* set ADC to use bandgap reference and run a dummy conversion */
-    Probe |= (1 << REFS0) | (1 << REFS1);
+    Probe |= ADC_REF_BANDGAP;
     ADMUX = Probe;                   /* set input channel and U reference */
     wait100us();                     /* time for voltage stabilization */
     ADCSRA |= (1 << ADSC);           /* start conversion */
@@ -185,7 +185,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 #undef MODE_HIGH
 
   /* update Uref flag for next ADC run */
-  Config.RefFlag = (1 << REFS1);        /* set REFS1 bit flag */
+  Config.RefFlag = ADC_REF_BANDGAP;     /* update flag */
 
   return R;
 }

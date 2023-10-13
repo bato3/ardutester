@@ -31,9 +31,11 @@
  *  local constants
  */
 
+/* rotary encoder */
 #define DIR_NONE         0b00000000     /* no turn or error */
-#define DIR_RIGHT        0b00000001     /* turned to the right */
-#define DIR_LEFT         0b00000010     /* turned to the left */
+#define DIR_RESET        0b00000001     /* reset state */
+#define DIR_RIGHT        KEY_TURN_RIGHT /* turn to the right */
+#define DIR_LEFT         KEY_TURN_LEFT  /* turn to the left */
 
 
 
@@ -385,7 +387,7 @@ uint8_t ReadEncoder(void)
   ENCODER_DDR = Old_AB;                 /* restore old settings */
 
   /* update state history */
-  if (Enc.Dir == (DIR_RIGHT | DIR_LEFT))     /* first scan */
+  if (Enc.Dir == DIR_RESET)             /* first scan */
   {
     Enc.History = AB;                   /* set as last state */
     Enc.Dir = DIR_NONE;                 /* reset direction */
@@ -414,21 +416,23 @@ uint8_t ReadEncoder(void)
 
       /* step/detent logic */
       Enc.Pulses++;                     /* got a new pulse */
+
       if (Temp != Enc.Dir)              /* direction has changed */
       {     
         Enc.Pulses = 1;                 /* first pulse for new direction */
       }
+
+      Enc.Dir = Temp;         /* update direction */
+
       if (Enc.Pulses >= ENCODER_PULSES) /* reached step */
       {
         Enc.Pulses = 0;                 /* reset pulses */
         Action = Temp;                  /* signal valid step */
       }
-
-      Enc.Dir = Temp;         /* update direction */
     }
     else                                /* invalid change */
     {
-      Enc.Dir = DIR_RIGHT | DIR_LEFT;   /* trigger reset of history */
+      Enc.Dir = DIR_RESET;              /* reset direction state */
     }
   }
 
@@ -454,22 +458,40 @@ uint8_t ReadEncoder(void)
  *    12 = blinking cursor considering tester operation mode (UI.TesterMode)
  *
  *  returns:
- *  - 0 if timeout was reached
- *  - 1 if key was pressed short
- *  - 2 if key was pressed long
- *  - 3 if rotary encoder was turned right
- *  - 4 if rotary encoder was turned left
+ *  - KEY_TIMEOUT    0 if timeout was reached
+ *  - KEY_SHORT      1 if key was pressed short
+ *  - KEY_LONG       2 if key was pressed long
+ *  - KEY_TURN_RIGHT 3 if rotary encoder was turned right
+ *  - KEY_TURN_LEFT  4 if rotary encoder was turned left
  *  The turning velocity is returned via Enc.Velocity.
  */
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 {
-  uint8_t           Flag = 0;      /* return value */
+  uint8_t           Key = 0;       /* return value */
   uint8_t           Run = 1;       /* loop control */
   uint8_t           Counter = 0;   /* time counter */
   #ifdef HW_ENCODER
   uint8_t           Test;          /* temp. value */
-  uint8_t           Counter2 = 10; /* time counter #2 */
+  uint8_t           Counter2 = 0;  /* time counter #2 */
+  uint8_t           Timeout2;      /* step timeout */
+  uint8_t           Step = 0;      /* control flag */
+  #endif
+
+
+  /*
+   *  sampling delay for rotary encoder
+   *  - most got a bounce period of max. 3ms
+   */
+
+  #if ENCODER_PULSES < 4
+    /* default delay */
+    #define DELAY_TICK        5        /* 5ms */
+    #define DELAY_500       100        /* ticks for 500ms */
+  #else
+    /* for 4 pulses/step we have to decrease the delay */
+    #define DELAY_TICK        4        /* 4ms */
+    #define DELAY_500       125        /* ticks for 500ms */
   #endif
 
 
@@ -478,10 +500,13 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    */
 
   #ifdef HW_ENCODER
-  Enc.History = 0;                 /* init control for rotary encoder */
-  Enc.Dir = DIR_RIGHT | DIR_LEFT;
+  /* init control for rotary encoder */
+  Enc.History = 0;
+  Enc.Dir = DIR_RESET;
   Enc.Pulses = 0;
-  Enc.Velocity = 1;
+  Enc.Velocity = 1;           /* default velocity (level #1) */
+
+  Timeout2 = 6 + (2 * ENCODER_PULSES);
   #endif
 
   if (Mode > 10)              /* consider operation mode */
@@ -538,43 +563,66 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
 
       /* determine key press type */
-      if (Counter > 26) Flag = 2;       /* long (>= 300ms) */
-      else Flag = 1;                    /* short (< 300ms) */
+      if (Counter > 26) Key = KEY_LONG;   /* long (>= 300ms) */
+      else Key = KEY_SHORT;               /* short (< 300ms) */
     }
     else                                          /* no key press */
     {
       #ifdef HW_ENCODER
       /* rotary encoder */
-      if (Flag) Counter2--;        /* decrease counter if we had a turn */
+      if (Key) Counter2++;         /* increase counter if we had a step */
+
       Test = ReadEncoder();        /* read rotary encoder */
       if (Test)                    /* got user input */
       {
-        if (Flag == 0)             /* first turn */
+        if (Key == 0)              /* no step yet */
         {
-          Flag = Test;             /* save direction */
+          Key = Test;              /* save direction */
+          Step = 1;                /* got girst step */
         }
-        else                       /* second turn */
+        else if (Test == Key)      /* second step (same direction) */
         {
-          if (Flag == Test)        /* same direction */
-          {
-            /* make it more dynamic */
-            if (Counter2 > 5) Counter2 = 100;
-            else if (Counter2 > 2) Counter2 = 10;
+          /*
+           *  determine turning velocity
+           *  - use elapsed time ticks for second step
+           *  - consider pulses/step to cope with various encoder types
+           *  - create speed levels 2-7 (default: 1 for single step)
+           *
+           *  pulses/  timeout  timeout  max time/  seen time/  
+           *   step    1. step  2. step  pulse      pulse
+           *     1        8        8       8          ?
+           *     2       10       14       7          1-5
+           *     4       14       22       5          2-4(5)
+           */
 
-            Enc.Velocity = Counter2;    /* set velocity */
-            Counter2 = 0;               /* end loop */
+          Counter2 /= ENCODER_PULSES;        /* time ticks per pulse */
+          if (Counter2 >= 6) Counter2 = 5;   /* limit value */
+          Enc.Velocity = 7 - Counter2;       /* convert delay into speed */
+
+          Counter2 = Timeout2;          /* end loop */
+        }
+      }
+      else          /* no step detected */
+      {
+        if (Step == 1)             /* got first step */
+        {
+          // Enc.Dir == Key
+          if (Enc.Pulses == 1)     /* first pulse of second step */
+          {
+            Step = 2;              /* set flag */
+            /* increase timeout based on pulses/step */
+            Timeout2 += (ENCODER_PULSES * 2);
           }
         }
       }
 
-      if (Counter2 == 0)           /* timeout for velocity detection */
+      if (Counter2 == Timeout2)    /* timeout for velocity detection */
       {      
-        Flag += 2;                 /* adjust feedback */
         break;                     /* leave loop */
       }
       #endif
 
-      MilliSleep(5);               /* wait a little bit more (5ms) */
+      MilliSleep(DELAY_TICK);      /* wait a little bit (4 or 5ms) */
 
       /* blinking cursor */
       /* HD44780's built-in blinking cursor is ugly anyway :) */
@@ -583,7 +631,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       {
         Counter++;                        /* increase counter */
 
-        if (Counter == 100)               /* every 500ms (1Hz) */
+        if (Counter == DELAY_500)         /* every 500ms (1Hz) */
         {
           Counter = 0;                    /* reset counter */
 
@@ -613,7 +661,10 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     LCD_Cursor(0);            /* disable cursor */
   }
 
-  return Flag;
+  #undef DELAY_500
+  #undef DELAY_TICK
+
+  return Key;
 }
 
 
@@ -686,7 +737,7 @@ uint8_t ShortCircuit(uint8_t Mode)
   /* wait until all probes are dis/connected */
   while (Flag == 2)
   {
-    Test = AllProbesShorted();     /* check for short circuits */
+    Test = AllProbesShorted();     /* check for shorted probes */
 
     if (Test == Comp)         /* job done */
     {
@@ -697,7 +748,7 @@ uint8_t ShortCircuit(uint8_t Mode)
     {
       Test = TestKey(100, 0);      /* wait 100ms or detect key press */
       if (Mode == 0) Test = 0;     /* ignore key for un-short mode */
-      if (Test > 0) Flag = 0;      /* abort on key press */
+      if (Test > KEY_TIMEOUT) Flag = 0;  /* abort on key press */
     }
   }
 
@@ -744,11 +795,11 @@ void ChangeContrast(void)
     MilliSleep(300);                    /* smooth UI */
 
     Flag = TestKey(0, 0);               /* wait for user feedback */
-    if (Flag == 1)                      /* short key press */
+    if (Flag == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
       Test = TestKey(200, 0);           /* check for second key press */
-      if (Test > 0)                     /* second key press */
+      if (Test > KEY_TIMEOUT)           /* second key press */
       {
         Flag = 0;                         /* end loop */
       }
@@ -897,15 +948,15 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     #ifdef HW_ENCODER
     /* processing for rotary encoder */
-    if (n == 1)                    /* short key press: select item */
+    if (n == KEY_SHORT)            /* short key press: select item */
     {
-      n = 2;                            /* trigger item selection */
+      n = KEY_LONG;                     /* trigger item selection */
     }
-    else if (n == 3)               /* rotary encoder: right turn */
+    else if (n == KEY_TURN_RIGHT)  /* rotary encoder: right turn */
     {
-      n = 1;                            /* trigger next item */
+      n = KEY_SHORT;                    /* trigger next item */
     }
-    else if (n == 4)               /* rotary encoder: left turn */
+    else if (n == KEY_TURN_LEFT)   /* rotary encoder: left turn */
     {
       if (Selected == 0)                /* first item */
       {
@@ -934,7 +985,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     #endif
 
     /* processing for testkey */
-    if (n == 1)                    /* short key press: move to next item */
+    if (n == KEY_SHORT)            /* short key press: move to next item */
     {
       if (Selected == Items)       /* last item */
       {
@@ -961,7 +1012,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
         }
       }
     }
-    else if (n == 2)               /* long key press: select current item */
+    else if (n == KEY_LONG)        /* long key press: select current item */
     {
       Run = 0;                     /* end loop */
     }

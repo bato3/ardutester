@@ -293,26 +293,26 @@ uint8_t SelfAdjust(void)
         case 3:     /* internal resistance of MCU in pull-down mode */
           LCD_EEString(RiLow_str);      /* display: Ri- */
 
-          /* TP1:  Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
+          /* TP1:  Gnd -- RiL -- probe-1 -- Rl -- RiH -- Vcc */
           ADC_PORT = 0;
           ADC_DDR = (1 << TP1);
           R_PORT = (1 << R_RL_1);
           R_DDR = (1 << R_RL_1);
-          Val1 = ReadU_5ms(TP1);
+          Val1 = ReadU_5ms(TP1);        /* U across RiL */
           U_RiL += Val1;
 
-          /* TP2: Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
+          /* TP2: Gnd -- RiL -- probe-2 -- Rl -- RiH -- Vcc */
           ADC_DDR = (1 << TP2);
           R_PORT =  (1 << R_RL_2);
           R_DDR = (1 << R_RL_2);
-          Val2 = ReadU_5ms(TP2);
+          Val2 = ReadU_5ms(TP2);       /* U across RiL */
           U_RiL += Val2;
 
-          /* TP3: Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
+          /* TP3: Gnd -- RiL -- probe-3 -- Rl -- RiH -- Vcc */
           ADC_DDR = (1 << TP3);
           R_PORT =  (1 << R_RL_3);
           R_DDR = (1 << R_RL_3);
-          Val3 = ReadU_5ms(TP3);
+          Val3 = ReadU_5ms(TP3);       /* U across RiL */
           U_RiL += Val3;
 
           RiL_Counter += 3;
@@ -321,26 +321,26 @@ uint8_t SelfAdjust(void)
         case 4:     /* internal resistance of MCU in pull-up mode */
           LCD_EEString(RiHigh_str);     /* display: Ri+ */
 
-          /* TP1: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
+          /* TP1: Gnd -- RiL -- Rl -- probe-1 -- RiH -- Vcc */
           R_PORT = 0;
           ADC_PORT = (1 << TP1);
           ADC_DDR = (1 << TP1);
           R_DDR = (1 << R_RL_1);
-          Val1 = Config.Vcc - ReadU_5ms(TP1);
+          Val1 = Config.Vcc - ReadU_5ms(TP1);     /* U across RiH */
           U_RiH += Val1;
 
-          /* TP2: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
+          /* TP2: Gnd -- RiL -- Rl -- probe-2 -- RiH -- Vcc */
           ADC_PORT = (1 << TP2);
           ADC_DDR = (1 << TP2);
           R_DDR = (1 << R_RL_2);
-          Val2 = Config.Vcc - ReadU_5ms(TP2);
+          Val2 = Config.Vcc - ReadU_5ms(TP2);     /* U across RiH */
           U_RiH += Val2;
 
-          /* TP3: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
+          /* TP3: Gnd -- RiL -- Rl -- probe-3 -- RiH -- Vcc */
           ADC_PORT = (1 << TP3);
           ADC_DDR = (1 << TP3);
           R_DDR = (1 << R_RL_3);
-          Val3 = Config.Vcc - ReadU_5ms(TP3);
+          Val3 = Config.Vcc - ReadU_5ms(TP3);     /* U across RiH */
           U_RiH += Val3;
 
           RiH_Counter += 3;
@@ -408,10 +408,10 @@ uint8_t SelfAdjust(void)
         DisplayFlag = TestKey(1000, 0);      /* catch key press or timeout */
 
         /* short press -> next test / long press -> end selftest */
-        if (DisplayFlag > 0)
+        if (DisplayFlag > KEY_TIMEOUT)
         {
           Counter = 100;                       /* skip current test anyway */
-          if (DisplayFlag == 2) Test = 100;    /* also skip selftest */
+          if (DisplayFlag == KEY_LONG) Test = 100;  /* also skip selftest */
         } 
       }
  
@@ -616,16 +616,16 @@ uint8_t SelfTest(void)
         case 5:     /* Rh resistors pulled down */
           LCD_EEString(RhLow_str);      /* display: Rh- */
 
-          /* TP1: Gnd -- Rh -- probe */
+          /* TP1: Gnd -- Rh -- probe-1 */
           R_PORT = 0;
           R_DDR = (1 << R_RH_1);
           Val1 = ReadU_20ms(TP1);
 
-          /* TP2: Gnd -- Rh -- probe */
+          /* TP2: Gnd -- Rh -- probe-2 */
           R_DDR = (1 << R_RH_2);
           Val2 = ReadU_20ms(TP2);
 
-          /* TP3: Gnd -- Rh -- probe */
+          /* TP3: Gnd -- Rh -- probe-3 */
           R_DDR = (1 << R_RH_3);
           Val3 = ReadU_20ms(TP3);
 
@@ -634,17 +634,17 @@ uint8_t SelfTest(void)
         case 6:     /* Rh resistors pulled up */
           LCD_EEString(RhHigh_str);     /* display: Rh+ */
 
-          /* TP1: probe -- Rh -- Vcc */
+          /* TP1: probe-1 -- Rh -- Vcc */
           R_DDR = (1 << R_RH_1);
           R_PORT = (1 << R_RH_1);
           Val1 = ReadU_20ms(TP1);
 
-          /* TP2: probe -- Rh -- Vcc */
+          /* TP2: probe-2 -- Rh -- Vcc */
           R_DDR = (1 << R_RH_2);
           R_PORT = (1 << R_RH_2);
           Val2 = ReadU_20ms(TP2);
 
-          /* TP3: probe -- Rh -- Vcc */
+          /* TP3: probe-3 -- Rh -- Vcc */
           R_DDR = (1 << R_RH_3);
           R_PORT = (1 << R_RH_3);
           Val3 = ReadU_20ms(TP3);
@@ -673,10 +673,10 @@ uint8_t SelfTest(void)
         DisplayFlag = TestKey(1000, 0);      /* catch key press or timeout */
 
         /* short press -> next test / long press -> end selftest */
-        if (DisplayFlag > 0)
+        if (DisplayFlag > KEY_TIMEOUT)
         {
           Counter = 100;                       /* skip current test anyway */
-          if (DisplayFlag == 2) Test = 100;    /* also skip selftest */
+          if (DisplayFlag == KEY_LONG) Test = 100;  /* also skip selftest */
         } 
       }
  

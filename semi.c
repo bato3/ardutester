@@ -477,7 +477,8 @@ void GetGateThreshold(uint8_t Type)
 
   /* sanitize bit mask for drain to prevent a never-ending loop */ 
   Drain_ADC &= 0b00000111;              /* drain */
-  ADMUX = Probes.ID_3 | (1 << REFS0);   /* select probe-3 for ADC input */
+  ADMUX = Probes.ADC_3 | ADC_REF_VCC;   /* select probe-3 for ADC input */
+                                        /* and use Vcc as reference */
 
   /* sample 10 times */
   for (Counter = 0; Counter < 10; Counter++) 

@@ -27,19 +27,21 @@
 
 
 /*
- *  rotary encoder for user interface (default: PD2 & PD3)
+ *  rotary encoder for user interface
+ *  - default pins: PD2 & PD3 (ATmega 328)
  *  - in parallel with LCD module
  *  - see ENCODER_PORT for port pins
  *  - uncomment to enable and also set ENCODER_PULSES below to match your
  *    rotary encoder
  */
 
-#define HW_ENCODER
+//#define HW_ENCODER
 
 
 /*
- *  Number of pulses per step or detent for the rotary encoder
+ *  Number of Gray code pulses per step or detent for the rotary encoder
  *  - typical values: 1, 2 or 4
+ *  - a rotary encoder's pulse is a sequence of 4 Gray code pulses
  *  - adjust value to match your rotary encoder
  */
 
@@ -47,7 +49,8 @@
 
 
 /*
- *  2.5V voltage reference for Vcc check (default: PC4)
+ *  2.5V voltage reference for Vcc check
+ *  - default pin: PC4 (ATmega 328)
  *  - should be at least 10 times more precise than the voltage regulator
  *  - see TP_REF for port pin
  *  - uncomment to enable and also adjust UREF_25 below for your voltage
@@ -67,17 +70,19 @@
 
 
 /*
- *  Probe protection relay for discharging caps (PC4):
+ *  Probe protection relay for discharging caps
+ *  - default pin: PC4 (ATmega 328)
  *  - low signal: short circuit probe pins
  *    high signal via external reference: remove short circuit 
  *  - uncomment to enable
  */
 
-//#define HW_RELAY
+//#define HW_DISCHARGE_RELAY
 
 
 /*
- *  voltage measurement up to 50V DC (default: PC3):
+ *  voltage measurement up to 50V DC
+ *  - default pin: PC3 (ATmega 328)
  *  - 10:1 voltage divider
  *  - for Zener diodes
  *  - DC-DC boost converter controled by test push button
@@ -89,13 +94,29 @@
 
 
 /*
- *  frequency counter (default: PD4)
+ *  frequency counter
+ *  - default pin: T0 (PD4 ATmega 328)
  *  - in parallel with LCD module
- *  - requires MCU with >=32kB Flash
  *  - uncomment to enable
  */
 
 //#define HW_FREQ_COUNTER
+
+
+/*
+ *  fixed cap for self-adjustment
+ *  - uncomment to enable (not implemented yet)
+ */
+
+//#define HW_ADJUST_CAP
+
+
+/*
+ *  relay for parallel cap (sampling ADC)
+ *  - uncomment to enable (not implemented yet)
+ */
+
+//#define HW_CAP_RELAY
 
 
 
@@ -186,7 +207,7 @@
  *  - edit colors.h to select correct probe colors
  */
 
-//#define SW_PROBE_COLORS
+#define SW_PROBE_COLORS
 
 
 
@@ -220,11 +241,13 @@
  *  - English (default)
  *  - German
  *  - Czech
+ *  - Spanish
  */
 
 #define UI_ENGLISH
 //#define UI_GERMAN
 //#define UI_CZECH
+//#define UI_SPANISH
 
 
 /*

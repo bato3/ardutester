@@ -170,11 +170,11 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
   Min = (Config.Vcc / 2) - 30;     /* lower voltage */
   Max = (Config.Vcc / 2) + 30;     /* upper voltage */
 
-  if ((U1 > Min) && (U1 < Max))
+  if ((U1 > Min) && (U1 < Max))    /* U1 within window */
   { 
-    if ((U2 > Min) && (U2 < Max))
+    if ((U2 > Min) && (U2 < Max))  /* U2 within window */
     {
-      Flag = 1;
+      Flag = 1;                    /* about the same */
     }    
   }
 

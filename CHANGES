@@ -10,6 +10,16 @@
 
 ------------------------------------------------------------------------------
 
+v1.26m 2016-12
+- Added compensation for inductance measurement (more work required).
+- Added Spanish texts. Translation provided by pepe10000@EEVblog.
+- Changed FrequencyCounter() to support also ATmega 324/644/1284. 
+- Fixed problem in inductance measurement logic. Reported by indman@EEVblog.
+- Fixed error in voltage reference handling for ATmega 324/644/1284.
+- Improved detection of turning velocity of rotary encoder to cope with
+  different values of pulses per step or detent.
+- Added hardware SPI to all drivers for SPI based displays.
+
 v1.25m 2016-09
 - A lot of changes to support the ATmega 324/644/1284.
 - Modified test resistor management to support variable port pins.

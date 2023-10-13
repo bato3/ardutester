@@ -56,13 +56,13 @@
 /*
  *  ST7565R, SPI interface (bit-bang)
  *  - settings for Electronic Assembly EA DOGM/DOGL128-6
- *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
  */
 
 #if 0
 #define LCD_ST7565R
 #define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+//#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_SPI_HARDWARE                /* hardware SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
 #define LCD_RESET        PB2            /* port pin used for /RES */
@@ -84,13 +84,14 @@
 
 
 /*
- *  ILI9342, SPI interface (bit-bang)
+ *  ILI9342, SPI interface
  */
 
 //#if 0
 #define LCD_ILI9341
 #define LCD_COLOR                       /* color graphic display */
-#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+//#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_SPI_HARDWARE                /* hardware SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
 #define LCD_RES          PB2            /* port pin used for /RES */
@@ -111,13 +112,14 @@
 
 
 /*
- *  ST7735, SPI interface (bit-bang)
+ *  ST7735, SPI interface
  */
 
 #if 0
 #define LCD_ST7735
 #define LCD_COLOR                       /* color graphic display */
-#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+//#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_SPI_HARDWARE                /* hardware SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
 #define LCD_RES          PB2            /* port pin used for /RESX */
@@ -143,7 +145,8 @@
 #if 0
 #define LCD_PCD8544
 #define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+//#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_SPI_HARDWARE                /* hardware SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
 #define LCD_RES          PB2            /* port pin used for /RES */
@@ -226,6 +229,7 @@
 #define TP_ZENER         PA3       /* test pin with 10:1 voltage divider */
 #define TP_REF           PA4       /* test pin with 2.5V reference and relay */
 #define TP_BAT           PA5       /* test pin with 4:1 voltage divider */
+#define TP_CAP           PA7       /* test pin for self-adjustment cap */
 
 
 /*
@@ -265,10 +269,56 @@
 #define ENCODER_B        PC3       /* rotary encoder B signal */
 
 
+/*
+ *  frequency counter
+ *  - must be pin PB0/T0
+ */
+
+#define COUNTER_PORT     PORTB     /* port data register */ 
+#define COUNTER_DDR      DDRB      /* port data direction register */
+#define COUNTER_IN       PB0       /* signal input T0 */
+
+
+/*
+ *  fixed cap for self-adjustment
+ *  - ADC pin is TP_CAP from above
+ *  - settings are for 470k resistor
+ *  - should be film cap with 100nF - 1000nF
+ */
+
+#define ADJUST_PORT      PORTC     /* port data register */
+#define ADJUST_DDR       DDRC      /* port data direction register */
+#define ADJUST_RH        PC5       /* Rh (470k) for fixed cap */
+
+
+/*
+ *  relay for parallel cap (sampling ADC)
+ *  - TP1 & TP3
+ *  - cap should have 10nF - 27nF
+ */
+
+#define CAP_PORT         PORTC     /* port data register */
+#define CAP_DDR          DDRC      /* port data direction register */
+#define CAP_RELAY        PC2       /* control pin */
+
+
 
 /* ************************************************************************
  *   internal stuff
  * ************************************************************************ */
+
+
+/* ADC reference selection: AVcc */
+#define ADC_REF_VCC           (1 << REFS0)
+
+/* ADC reference selection: internal 1.1V bandgap */
+#define ADC_REF_BANDGAP       (1 << REFS1)
+
+/* ADC reference selection: internal 2.56V (bandgap * 2.328) */
+#define ADC_REF_256           ((1 << REFS1) | (1 << REFS0))
+
+/* ADC reference selection bit mask */
+#define ADC_REF_MASK          ((1 << REFS1) | (1 << REFS0))
 
 /* ADC MUX channel for internal 1.1V bandgap reference */
 #define ADC_BANDGAP      0x1e      /* 11110 */
@@ -292,8 +342,8 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
+  /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
+  #define COMPARATOR_OFFSET   0
 
   /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
   #define CAP_PCB             32
@@ -316,8 +366,8 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
+  /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
+  #define COMPARATOR_OFFSET   0
 
   /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
   #define CAP_PCB             32
@@ -340,8 +390,8 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
+  /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
+  #define COMPARATOR_OFFSET   0
 
   /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
   #define CAP_PCB             32

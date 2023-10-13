@@ -1050,8 +1050,8 @@ int main(void)
   MCUCR = (1 << PUD);                        /* disable pull-up resistors globally */
   ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV;      /* enable ADC and set clock divider */
 
-  #ifdef HW_RELAY
-  /* init relay (safe mode) */
+  #ifdef HW_DISCHARGE_RELAY
+  /* init discharge relay (safe mode) */
                                       /* ADC_PORT should be 0 */
   ADC_DDR = (1 << TP_REF);            /* short circuit probes */
   #endif
@@ -1388,7 +1388,7 @@ result:
 
 end:
 
-  #ifdef HW_RELAY
+  #ifdef HW_DISCHARGE_RELAY
   ADC_DDR = (1<<TP_REF);              /* short circuit probes */
   #endif
 
@@ -1397,7 +1397,7 @@ end:
   /* get key press or timeout */
   Test = TestKey((uint16_t)CYCLE_DELAY, 12);
 
-  if (Test == 0)              /* timeout (no key press) */
+  if (Test == KEY_TIMEOUT)         /* timeout (no key press) */
   {
     /* check if we reached the maximum number of rounds (continious mode only) */
     if ((RunsMissed >= CYCLE_MAX) || (RunsPassed >= CYCLE_MAX * 2))
@@ -1405,31 +1405,31 @@ end:
       goto power_off;              /* -> power off */
     }
   }
-  else if (Test == 1)         /* short key press */
+  else if (Test == KEY_SHORT)      /* short key press */
   {
     /* a second key press triggers extra functions */
     MilliSleep(50);
     Test = TestKey(300, 0);
 
-    if (Test > 0)           /* short or long key press */
+    if (Test > KEY_TIMEOUT)        /* short or long key press */
     {
-      #ifdef HW_RELAY
-      ADC_DDR = 0;               /* remove short circuit */
+      #ifdef HW_DISCHARGE_RELAY
+      ADC_DDR = 0;                 /* remove short circuit */
       #endif
 
-      MainMenu();                /* enter main menu */
-      goto end;                  /* re-run cycle control */
+      MainMenu();                  /* enter main menu */
+      goto end;                    /* re-run cycle control */
     }
   }
-  else if (Test == 2)         /* long key press */
+  else if (Test == KEY_LONG)       /* long key press */
   {
-    goto power_off;              /* -> power off */
+    goto power_off;                /* -> power off */
   }
   #ifdef HW_ENCODER
-  else if (Test == 4)         /* rotary encoder: left turn */
+  else if (Test == KEY_TURN_LEFT)  /* rotary encoder: left turn */
   {
-    MainMenu();                  /* enter main menu */
-    goto end;                    /* re-run cycle control */
+    MainMenu();                    /* enter main menu */
+    goto end;                      /* re-run cycle control */
   }
   #endif
 

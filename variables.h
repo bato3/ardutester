@@ -89,175 +89,11 @@
    *  constant strings (stored in EEPROM)
    */
 
-  /* language specific: German */
-  #if defined (UI_GERMAN)
-    const unsigned char Running_str[] EEMEM = "Suche...";
-    const unsigned char Weak_str[] EEMEM = "schwach";
-    const unsigned char Low_str[] EEMEM = "leer";
-    const unsigned char Timeout_str[] EEMEM = "Timeout";
-    const unsigned char Failed1_str[] EEMEM = "Kein Bauteil";
-    const unsigned char Failed2_str[] EEMEM = "gefunden!";
-    const unsigned char Done_str[] EEMEM = "fertig!";
-    const unsigned char Select_str[] EEMEM = "Wähle";
-    const unsigned char Selftest_str[] EEMEM = "Selbsttest";
-    const unsigned char Adjustment_str[] EEMEM = "Abgleich";
-    const unsigned char Save_str[] EEMEM = "Speichern";
-    const unsigned char Load_str[] EEMEM = "Laden";
-    const unsigned char Show_str[] EEMEM = "Werte zeigen";
-    const unsigned char Remove_str[] EEMEM = "Entferne";
-    const unsigned char Create_str[] EEMEM = "Baue";
-    const unsigned char ShortCircuit_str[] EEMEM = "Kurzschluss!";
-    const unsigned char DischargeFailed_str[] EEMEM = "Batterie?";
-    const unsigned char Error_str[] EEMEM = "Fehler!";
-    const unsigned char Exit_str[] EEMEM = "Abbrechen";
-    const unsigned char Checksum_str[] EEMEM = "Prüfsummen-";
-    const unsigned char BJT_str[] EEMEM = "Transistor";
-    const unsigned char Thyristor_str[] EEMEM = "Thyristor";
-    const unsigned char Triac_str[] EEMEM = "Triac";
-    const unsigned char PUT_str[] EEMEM = "PUT";
-    const unsigned char Bye_str[] EEMEM = "Ciao!";
-    #ifdef SW_SQUAREWAVE
-      const unsigned char SquareWave_str[] EEMEM = "Rechteck";
-    #endif
-    #ifdef HW_ZENER
-      const unsigned char Zener_str[] EEMEM = "Zener";
-      const unsigned char Min_str[] EEMEM = "Min";
-    #endif
-    #ifdef HW_FREQ_COUNTER
-      const unsigned char FreqCounter_str[] EEMEM = "Freq. Zähler";
-    #endif
-    #ifdef SW_ENCODER
-      const unsigned char Encoder_str[] EEMEM = "Dreh-Encoder";
-      const unsigned char TurnRight_str[] EEMEM = "Drehe rechts!";
-    #endif
-    #ifdef SW_CONTRAST
-      const unsigned char Contrast_str[] EEMEM = "Kontrast";
-    #endif
-    #ifdef SW_IR_RECEIVER
-      const unsigned char IR_Detector_str[] EEMEM = "IR-Detektor";
-    #endif
-    #ifdef SW_OPTO_COUPLER
-      const unsigned char OptoCoupler_str[] EEMEM = "Optokoppler";
-      const unsigned char Start_str[] EEMEM = "Start";
-      const unsigned char None_str[] EEMEM = "Keiner";
-    #endif
-    #ifdef SW_UJT
-      const unsigned char UJT_str[] EEMEM = "UJT";
-    #endif
-
-  /* language specific: Czech */
-  #elif defined (UI_CZECH)
-    const unsigned char Running_str[] EEMEM = "Probiha mereni..";
-    const unsigned char Weak_str[] EEMEM = "slaba!";
-    const unsigned char Low_str[] EEMEM =  "vybita!";
-    const unsigned char Timeout_str[] EEMEM = "Vyprsel cas";
-    const unsigned char Failed1_str[] EEMEM = "Zadna soucastka";
-    const unsigned char Failed2_str[] EEMEM = "neznama - vadna";
-    const unsigned char Done_str[] EEMEM = "hotovo!";
-    const unsigned char Select_str[] EEMEM = "Vyber:";
-    const unsigned char Selftest_str[] EEMEM = "Autotest";
-    const unsigned char Adjustment_str[] EEMEM = "Kalibrace";
-    const unsigned char Save_str[] EEMEM = "Ulozit";
-    const unsigned char Load_str[] EEMEM = "Nacist";
-    const unsigned char Show_str[] EEMEM = "Zobraz hodnoty";
-    const unsigned char Remove_str[] EEMEM = "Odstranit";
-    const unsigned char Create_str[] EEMEM = "Udelej";
-    const unsigned char ShortCircuit_str[] EEMEM = "zkrat!";
-    const unsigned char DischargeFailed_str[] EEMEM = "Baterie?";
-    const unsigned char Error_str[] EEMEM = "Chyba!";
-    const unsigned char Exit_str[] EEMEM = "Exit";
-    const unsigned char Checksum_str[] EEMEM = "Kontrolni soucet";
-    const unsigned char BJT_str[] EEMEM = "Tranzistor";
-    const unsigned char Thyristor_str[] EEMEM = "Tyristor";
-    const unsigned char Triac_str[] EEMEM = "Triak";
-    const unsigned char PUT_str[] EEMEM = "PUT";
-    const unsigned char Bye_str[] EEMEM = "Nashledanou...";
-    #ifdef SW_SQUAREWAVE
-      const unsigned char SquareWave_str[] EEMEM = "Gen. obdelniku";
-    #endif
-    #ifdef HW_ZENER
-      const unsigned char Zener_str[] EEMEM = "Zenerka";
-      const unsigned char Min_str[] EEMEM = "Min";
-    #endif
-    #ifdef HW_FREQ_COUNTER
-      const unsigned char FreqCounter_str[] EEMEM = "Citac";
-    #endif
-    #ifdef SW_ENCODER
-      const unsigned char Encoder_str[] EEMEM = "IRC snimac";
-      const unsigned char TurnRight_str[] EEMEM = "Otoc vpravo!";
-    #endif
-    #ifdef SW_CONTRAST
-      const unsigned char Contrast_str[] EEMEM = "Kontrast";
-    #endif
-    #ifdef SW_IR_RECEIVER
-      const unsigned char IR_Detector_str[] EEMEM = "IR detektor";
-    #endif
-    #ifdef SW_OPTO_COUPLER
-      const unsigned char OptoCoupler_str[] EEMEM = "Optron";
-      const unsigned char Start_str[] EEMEM = "Start";
-      const unsigned char None_str[] EEMEM = "zadny";
-    #endif
-    #ifdef SW_UJT
-      const unsigned char UJT_str[] EEMEM = "UJT";
-    #endif
-
-  /* language specific: English (default) */
-  #else
-    const unsigned char Running_str[] EEMEM = "Probing...";
-    const unsigned char Weak_str[] EEMEM = "weak";
-    const unsigned char Low_str[] EEMEM = "low";
-    const unsigned char Timeout_str[] EEMEM = "Timeout";
-    const unsigned char Failed1_str[] EEMEM = "No component";
-    const unsigned char Failed2_str[] EEMEM = "found!";
-    const unsigned char Done_str[] EEMEM = "done!";
-    const unsigned char Select_str[] EEMEM = "Select";
-    const unsigned char Selftest_str[] EEMEM = "Selftest";
-    const unsigned char Adjustment_str[] EEMEM = "Adjustment";
-    const unsigned char Save_str[] EEMEM = "Save";
-    const unsigned char Load_str[] EEMEM = "Load";
-    const unsigned char Show_str[] EEMEM = "Show Values";
-    const unsigned char Remove_str[] EEMEM = "Remove";
-    const unsigned char Create_str[] EEMEM = "Create";
-    const unsigned char ShortCircuit_str[] EEMEM = "Short Circuit!";
-    const unsigned char DischargeFailed_str[] EEMEM = "Battery?";
-    const unsigned char Error_str[] EEMEM = "Error!";
-    const unsigned char Exit_str[] EEMEM = "Exit";
-    const unsigned char Checksum_str[] EEMEM = "Checksum";
-    const unsigned char BJT_str[] EEMEM = "BJT";
-    const unsigned char Thyristor_str[] EEMEM = "SCR";
-    const unsigned char Triac_str[] EEMEM = "Triac";
-    const unsigned char PUT_str[] EEMEM = "PUT";
-    const unsigned char Bye_str[] EEMEM = "Bye!";
-    #ifdef SW_SQUAREWAVE
-      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
-    #endif
-    #ifdef HW_ZENER
-      const unsigned char Zener_str[] EEMEM = "Zener";
-      const unsigned char Min_str[] EEMEM = "Min";
-    #endif
-    #ifdef HW_FREQ_COUNTER
-      const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
-    #endif
-    #ifdef SW_ENCODER
-      const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
-      const unsigned char TurnRight_str[] EEMEM = "Turn right!";
-    #endif
-    #ifdef SW_CONTRAST
-      const unsigned char Contrast_str[] EEMEM = "Contrast";
-    #endif
-    #ifdef SW_IR_RECEIVER
-      const unsigned char IR_Detector_str[] EEMEM = "IR detector";
-    #endif
-    #ifdef SW_OPTO_COUPLER
-      const unsigned char OptoCoupler_str[] EEMEM = "Opto Coupler";
-      const unsigned char Start_str[] EEMEM = "Start";
-      const unsigned char None_str[] EEMEM = "None";
-    #endif
-    #ifdef SW_UJT
-      const unsigned char UJT_str[] EEMEM = "UJT";
-    #endif
-
-  #endif
+  /* language specific */
+  #include "var_czech.h"
+  #include "var_english.h"
+  #include "var_german.h"
+  #include "var_spanish.h"
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
@@ -342,7 +178,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.25m";
+  const unsigned char Version_str[] EEMEM = "v1.26m";
 
 
   /*

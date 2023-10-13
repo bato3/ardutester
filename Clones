@@ -24,7 +24,7 @@ LCD module:
 #define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RES          PD4            /* port pin used for /RESX */
+#define LCD_RES          PD0            /* port pin used for /RESX */
 #define LCD_CS           PD5            /* port pin used for /CSX (optional) */
 #define LCD_DC           PD1            /* port pin used for D/CX */
 #define LCD_SCL          PD2            /* port pin used for SCL */
@@ -42,6 +42,9 @@ Rotary Encoder:
 
 #define ENCODER_A        PD1       /* rotary encoder A signal */
 #define ENCODER_B        PD3       /* rotary encoder B signal */
+
+
+Input for the frequency counter is PD4 (T0).
 
 
 ------------------------------------------------------------------------------

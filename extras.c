@@ -2,7 +2,7 @@
  *
  *   extras / additional features
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -65,9 +65,13 @@ void ToolInfo(const unsigned char *String)
     Key = TestKey(700, 0);         /* wait 700ms */
 
     LCD_ClearLine2();              /* clear line #2 */
-    if (Key == 0) Key = TestKey(300, 0);      /* wait 300ms */
 
-    if (Key > 0) n = 3;            /* on key press end loop */
+    if (Key == KEY_TIMEOUT)
+    {
+      Key = TestKey(300, 0);       /* wait 300ms */
+    }
+
+    if (Key > KEY_TIMEOUT) n = 3;  /* on key press end loop */
     n++;                           /* next run */
   }
 
@@ -203,7 +207,7 @@ void PWM_Tool(uint16_t Frequency)
      */
 
     Test = TestKey(0, 0);               /* wait for user feedback */
-    if (Test == 1)                      /* short key press */
+    if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
       Prescaler = TestKey(200, 0);      /* check for second key press */
@@ -217,11 +221,11 @@ void PWM_Tool(uint16_t Frequency)
       }
     }
     #ifdef HW_ENCODER
-    else if (Test == 3)                 /* rotary encoder: right turn */
+    else if (Test == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
     {
       if (Ratio <= 99) Ratio += 1;      /* +1% and limit to 100% */
     }
-    else if (Test == 4)                 /* rotary encoder: left turn */
+    else if (Test == KEY_TURN_LEFT)     /* rotary encoder: left turn */
     {
       if (Ratio >= 1) Ratio -= 1;         /* -1% and limit to 0% */
     }
@@ -389,8 +393,13 @@ void SquareWave_SignalGenerator(void)
     Test = TestKey(0, 0);          /* wait for key / rotary encoder */
     Temp = Enc.Velocity;           /* take turning velocity into account */
 
-    if (Enc.Velocity > 1)          /* adjust steps based on frequency */
+    /* consider rotary encoder's turning velocity */
+    if (Temp > 1)                  /* adjust steps based on frequency */
     {
+      /* increase step size */
+      Temp = 1;
+      Temp <<= Enc.Velocity;       /* 2^speed */
+
       if (Index >= 1)              /* low frequencies */
       {
         Temp *= 10;                /* increase steps even more */
@@ -405,7 +414,8 @@ void SquareWave_SignalGenerator(void)
       }
     }
 
-    if (Test == 3)            /* encoder right turn */
+    /* process user input */
+    if (Test == KEY_TURN_RIGHT)    /* encoder right turn */
     {
       /* increase frequency / decrease top value */
       if (Top >= Temp)             /* no underflow */
@@ -428,7 +438,7 @@ void SquareWave_SignalGenerator(void)
         }
       }
     }
-    else if (Test == 4)       /* encoder left turn */
+    else if (Test == KEY_TURN_LEFT)  /* encoder left turn */
     {
       /* decrease frequency / increase top value */
       Value = (uint32_t)Top + Temp;
@@ -451,7 +461,7 @@ void SquareWave_SignalGenerator(void)
         }
       }
     }
-    else if (Test > 0)        /* key press */
+    else if (Test > KEY_TIMEOUT)   /* any other key press */
     {
       Flag = 0;               /* end loop */
     }
@@ -490,7 +500,7 @@ void ESR_Tool(void)
   Check.Diodes = 0;                /* disable diode check in cap measurement */
   Cap = &Caps[0];                  /* pointer to first cap */
 
-  #ifdef HW_RELAY
+  #ifdef HW_DISCHARGE_RELAY
   ADC_DDR = (1 << TP_REF);         /* short circuit probes */
   #endif
 
@@ -508,11 +518,11 @@ void ESR_Tool(void)
      */
 
     Test = TestKey(0, 2);               /* wait for user feedback */
-    if (Test == 1)                      /* short key press */
+    if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
       Test = TestKey(200, 0);           /* check for second key press */
-      if (Test > 0)                     /* second key press */
+      if (Test > KEY_TIMEOUT)           /* second key press */
       {
         Run = 0;                        /* end loop */
       }
@@ -521,7 +531,7 @@ void ESR_Tool(void)
     /* measure cap */
     if (Run > 0)                        /* key pressed */
     {
-      #ifdef HW_RELAY
+      #ifdef HW_DISCHARGE_RELAY
       ADC_DDR = 0;                      /* remove short circuit */
       #endif
 
@@ -552,13 +562,13 @@ void ESR_Tool(void)
         LCD_Char('-');
       }
 
-      #ifdef HW_RELAY
+      #ifdef HW_DISCHARGE_RELAY
       ADC_DDR = (1<<TP_REF);            /* short circuit probes */
       #endif
     }
   }
 
-  #ifdef HW_RELAY
+  #ifdef HW_DISCHARGE_RELAY
   ADC_DDR = 0;                     /* remove short circuit */
   #endif
 }
@@ -693,7 +703,7 @@ void Zener_Tool(void)
 
 /*
  *  frequency counter
- *  - frequency input PD4/T0
+ *  - frequency input: T0
  */
 
 void FrequencyCounter(void)
@@ -758,9 +768,9 @@ void FrequencyCounter(void)
   /* measurement loop */
   while (Flag > 0)
   {
-    /* set up PD4 as input */
-    Old_DDR = CONTROL_DDR;                /* save current settings */
-    CONTROL_DDR &= ~(1 << PD4);           /* signal input */
+    /* set up T0 as input */
+    Old_DDR = COUNTER_DDR;                /* save current settings */
+    COUNTER_DDR &= ~(1 << COUNTER_IN);    /* signal input */
     wait500us();                          /* settle time */
 
     /* update prescaler */
@@ -810,7 +820,7 @@ void FrequencyCounter(void)
     cli();                                /* disable interrupts */
 
     /* process measurement */
-    CONTROL_DDR = Old_DDR;                /* restore old settings */
+    COUNTER_DDR = Old_DDR;                /* restore old settings */
 
     if (Flag == 1)                        /* got valid measurement */
     {
@@ -1169,12 +1179,12 @@ void OptoCoupler_Tool(void)
     /* user input */
     Test = TestKey(0, 2);          /* get user input */
 
-    if (Test == 1)                 /* short key press */
+    if (Test == KEY_SHORT)         /* short key press */
     {
       /* a second key press ends tool */
       MilliSleep(50);
       Test = TestKey(300, 0);
-      if (Test > 0) Run = 0;       /* end loop */
+      if (Test > KEY_TIMEOUT) Run = 0;  /* end loop */
     }
 
     if (Run)                       /* check opto coupler */

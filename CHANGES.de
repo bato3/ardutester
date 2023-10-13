@@ -10,6 +10,19 @@
 
 ------------------------------------------------------------------------------
 
+v1.26m 2016-12
+- Kompensation für Induktivitätsmessung eingebaut (benötigt weitere Arbeit).
+- Anpassung von FrequencyCounter() zur Unterstützung von ATmega 324/644/1284.
+- Problem in der Logik der Induktivitätsmessung beseitigt. Hinweis von
+  indman@EEVblog.
+- Fehler in der Handhabung der Spannungsreferenzen für ATmega 324/644/1284
+  gelöst. 
+- Erkennung der Drehgeschwindigkeit von Drehencodern verbessert, um 
+  unterschiedliche Werte für Pulse/Schritt bzw. Pulse/Rastung besser zu
+  handhaben. 
+- Alle Treiber für SPI-basierte LCD-Module um Hardware SPI erweitert.
+
+
 v1.25m 2016-09
 - Jede Menge Änderungen zur Unterstützung von ATmega 324/644/1284.
 - Manangement der Test-Widerstände auf variable Port-Pins umgestellt.

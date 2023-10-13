@@ -367,16 +367,16 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
    *  - for a resolution of 0.01 Ohms we have to scale RiL to 0.01 Ohms
    */
 
-  Value = (uint32_t)(Config.RiL * 10);  /* RiL in 0.01 Ohms */
+  Value = (uint32_t)(NV.RiL * 10);      /* RiL in 0.01 Ohms */
   Value *= Sum_2;
   Value /= Sum_1;
   U_1 = (uint16_t)Value;
 
   /* consider probe resistance */
-  if (U_1 > Config.RZero)
+  if (U_1 > NV.RZero)
   {
-    U_1 -= Config.RZero;           /* subtract offset */
-    ESR = U_1;                     /* we got a valid result */
+    U_1 -= NV.RZero;          /* subtract offset */
+    ESR = U_1;                /* we got a valid result */
   }
 
   /* update Uref flag for next ADC run */
@@ -580,7 +580,7 @@ large_cap:
   /*
    *  calculate capacitance
    *  - use factor from pre-calculated LargeCap_table
-   *  - ignore Config.CapZero since it's in the pF range
+   *  - ignore NV.CapZero since it's in the pF range
    */
 
   if (Flag == 3)
@@ -781,7 +781,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     }
 
     /* multiply with factor from table */
-    Raw *= GetFactor(Config.Bandgap + Config.CompOffset, TABLE_SMALL_CAP);
+    Raw *= GetFactor(Config.Bandgap + NV.CompOffset, TABLE_SMALL_CAP);
 
     /* divide by CPU frequency to get the time and multiply with table scale */
     Raw /= (CPU_FREQ / 10000);
@@ -790,9 +790,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     /* take care about zero offset if feasable */
     if (Scale == -12)                     /* pF scale */
     {
-      if (Value >= Config.CapZero)        /* if value is larger than offset */
+      if (Value >= NV.CapZero)            /* if value is larger than offset */
       {
-        Value -= Config.CapZero;          /* substract offset */
+        Value -= NV.CapZero;              /* substract offset */
       }
       else                                /* if value is smaller than offset */
       {
@@ -858,7 +858,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
          TempLong *= Config.Bandgap;         /* * U_ref */
          TempLong /= Ticks2;                 /* / U_c */
 
-         Config.RefOffset = (int8_t)TempLong;
+         NV.RefOffset = (int8_t)TempLong;
        }
 
 
@@ -874,7 +874,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
       Offset = U_c - Config.Bandgap;
 
       /* limit offset to a valid range of -50mV - 50mV */
-      if ((Offset > -50) && (Offset < 50)) Config.CompOffset = Offset;
+      if ((Offset > -50) && (Offset < 50)) NV.CompOffset = Offset;
     }
   }
 

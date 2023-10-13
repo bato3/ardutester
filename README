@@ -11,11 +11,12 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-07-10
+Last edit:  2015-07-15
 
 Content
   - About
   - Safety Advice
+  - License
   - Whats different?
   - Building the firmware
   - Source Code
@@ -57,8 +58,8 @@ current circuit by Karl-Heinz and offers some changes in the user interface
 and the methods used for probing and measuring. While Karl-Heinz provides an
 official release supporting most ATmega MCUs, this is a playground version
 with all features enabled and limited to ATmega168/P and ATmega328/P due to
-memory and flash size constraints. The UI languages currently supported are
-just English and German, but can be changed or extended easily.
+memory and flash size constraints. The primary UI languages are English and
+German, but can be extended easily.
 
 Since the firmware's size exceeds 16kB Flash some features are only enabled
 for the ATmega328/P:
@@ -84,6 +85,18 @@ Just use it for unsoldered electronic components! If you test a capacitor make
 sure it's discharged before connecting the probes. This isn't just the Safety
 Sally, your life may be at risk if you connect the probes to a live circuit
 or a power supply (or even mains). 
+
+
+* License
+
+The original author hasn't provided any information about the licence
+under which the firmware is distributed. He only stated that it's open
+source and any commercial user should contact him. Unfortunately we (
+Karl-Heinz and I) haven't found any way to contact him. To remedy
+this problem I will choose an open source license at 2016-01-01, if the
+original author doesn't contact us to state his wishes until that date.
+Since the source code of this firmware version is a major rewrite with
+tons of new code and features, I think that this approach is justified.
 
 
 * What's different?
@@ -139,6 +152,11 @@ The external 2.5V voltage reference should be only enabled if it's at least
 the results worse. If you're using a MCP1702 with a typical tolerance of
 0.4% as voltage regulator you really don't need a 2.5V voltage reference.
 
+Available UI languages:
+- English
+- German
+- Czech (provided by Kapa)
+
 After editing the Makefile and config.h please run 'make' or whatever
 toolchain you got to compile the firmware. The Makefiles provides following
 additional targets:
@@ -187,10 +205,9 @@ mode the tester waits for a short key press after displaying a result before
 it will continue. Otherwise the tester chooses the continous (looping) mode by
 default. After powering on the firmware version is shown briefly.
 
-After that the tester may display a checksum error, if it detects an error
-while loading the saved adjustment values from the EEPROM. That error indicates
-a corrupted EEPROM, i.e. caused by too much write operations. In that case
-the default adjustment values from config.h will be used.
+If the tester detects a problem with the stored adjustments values, it will
+display a checksum error. That error indicates a corrupted EEPROM, and the
+tester will use the firmware defaults instead.
 
 
 * Probing

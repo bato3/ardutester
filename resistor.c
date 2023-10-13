@@ -163,7 +163,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
     Value = 10UL * Config.Vcc;               /* in 0.1 mV */
     Value -= Value1;
     Value *= 1000;                           /* scale to µA */
-    Value /= ((R_LOW * 10) + Config.RiH);    /* in 0.1 Ohms */
+    Value /= ((R_LOW * 10) + NV.RiH);        /* in 0.1 Ohms */
 
     /* U = U_Rl - U_R_i_L = U_Rl - (R_i_L * I) */
     /* U = U_probe1 - U_probe2 */
@@ -176,7 +176,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
     if (ZeroFlag == 1)        /* auto-zero */
     {
-      if (R > Config.RZero) R -= Config.RZero;
+      if (R > NV.RZero) R -= NV.RZero;
       else R = 0;
     }
   }
@@ -391,7 +391,7 @@ void CheckResistor(void)
              */
 
             if (U_Rl_H == Config.Vcc) U_Rl_H = Config.Vcc - 1;   /* prevent division by zero */
-            Value1 = (R_LOW * 10) + Config.RiH;        /* Rl + RiH in 0.1 Ohm */
+            Value1 = (R_LOW * 10) + NV.RiH;        /* Rl + RiH in 0.1 Ohm */
             Value1 *= (U_Rl_H - U_Ri_L);
             Value1 /= (Config.Vcc - U_Rl_H);
 
@@ -407,7 +407,7 @@ void CheckResistor(void)
              *    = (Rl + RiL) * ((Vcc - U_Rl_RiL) / U_Rl_RiL) - RiH
              */
 
-            Value2 = (R_LOW * 10) + Config.RiL;   /* Rl + RiL in 0.1 Ohms */
+            Value2 = (R_LOW * 10) + NV.RiL;       /* Rl + RiL in 0.1 Ohms */
             Value2 *= (U_Ri_H - U_Rl_L);
             Value2 /= U_Rl_L;
 

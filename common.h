@@ -105,13 +105,20 @@ typedef struct
   uint8_t           RefFlag;       /* internal control flag for ADC */
   uint16_t          Bandgap;       /* voltage of internal bandgap reference (mV) */
   uint16_t          Vcc;           /* voltage of Vcc (mV) */
+} Config_Type;
+
+
+/* offests and values stored in EEPROM */
+typedef struct
+{
   uint16_t          RiL;           /* internal pin resistance of MCU in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of MCU in high mode (0.1 Ohms) */
   uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
   uint8_t           CapZero;       /* capacity zero offset (input + leads) (pF) */
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
-} Config_Type;
+  uint8_t           CheckSum;      /* checksum for stored values */
+} NV_Type;
 
 
 /* rotary encoder */

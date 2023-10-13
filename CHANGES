@@ -10,6 +10,14 @@
 
 ------------------------------------------------------------------------------
 
+v1.19m 2015-10
+- Changed ShowDiode() to output the number of diodes directy (not via
+  Show_Fail()i anymore) when more than 3 diodes are found (hint by
+  hapless@eevblog).
+- Updated Czech texts, thanks to Kapa.
+- Fixed variable management bug in config.h.
+- Optimized functions for NVRAM management (values stored in EEPROM).
+
 v1.18m 2015-07
 - Optimized feedback processing in MenuTool().
 - Forked a new firmware edition, which also supports graphic displays, named
@@ -46,7 +54,7 @@ v1.14m 2014-08
 - Added frequency counter (hardware option).
 
 v1.13m 2014-07
-- Added Czech texts, thanks to Kapax.
+- Added Czech texts, thanks to Kapa.
 - ESR and PWM tools display the probes pins used.
 - Improved handling of pre-compiler directives for extra features.
 - Added support for rotary encoders for the user interface.

@@ -103,15 +103,6 @@ void Show_Fail(void)
   LCD_Line2();                          /* move to line #2 */
   LCD_EEString(Failed2_str);            /* display: found!*/  
 
-  /* display numbers of diodes found */
-  if (Check.Diodes > 0)                 /* diodes found */
-  {
-    LCD_Space();                        /* display space */
-    LCD_Data(Check.Diodes + '0');       /* display number of diodes found */
-    LCD_Space();                        /* display space */
-    LCD_EEString(Diode_AC_str);         /* display: -|>|- */    
-  }
-
   RunsMissed++;               /* increase counter */
   RunsPassed = 0;             /* reset counter */
 }
@@ -398,8 +389,8 @@ void Show_Diode(void)
     uint8_t         m;
 
     /*
-     *  Two diodes in series are additionally detected as third big diode:
-     *  - Check for any possible way of 2 diodes be connected in series.
+     *  Two diodes in series are detected as a virtual third diode:
+     *  - Check for any possible way the 2 diodes could be connected in series.
      *  - Only once the cathode of diode #1 matches the anode of diode #2.
      */
 
@@ -426,10 +417,11 @@ void Show_Diode(void)
     C = D1->C;                     /* cathode of first diode */
     A = 3;                         /* in series mode */
   }
-  else                             /* to much diodes */
+  else                             /* too much diodes */
   {
-    D1 = NULL;                     /* don't display any diode */
-    Show_Fail();                   /* and tell user */
+    LCD_EEString(Diode_AC_str);         /* display: -|>|- */
+    LCD_Space();                        /* display space */
+    LCD_Data(Check.Diodes + '0');       /* display number of diodes found */
     return;
   }
 
@@ -1110,7 +1102,7 @@ start:
   Config.Samples = 200;                 /* do a lot of samples for high accuracy */
   Config.Bandgap = ReadU(0x0e);         /* get voltage of bandgap reference (mV) */
   Config.Samples = ADC_SAMPLES;         /* set samples back to default */
-  Config.Bandgap += Config.RefOffset;   /* add voltage offset */ 
+  Config.Bandgap += NV.RefOffset;       /* add voltage offset */ 
 
 
   /*

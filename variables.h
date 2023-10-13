@@ -38,6 +38,7 @@
 
   /* configuration */
   Config_Type       Config;                  /* tester modes, offsets and values */
+  NV_Type           NV;                      /* stored values and offsets */
 
   /* probing */
   Probe_Type        Probes;                  /* test probes */
@@ -62,15 +63,7 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
-#define CHECKSUM (uint8_t)R_MCU_LOW + (uint8_t)R_MCU_HIGH + (uint8_t)R_ZERO + C_ZERO + (uint8_t)UREF_OFFSET + (uint8_t)COMPARATOR_OFFSET
-  const uint16_t    NV_RiL EEMEM = R_MCU_LOW;
-  const uint16_t    NV_RiH EEMEM = R_MCU_HIGH;
-  const uint16_t    NV_RZero EEMEM = R_ZERO;
-  const uint8_t     NV_CapZero EEMEM = C_ZERO;
-  const int8_t      NV_RefOffset EEMEM = UREF_OFFSET;
-  const int8_t      NV_CompOffset EEMEM = COMPARATOR_OFFSET;
-//  const int8_t      NV_Flags EEMEM = 0;
-  const uint8_t     NV_Checksum EEMEM = (uint8_t)(CHECKSUM);
+  const NV_Type     NV_EE EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, 0};
 
 
   /*
@@ -139,24 +132,24 @@
     const unsigned char ShortCircuit_str[] EEMEM = "zkrat!";
     const unsigned char DischargeFailed_str[] EEMEM = "Baterie?";
     const unsigned char Error_str[] EEMEM = "Chyba!";
-    const unsigned char Exit_str[] EEMEM = "Prerusit";
+    const unsigned char Exit_str[] EEMEM = "Exit";
     const unsigned char BJT_str[] EEMEM = "Tranzistor";
-    const unsigned char Thyristor_str[] EEMEM = "Tyrystor";
+    const unsigned char Thyristor_str[] EEMEM = "Tyristor";
     const unsigned char Triac_str[] EEMEM = "Triak";
     const unsigned char Bye_str[] EEMEM = "Nashledanou...";
     #ifdef SW_SQUAREWAVE
-      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
+      const unsigned char SquareWave_str[] EEMEM = "Gen. obdelniku";
     #endif
     #ifdef HW_ZENER
-      const unsigned char Zener_str[] EEMEM = "Zener";
+      const unsigned char Zener_str[] EEMEM = "Zenerka";
       const unsigned char Min_str[] EEMEM = "Min";
     #endif
     #ifdef HW_FREQ_COUNTER
-      const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
+      const unsigned char FreqCounter_str[] EEMEM = "Citac";
     #endif
     #ifdef SW_ENCODER
-      const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
-      const unsigned char TurnRight_str[] EEMEM = "Turn right!";
+      const unsigned char Encoder_str[] EEMEM = "IRC snimac";
+      const unsigned char TurnRight_str[] EEMEM = "Otoc vpravo!";
     #endif
 
   /* language specific: another language */
@@ -256,7 +249,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.18m";
+  const unsigned char Version_str[] EEMEM = "v1.19m";
 
 
   /*
@@ -315,7 +308,7 @@
     const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_SIGNAL_GEN)
+  #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
     /* Timer1 prescalers and corresponding bitmasks */
     const uint16_t T1_Prescaler_table[] MEM_TEXT = {1, 8, 64, 256, 1024};
     const uint8_t T1_Bitmask_table[] MEM_TEXT = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
@@ -358,6 +351,7 @@
 
   /* configuration */
   extern Config_Type     Config;                  /* offsets and values */
+  extern NV_Type         NV;                      /* stored values and offsets */
 
   /* probing */
   extern Probe_Type      Probes;                  /* test probes */
@@ -382,13 +376,7 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
-  extern const uint16_t  NV_RiL;
-  extern const uint16_t  NV_RiH;
-  extern const uint16_t  NV_RZero;
-  extern const uint8_t   NV_CapZero;
-  extern const int8_t    NV_RefOffset;
-  extern const int8_t    NV_CompOffset;
-  extern const uint8_t   NV_Checksum;
+  extern const NV_Type   NV_EE;
 
 
   /*
@@ -472,7 +460,7 @@
     extern const uint16_t Inductor_table[];
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_SIGNAL_GEN)
+  #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
     /* Timer1 prescalers and corresponding bitmasks */
     extern const uint16_t T1_Prescaler_table[];
     extern const uint8_t T1_Bitmask_table[];

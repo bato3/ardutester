@@ -100,7 +100,7 @@ uint32_t Get_hFE_C(uint8_t Type)
       U_R_e = ReadU_5ms(Probes.Pin_2);            /* U_R_e = U_e */
       U_R_b = Config.Vcc - ReadU(Probes.Pin_3);   /* U_R_b = Vcc - U_b */
 
-      Ri = Config.RiL;                       /* get internal resistor */
+      Ri = NV.RiL;                           /* get internal resistor */
     }
     else                             /* PNP */
     {
@@ -109,7 +109,7 @@ uint32_t Get_hFE_C(uint8_t Type)
       U_R_e = Config.Vcc - ReadU_5ms(Probes.Pin_1);    /* U_R_e = Vcc - U_e */
       U_R_b = ReadU(Probes.Pin_3);                     /* U_R_b = U_b */
 
-      Ri = Config.RiH;                       /* get internal resistor */
+      Ri = NV.RiH;                           /* get internal resistor */
     }
 
     /*
@@ -273,7 +273,7 @@ uint16_t GetLeakageCurrent(void)
   U_Rl = ReadU_5ms(Probes.Pin_2);  /* get voltage at Rl */
 
   /* calculate current */
-  R_Shunt = Config.RiL + (R_LOW * 10);  /* consider internal resistance of MCU (0.1 Ohms) */ 
+  R_Shunt = NV.RiL + (R_LOW * 10); /* consider internal resistance of MCU (0.1 Ohms) */ 
   R_Shunt += 5;                    /* for rounding */
   R_Shunt /= 10;                   /* scale to Ohms */
   Value = U_Rl * 100000;           /* scale to 10nV */
@@ -499,7 +499,7 @@ void CheckDiode(void)
     uint32_t      a, b;
 
     /* calculate expected U_Rl based on measured U_Rh in mV */
-    b = (R_HIGH * 10) / ((R_LOW * 10) + Config.RiH + Config.RiL);  /* k factor */
+    b = (R_HIGH * 10) / ((R_LOW * 10) + NV.RiH + NV.RiL);   /* k factor */
     a = b - 1;                          /* k-1 */
     a *= 1000;                          /* scale for mV */
     a /= Config.Vcc;                    /* /Vcc (in mV) */
@@ -724,9 +724,9 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
     hFE_E *= 10;                           /* upscale to 0.1 */
 
     if (BJT_Type == TYPE_NPN)      /* NPN */
-      hFE_E /= (R_LOW * 10) + Config.RiH;    /* / R_c in 0.1 Ohm */
+      hFE_E /= (R_LOW * 10) + NV.RiH;    /* / R_c in 0.1 Ohm */
     else                           /* PNP */
-      hFE_E /= (R_LOW * 10) + Config.RiL;    /* / R_c in 0.1 Ohm */
+      hFE_E /= (R_LOW * 10) + NV.RiL;    /* / R_c in 0.1 Ohm */
 
     /* get hFE for common collector circuit */
     hFE_C = Get_hFE_C(BJT_Type);

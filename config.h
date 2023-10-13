@@ -21,7 +21,7 @@
  *    rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
@@ -80,7 +80,7 @@
  *  - uncomment to enable
  */
 
-//#define HW_FREQ_COUNTER
+#define HW_FREQ_COUNTER
 
 
 

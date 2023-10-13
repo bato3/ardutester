@@ -76,6 +76,11 @@
 #define MODE_AUTOHOLD         1    /* auto hold */
 
 
+/* adjustment modes */
+#define MODE_LOAD             1    /* load adjustment values */
+#define MODE_SAVE             2    /* save adjustment values */
+
+
 /* multiplicator table IDs */
 #define TABLE_SMALL_CAP       1
 #define TABLE_LARGE_CAP       2

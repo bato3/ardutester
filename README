@@ -7,11 +7,16 @@
 
               for ATmega168/328 with HD44780 LCD module (2x16)
 
-        (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-12-07
+Last edit:  2016-01-01
+
+
+This firmware edition will only receive bug fixes in the future. For
+additional and new features please update to the Trendy Edition.
+
 
 Content
   - About
@@ -101,6 +106,8 @@ original author doesn't contact us to state his wishes until that date.
 Since the source code of this firmware version is a major rewrite with
 tons of new code and features, I think that this approach is justified.
 
+Licensed under the EUPL V.1.1
+
 
 + Additional Disclaimer
 
@@ -132,6 +139,7 @@ official release:
   + V_f is interpolated for a more suitable (virtual) I_b based on hFE
 - TRIACs
   + detection of MT1 and MT2
+- IR RC detector and decoding
 - structured source code
 - some more I couldn't think of right now
 
@@ -384,10 +392,16 @@ The carrier frequency of the TSOP receiver module doesn't have to match the RC
 exactly. A mismatch reduces the possible range, but that doesn't matter much
 for this application.
 
+Please connect the IR receiver module after entering the IR detector function.
+
 How to connect the TSOP module:
   Probe #1:  Gnd
   Probe #2:  Vs (current limited by 680 ohms resistor)
   Probe #3:  Out/Data
+
+Hint:
+  The current limiting resistor for Vs implies a IR receiver module with a
+  supply voltage range of about 2.5 to 5V.
 
 
 + Selftest

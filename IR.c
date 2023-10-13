@@ -1128,12 +1128,14 @@ void IR_Detector(void)
   LCD_Line2();
   LCD_EEString(IR_Probes_str);          /* display pinout */
 
-  /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 -- HiZ -- Rh -- Gnd */
+  /* safe mode with current limiting resistor for Vs */
+  /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1);                 /* probe-1 */
   /* pull up probe-2 via Rl, pull down probe-3 via Rh */
   R_DDR = (1 << (TP2 * 2)) | (2 << (TP3 * 2));    /* enable resistors */
   R_PORT = (1 << (TP2 * 2));              /* pull up probe-2, pull down probe-3 */
+
 
   /* wait for IR receiver module or key press */
   n = 1;
@@ -1191,12 +1193,7 @@ void IR_Detector(void)
       }
       else                    /* high: L / no IR signal */
       {
-        /* check test button */
-        while (!(CONTROL_PIN & (1 << TEST_BUTTON)))
-        {
-          MilliSleep(50);                 /* take a nap */
-          Run = 0;                        /* end loop */
-        }
+        Run = 4;              /* check for test key */
       }
     }
     else                      /* sample IR */
@@ -1208,6 +1205,11 @@ void IR_Detector(void)
         if (Period > 240)     /* 12ms timeout */
         {
           Run = 3;            /* switch to decoding mode */
+
+          if (!Flag)          /* IR signal or removed receiver module */
+          {
+            Run = 4;          /* check for test key */
+          }
         }
       }
       else                    /* new pause/pulse */
@@ -1249,6 +1251,17 @@ void IR_Detector(void)
     {
       IR_Decode(&PulseWidth[0], Pulses);     /* try to decode */
       Run = 1;                          /* switch back to waiting mode */
+    }
+    else if (Run == 4)        /* check for test key */
+    {
+      Run = 1;                          /* switch back to waiting mode */
+
+      /* check test button */
+      while (!(CONTROL_PIN & (1 << TEST_BUTTON)))
+      {
+        MilliSleep(50);                 /* take a nap */
+        Run = 0;                        /* end loop */
+      }
     }
 
     wdt_reset();            /* reset watchdog */

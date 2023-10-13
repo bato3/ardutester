@@ -1050,7 +1050,7 @@ int main(void)
   Config.AutoScale = 1;                 /* enable ADC auto scaling */
   Config.RefFlag = 1;                   /* no ADC reference set yet */
   Config.Vcc = UREF_VCC;                /* voltage of Vcc */
-  LoadAdjust();                         /* load adjustment values */
+  ManageAdjust(MODE_LOAD);              /* load adjustment values */
 
   wdt_enable(WDTO_2S);		        /* enable watchdog (timeout 2s) */
 

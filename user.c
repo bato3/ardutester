@@ -950,8 +950,8 @@ void MainMenu(void)
       Flag = SelfAdjust();
       break;
 
-    case 3:              /* safe self-adjustment values */
-      SafeAdjust();
+    case 3:              /* save self-adjustment values */
+      ManageAdjust(MODE_SAVE);
       break;
 
     case 4:              /* show self-adjustment values */

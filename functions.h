@@ -69,8 +69,7 @@
 #ifndef ADJUST_C
 
   extern uint8_t CheckSum(void);
-  extern void SafeAdjust(void);
-  extern void LoadAdjust(void);
+  extern void ManageAdjust(uint8_t Mode);
 
   extern void ShowAdjust(void);
   extern uint8_t SelfAdjust(void);

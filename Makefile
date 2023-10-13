@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2015 by Markus Reschke
+#  (c) 2012-2016 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -159,7 +159,8 @@ dist:
 	rm -f *.tgz
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S \
-	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES
+	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
+	  ${DIST}/*.pdf
 
 # clean up
 clean:

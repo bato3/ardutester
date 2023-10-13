@@ -59,83 +59,74 @@ uint8_t CheckSum(void)
 
 
 /*
- *  save adjustment values
+ *  load/save adjustment values from/to EEPROM
+ *
+ *  requires:
+ *  - mode: load/save
  */
 
-void SafeAdjust(void)
+void ManageAdjust(uint8_t Mode)
 {
   uint8_t      n;                            /* counter */
-  uint8_t      *Src = (uint8_t *)&NV;        /* pointer to RAM */
-  uint8_t      *Dest = (uint8_t *)&NV_EE;    /* pointer to EEPROM */
+  uint8_t      *Addr_RAM = (uint8_t *)&NV;   /* pointer to RAM */
+  uint8_t      *Addr_EE = (uint8_t *)&NV_EE; /* pointer to EEPROM */
 
-  NV.CheckSum = CheckSum();   /* update checksum */
+  NV.CheckSum = CheckSum();        /* update checksum */
 
 
   /*
-   *  update values stored in EEPROM
-   *  - write data structure byte-wise
+   *  read/write EEPROM byte-wise to/from data structure 
    */
 
   for (n = 0; n < sizeof(NV_Type); n++)
   {
-    eeprom_write_byte(Dest, *Src);      /* write a byte */
-    Dest++;                             /* next byte */
-    Src++;                              /* next byte */
-  }
-}
-
-
-
-/*
- *  load adjustment values
- */
-
-void LoadAdjust(void)
-{
-  uint8_t      n;                            /* counter */
-  uint8_t      *Dest = (uint8_t *)&NV;       /* pointer to RAM */
-  uint8_t      *Src = (uint8_t *)&NV_EE;     /* pointer to EEPROM */
-
-
-  /*
-   *  read stored values from EEPROM
-   *  - read data structure byte-wise
-   */
-
-  for (n = 0; n < sizeof(NV_Type); n++)
-  {
-    *Dest = eeprom_read_byte(Src);      /* read a byte */
-    Dest++;                             /* next byte */
-    Src++;                              /* next byte */
-  }
-
-
-  /*
-   *  check checksum
-   */
-
-  n = CheckSum();
-
-  if (NV.CheckSum != 0)       /* EEPROM updated */
-  {
-    if (NV.CheckSum != n)     /* mismatch */
+    if (Mode == MODE_SAVE)              /* write */
     {
-      /* tell user */
-      LCD_Clear();
-      LCD_EEString_Space(Checksum_str); /* display: Checksum */
-      LCD_EEString(Error_str);          /* display: error! */
-      MilliSleep(2000);                 /* give user some time to read */
+      eeprom_write_byte(Addr_EE, *Addr_RAM);    /* write a byte */
+    }
+    else                                /* read */
+    {
+      *Addr_RAM = eeprom_read_byte(Addr_EE);    /* read a byte */
+    }
 
-      /* set default values */
-      NV.RiL = R_MCU_LOW;
-      NV.RiH = R_MCU_HIGH;
-      NV.RZero = R_ZERO;
-      NV.CapZero = C_ZERO;
-      NV.RefOffset = UREF_OFFSET;
-      NV.CompOffset = COMPARATOR_OFFSET;
+    Addr_RAM++;               /* next byte */
+    Addr_EE++;                /* next byte */
+  }
+
+
+  /*
+   *  check checksum on read
+   */
+
+  if (Mode != MODE_SAVE)           /* read mode */
+  {
+    n = CheckSum();
+
+    if (NV.CheckSum != 0)          /* EEPROM updated */
+    {
+      if (NV.CheckSum != n)        /* mismatch */
+      {
+        /* tell user */
+        LCD_Clear();
+        LCD_EEString(Checksum_str);          /* display: Checksum */
+        LCD_Line2();
+        LCD_EEString(Error_str);             /* display: error! */
+        MilliSleep(2000);                    /* give user some time to read */
+
+        /* set default values */
+        NV.RiL = R_MCU_LOW;
+        NV.RiH = R_MCU_HIGH;
+        NV.RZero = R_ZERO;
+        NV.CapZero = C_ZERO;
+        NV.RefOffset = UREF_OFFSET;
+        NV.CompOffset = COMPARATOR_OFFSET;
+      }
     }
   }
 }
+
+
+
 
 
 

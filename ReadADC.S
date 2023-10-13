@@ -49,7 +49,7 @@ get_sample:
 ; if (Samples != ADCconfig.RefFlag) {
 	lds	r24, ADCconfig+1
        	cp	r30, r24
-       	breq	r2aa2
+       	breq	r2aa2 
 #ifdef NO_AREF_CAP
 ;    wait100us(); /* time for voltage stabilization */
 	ACALL	wait100us
@@ -68,7 +68,7 @@ get_sample:
 wadc1:
 	lds	r24, ADCSRA
        	sbrc	r24, ADSC
-       	rjmp	wadc1
+       	rjmp	wadc1 
 ;    ADCconfig.RefFlag = Samples; /* update flag */
 	sts	ADCconfig+1, r30
 
@@ -80,7 +80,7 @@ r2aa2:
 	ldi	r19, 0x00	; 0
 	movw	r20, r18
 	ldi	r30, 0x00	; Samples = 0
-	rjmp	r2ae8
+	rjmp	r2ae8 
  /* * sample ADC readings */
 ; Value = 0UL; /* reset sampling variable */
 ; Samples = 0; /* number of samples to take */
@@ -98,7 +98,7 @@ Loop:
 wadc2:
 	lds	r24, ADCSRA
        	sbrc	r24, ADSC
-	rjmp	wadc2
+	rjmp	wadc2 
 ;    Value += ADCW; /* add ADC reading */
 	lds	r22, ADCL
 	lds	r23, ADCH
@@ -110,20 +110,20 @@ wadc2:
 ;    /* auto-switch voltage reference for low readings */
 ;    if ((Samples == 4) && (ADCconfig.U_Bandgap > 255) && ((uint16_t)Value < 1024) && !(Probe & (1 << REFS1))) {
 	cpi	r30, 0x04	; Samples == 4
-	brne	r2ae6
+	brne	r2ae6 
 	lds	r24, ADCconfig+3
         cpi	r24,0
         breq	r2ae6
        	ldi	r24, (1024 >> 8)	; Value < 1024
 	cpi	r18, (1024 & 0xff)	; 0
 	cpc	r19, r24
-	brcc	r2ae6
+	brcc	r2ae6 
 	sbrc	r17, REFS1
-	rjmp	r2ae6
+	rjmp	r2ae6 
 ;      Probe |= (1 << REFS1); /* select internal bandgap reference */
 	ori	r17, (1 << REFS1)
 ;       goto get_sample; /* re-run sampling */
-	rjmp	get_sample
+	rjmp	get_sample 
 ;    }
 #endif
 ;    Samples++; /* one more done */
@@ -138,7 +138,7 @@ r2ae6:
 r2ae8:
 	lds	r24, ADCconfig+0
 	cp	r30, r24
-	brcs	Loop
+	brcs	Loop 
 ;    }
 ;    Samples++; /* one more done */
 ; }
@@ -147,10 +147,10 @@ r2ae8:
 ; /* get voltage of reference used */
 ; if (Probe & (1 << REFS1)) U = ADCconfig.U_Bandgap; /* bandgap reference */
 	sbrs	r17, REFS1
-	rjmp	r2afe
+	rjmp	r2afe 
 	lds	r22, ADCconfig+2;   ADCconfig.U_Bandgap
 	lds	r23, ADCconfig+3
-       	rjmp	r2b02
+       	rjmp	r2b02 
 #endif
 ; else U = U_VCC; /* Vcc reference */
 r2afe:
@@ -199,3 +199,4 @@ r2b02:
 	movw	r24, r18
 	pop	r17
     	ret
+

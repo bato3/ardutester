@@ -2,6 +2,7 @@
 /*########################################################################################
         Configuration
 */
+#ifndef ADC_PORT
 // #define DebugOut 3		// if set, output of voltages of resistor measurements in row 2,3,4
 // #define DebugOut 4		// if set, output of voltages of Diode measurement in row 3+4
 // #define DebugOut 5		// if set, output of Transistor checks in row 2+3
@@ -12,6 +13,7 @@
   The lower pins of this Port must be used for measurements.
   Please don't change the definitions of TP1, TP2 and TP3!
   The TPREF pin can be connected with a 2.5V precision voltage reference
+  The TPext can be used with a 10:1 resistor divider as external voltage probe up to 50V
 */
 
 #define ADC_PORT PORTC
@@ -20,6 +22,7 @@
 #define TP1 PC0
 #define TP2 PC1
 #define TP3 PC2
+#define TPext PC3
 // Port pin for 2.5V precision reference used for VCC check (optional)
 #define TPREF PC4
 // Port pin for Battery voltage measuring
@@ -316,6 +319,24 @@ End of configuration
 #define COMP_SLEW2 33
 #define C_NULL CC0 + CABLE_CAP + (COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
 #define MUX_INT_REF 0x0e /* channel number of internal 1.1 V */
+#ifndef INHIBIT_SLEEP_MODE
+#define INHIBIT_SLEEP_MODE /* do not use the sleep mode of ATmega */
+#endif
+#endif
+#if PROCESSOR_TYP == 8
+// 2.54V reference voltage + correction (fix for ATmega8)
+#ifdef AUTO_CAL
+#define ADC_internal_reference (2560 + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
+#else
+#define ADC_internal_reference (2560 + REF_R_KORR)
+#endif
+#else
+// all other processors use a 1.1V reference
+#ifdef AUTO_CAL
+#define ADC_internal_reference (ref_mv + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
+#else
+#define ADC_internal_reference (ref_mv + REF_R_KORR)
+#endif
 #endif
 
 #ifndef REF_R_KORR
@@ -409,17 +430,12 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 #define TXD_VAL TXD_MSK
 #endif
 
-#ifdef __AVR_ATmega8__
-// 2.54V reference voltage + korrection (fix for ATmega8)
-#ifdef AUTO_CAL
-#define ADC_internal_reference (2560 + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
-#else
-#define ADC_internal_reference (2560 + REF_R_KORR)
-#endif
+#ifdef INHIBIT_SLEEP_MODE
 // save memory, do not use the sleep mode
 #define wait_about5ms() wait5ms()
 #define wait_about10ms() wait10ms()
 #define wait_about20ms() wait20ms()
+#define wait_about30ms() wait30ms()
 #define wait_about50ms() wait50ms()
 #define wait_about200ms() wait200ms()
 #define wait_about300ms() wait300ms()
@@ -430,15 +446,11 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 #define wait_about3s() wait3s()
 #define wait_about4s() wait4s()
 #else
-#ifdef AUTO_CAL
-#define ADC_internal_reference (ref_mv + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
-#else
-#define ADC_internal_reference (ref_mv + REF_R_KORR)
-#endif
 // use sleep mode to save current for user interface
 #define wait_about5ms() sleep_5ms(1)
 #define wait_about10ms() sleep_5ms(2)
 #define wait_about20ms() sleep_5ms(4)
+#define wait_about30ms() sleep_5ms(6)
 #define wait_about50ms() sleep_5ms(10)
 #define wait_about200ms() sleep_5ms(40)
 #define wait_about300ms() sleep_5ms(60)
@@ -470,9 +482,13 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 #define CHECK_CALL
 #define RR680PL resis680pl
 #define RR680MI resis680mi
+#define RRpinPL pin_rpl
+#define RRpinMI pin_rmi
 #else
 #define RR680PL (R_L_VAL + PIN_RP)
 #define RR680MI (R_L_VAL + PIN_RM)
+#define RRpinPL (PIN_RP)
+#define RRpinMI (PIN_RM)
 #endif
 
 #ifndef ESR_ZERO
@@ -490,8 +506,8 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 
 // with EBC_STYLE you can select the Pin-description in EBC= style instead of 123=??? style
 // #define EBC_STYLE
-
-// EXTREF2PD6 specifies, that the external 2.5V reference is additionally connected to PD6 (AIN0)
-// The Shut Off function is not yet compatible with this approach.
-// Alternative function of Gate threshold voltage measurement is implemented for test purpose only.
-// #define EXTREF2PD6
+#if EBC_STYLE == 123
+// unset the option for the 123 selection, since this style is default.
+#undef EBC_STYLE
+#endif
+#endif

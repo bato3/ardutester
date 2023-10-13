@@ -1,8 +1,5 @@
 
 #include <avr/io.h>
-#include "lcd-routines.h"
-#include "wait1000ms.h"
-#include "config.h"
 #include <util/delay.h>
 #include <avr/sleep.h>
 #include <stdlib.h>
@@ -15,7 +12,7 @@
 #define MAIN_C
 #include "Transistortester.h"
 
-#ifndef __AVR_ATmega8__
+#ifndef INHIBIT_SLEEP_MODE
 // prepare sleep mode
 EMPTY_INTERRUPT(TIMER2_COMPA_vect);
 EMPTY_INTERRUPT(ADC_vect);
@@ -25,12 +22,7 @@ EMPTY_INTERRUPT(ADC_vect);
 int main(void)
 {
     // switch on
-#ifndef EXTREF2PD6
-    // Switch on directly only without the PC4-PD6 connection.
-    // With this connection the PD6 (AIN0) is connected to the external 2.5V reference voltage
-    // and should never be switched to VCC directly.
-    ON_DDR = (1 << ON_PIN);
-#endif
+    ON_DDR = (1 << ON_PIN); // switch to output
 #ifdef PULLUP_DISABLE
     ON_PORT = (1 << ON_PIN); // switch power on
 #else
@@ -48,7 +40,7 @@ int main(void)
     tmp = (WDRF_HOME & (1 << WDRF)); // save Watch Dog Flag
     WDRF_HOME &= ~(1 << WDRF);       // reset Watch Dog flag
     wdt_disable();                   // disable Watch Dog
-#ifndef __AVR_ATmega8__
+#ifndef INHIBIT_SLEEP_MODE
     // switch off unused Parts
     PRR = (1 << PRTWI) | (1 << PRTIM0) | (1 << PRSPI) | (1 << PRUSART0);
     DIDR0 = (1 << ADC5D) | (1 << ADC4D) | (1 << ADC3D);
@@ -84,7 +76,7 @@ int main(void)
         lcd_fix_string(TestTimedOut); // Output Timeout
         wait_about3s();               // wait for 3 s
         ON_PORT = 0;                  // shut off!
-        ON_DDR = (1 << ON_PIN);       // switch to GND
+        //     ON_DDR = (1<<ON_PIN);		//switch to GND
         return 0;
     }
     LCDLoadCustomChar(LCD_CHAR_DIODE1); // Custom-Character Diode symbol
@@ -140,50 +132,24 @@ int main(void)
 //*****************************************************************
 // Entry: if start key is pressed before shut down
 start:
-    PartFound = PART_NONE;
-    NumOfDiodes = 0;
+    PartFound = PART_NONE; // no part found
+    NumOfDiodes = 0;       // Number of diodes = 0
     PartReady = 0;
     PartMode = 0;
     WithReference = 0; // no precision reference voltage
     lcd_clear();
-    ADC_DDR = TXD_MSK; // activate Software-UART
-#ifdef AUTO_CAL
-    resis680pl = eeprom_read_word(&R680pl);
-    resis680mi = eeprom_read_word(&R680mi);
-#endif
-
-    ResistorsFound = 0;
+    ADC_DDR = TXD_MSK;  // activate Software-UART
+    ResistorsFound = 0; // no resistors found
     cap.ca = 0;
     cap.cb = 0;
 #ifdef WITH_UART
     uart_newline(); // start of new measurement
 #endif
     ADCconfig.RefFlag = 0;
-    ADCconfig.U_AVCC = U_VCC; // set initial VCC Voltage
-    ADCconfig.Samples = 190;  // set number of ADC samples near to max
-    ADC_PORT = TXD_VAL;
-    ADC_DDR = (1 << TPREF) | TXD_MSK; // switch pin with reference to GND
-    wait1ms();
-    ADC_DDR = TXD_MSK; // switch pin with reference back to input
-#if FLASHEND > 0x1fff
-    trans.uBE[1] = W5msReadADC(TPREF); // read voltage of 2.5V precision reference
-    if ((trans.uBE[1] > 2250) && (trans.uBE[1] < 2750))
-    {
-        // precision voltage reference connected, update U_AVCC
-        WithReference = 1;
-        ADCconfig.U_AVCC = (unsigned long)((unsigned long)ADCconfig.U_AVCC * 2495) / trans.uBE[1];
-    }
-#endif
-    lcd_line1(); // 1. row
+    Calibrate_UR(); // get Ref Voltages and Pin resistance
+    lcd_line1();    // 1. row
 
-#ifdef WITH_AUTO_REF
-    (void)ReadADC(MUX_INT_REF);         // read Reference-voltage
-    ref_mv = W20msReadADC(MUX_INT_REF); // read Reference-voltage
-#else
-    ref_mv = DEFAULT_BAND_GAP;                // set to default Reference Voltage
-#endif
     ADCconfig.U_Bandgap = ADC_internal_reference; // set internal reference voltage for ADC
-    ADCconfig.Samples = ANZ_MESS;                 // set to configured number of ADC samples
 
 #ifdef BAT_CHECK
     // Battery check is selected
@@ -208,7 +174,7 @@ start:
 // use .8 V difference to Warn-Level
 #define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 800) * (unsigned long)33) / 133)
 #elif (BAT_POOR > 29)
-// less than 5.4 V only .4V difference to Warn-Level
+                        // less than 5.4 V only .4V difference to Warn-Level
 #define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 400) * (unsigned long)33) / 133)
 #else
 // less than 3.0 V only .2V difference to Warn-Level
@@ -255,8 +221,23 @@ start:
             lcd_line2();
             lcd_fix_string(VCC_str);                    // VCC=
             DisplayValue(ADCconfig.U_AVCC, -3, 'V', 3); // Display 3 Digits of this mV units
+                                                        //         lcd_space();
+                                                        //         DisplayValue(RRpinMI,-1,LCD_CHAR_OMEGA,4);
             wait_about1s();
         }
+    }
+#endif
+#ifdef WITH_VEXT
+    // show the external voltage
+    while (!(ON_PIN_REG & (1 << RST_PIN)))
+    {
+        lcd_line2();
+        lcd_clear_line();
+        lcd_line2();
+        lcd_fix_string(Vext_str);                    // Vext=
+        trans.uBE[1] = W5msReadADC(TPext);           // read external voltage
+        DisplayValue(trans.uBE[1] * 10, -3, 'V', 3); // Display 3 Digits of this mV units
+        wait_about300ms();
     }
 #endif
 
@@ -459,8 +440,15 @@ start:
         if (NumOfDiodes > 2)
         { // Transistor with protection diode
 #ifdef EBC_STYLE
-            if (PartMode == PART_MODE_NPN)
+#if EBC_STYLE == 321
+            // Layout with 321= style
+            if (((PartMode == PART_MODE_NPN) && (trans.c < trans.e)) || ((PartMode != PART_MODE_NPN) && (trans.c > trans.e)))
 #else
+            // Layout with EBC= style
+            if (PartMode == PART_MODE_NPN)
+#endif
+#else
+            // Layout with 123= style
             if (((PartMode == PART_MODE_NPN) && (trans.c > trans.e)) || ((PartMode != PART_MODE_NPN) && (trans.c < trans.e)))
 #endif
             {
@@ -471,25 +459,9 @@ start:
                 lcd_fix_string(KatAn); //"-|<-"
             }
         }
-#ifdef EBC_STYLE
-        lcd_fix_string(EBC_str); //" EBC="
-        lcd_testpin(trans.e);
-        lcd_testpin(trans.b);
-        lcd_testpin(trans.c);
-#else
-        lcd_fix_string(N123_str); //" 123="
-        for (ii = 0; ii < 3; ii++)
-        {
-            if (ii == trans.e)
-                lcd_data('E'); // Output Character in right order
-            if (ii == trans.b)
-                lcd_data('B');
-            if (ii == trans.c)
-                lcd_data('C');
-        }
-#endif
-        lcd_line2();             // 2. row
-        lcd_fix_string(hfe_str); //"B="  (hFE)
+        PinLayout('E', 'B', 'C'); //  EBC= or 123=...
+        lcd_line2();              // 2. row
+        lcd_fix_string(hfe_str);  //"B="  (hFE)
         DisplayValue(trans.hfe[0], 0, 0, 3);
         lcd_space();
 
@@ -502,7 +474,6 @@ start:
     { // JFET or MOSFET
         if (PartMode & 1)
         {
-            // N-Kanal
             lcd_data('P'); // P-channel
         }
         else
@@ -528,29 +499,20 @@ start:
         {
             lcd_fix_string(mosfet_str); //"-MOS "
         }
-#ifdef EBC_STYLE
-        lcd_fix_string(GDS_str); //"GDS="
-        lcd_testpin(trans.b);
-        lcd_testpin(trans.c);
-        lcd_testpin(trans.e);
-#else
-        lcd_fix_string(N123_str); //" 123="
-        for (ii = 0; ii < 3; ii++)
-        {
-            if (ii == trans.e)
-                lcd_data('S'); // Output Character in right order
-            if (ii == trans.b)
-                lcd_data('G');
-            if (ii == trans.c)
-                lcd_data('D');
-        }
-#endif
+        PinLayout('S', 'G', 'D'); //  SGD= or 123=...
         if ((NumOfDiodes > 0) && (PartMode < PART_MODE_N_D_MOS))
         {
             // MOSFET with protection diode; only with enhancement-FETs
 #ifdef EBC_STYLE
-            if (PartMode & 1)
+#if EBC_STYLE == 321
+            // layout with 321= style
+            if (((PartMode & 1) && (trans.c > trans.e)) || ((!(PartMode & 1)) && (trans.c < trans.e)))
 #else
+            // Layout with SGD= style
+            if (PartMode & 1) /* N or P MOS */
+#endif
+#else
+            // layout with 123= style
             if (((PartMode & 1) && (trans.c < trans.e)) || ((!(PartMode & 1)) && (trans.c > trans.e)))
 #endif
             {
@@ -712,12 +674,9 @@ start:
     goto end2;
 
 gakAusgabe:
-    lcd_line2();         // 2. row
-    lcd_fix_string(GAK); //"GAK="
-    lcd_testpin(trans.b);
-    lcd_testpin(trans.c);
-    lcd_testpin(trans.e);
-    //- - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    lcd_line2();                       // 2. row
+    PinLayout(Cathode_char, 'G', 'A'); // CGA= or 123=...
+                                       //- - - - - - - - - - - - - - - - - - - - - - - - - - - -
 end:
     empty_count = 0; // reset counter, if part is found
     mess_count++;    // count measurements
@@ -752,9 +711,8 @@ end2:
     }
 #endif
     // only one Measurement requested, shut off
-    wdt_disable();             // Watchdog off
+    //  MCUSR = 0;
     ON_PORT &= ~(1 << ON_PIN); // switch off power
-    ON_DDR = (1 << ON_PIN);    // switch to GND
     // never ending loop
     while (1)
     {
@@ -763,6 +721,8 @@ end2:
             // The statement is only reached if no auto off equipment is installed
             goto start;
         }
+        wdt_reset();
+        wait_about10ms();
     }
 #else
     goto start; // POWER_OFF not selected, repeat measurement
@@ -1064,7 +1024,7 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit, unsi
         lcd_data(Unit);
 }
 
-#ifndef __AVR_ATmega8__
+#ifndef INHIBIT_SLEEP_MODE
 /* set the processor to sleep state */
 /* wake up will be done with compare match interrupt of counter 2 */
 void sleep_5ms(uint16_t pause)
@@ -1091,11 +1051,10 @@ void sleep_5ms(uint16_t pause)
 
         OCR2A = TCNT2 + t2_offset;                             /* set the compare value */
         TIMSK2 = (0 << OCIE2B) | (1 << OCIE2A) | (0 << TOIE2); /* enable output compare match A interrupt */
-                                                               //   set_sleep_mode(SLEEP_MODE_PWR_SAVE);
         set_sleep_mode(SLEEP_MODE_PWR_SAVE);
         //   set_sleep_mode(SLEEP_MODE_IDLE);
         sleep_mode();
-// wake up after output compare match interrupt
+        // wake up after output compare match interrupt
 #else
         // restart delay ist too long, use normal delay of 5ms
         wait5ms();
@@ -1105,6 +1064,51 @@ void sleep_5ms(uint16_t pause)
     TIMSK2 = (0 << OCIE2B) | (0 << OCIE2A) | (0 << TOIE2); /* disable output compare match A interrupt */
 }
 #endif
+
+// show the Pin Layout of the device
+void PinLayout(char pin1, char pin2, char pin3)
+{
+// pin1-3 is EBC or SGD or CGA
+#ifndef EBC_STYLE
+    // Layout with 123= style
+    lcd_fix_string(N123_str); //" 123="
+    for (ii = 0; ii < 3; ii++)
+    {
+        if (ii == trans.e)
+            lcd_data(pin1); // Output Character in right order
+        if (ii == trans.b)
+            lcd_data(pin2);
+        if (ii == trans.c)
+            lcd_data(pin3);
+    }
+#else
+#if EBC_STYLE == 321
+    // Layout with 321= style
+    lcd_fix_string(N321_str); //" 321="
+    ii = 3;
+    while (ii != 0)
+    {
+        ii--;
+        if (ii == trans.e)
+            lcd_data(pin1); // Output Character in right order
+        if (ii == trans.b)
+            lcd_data(pin2);
+        if (ii == trans.c)
+            lcd_data(pin3);
+    }
+#else
+    // Layout with EBC= style
+    lcd_space();
+    lcd_data(pin1);
+    lcd_data(pin2);
+    lcd_data(pin3);
+    lcd_data('=');
+    lcd_testpin(trans.e);
+    lcd_testpin(trans.b);
+    lcd_testpin(trans.c);
+#endif
+#endif
+}
 
 #ifdef CHECK_CALL
 #include "AutoCheck.c"

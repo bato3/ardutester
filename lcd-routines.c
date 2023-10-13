@@ -4,12 +4,13 @@
 // Pin selection can be changed in lcd-routines.h with define
 
 #include <avr/io.h>
-#include "config.h"
-#include "lcd-routines.h"
-#include "wait1000ms.h"
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
+#include "tt_function.h"
+#include "config.h"
+#include "lcd-routines.h"
+#include "wait1000ms.h"
 
 #ifdef STRIP_GRID_BOARD
 #warning "strip-grid-board layout selectet!"
@@ -51,13 +52,18 @@ void lcd_data(unsigned char temp1)
     case LCD_CHAR_RESIS2:
         uart_putc('R');
         break;
-    case 225: // �
-        uart_putc('�');
+        //    case LCD_CHAR_DEGREE:	// degree sign
+        //    	uart_putc(0xf8);	// codepage 437 or 850 has degree
+        //    	break;
+    case LCD_CHAR_U: // �
+        //    	uart_putc(0xe6);	// codepage 437 or 850 has my
+        uart_putc('u'); // better use the ASCII u
         break;
-    case 228: // �
-        uart_putc('�');
-        break;
-    case 244: // Omega
+    case LCD_CHAR_OMEGA: // Omega
+        //	uart_putc(0xea);	// only codepage 437 has Omega
+        uart_putc('O');
+        uart_putc('h');
+        uart_putc('m');
         break;
     default:
         uart_putc(temp1);
@@ -83,10 +89,10 @@ void lcd_command(unsigned char temp1)
 
 void lcd_init(void)
 {
-    wait30ms();
+    wait_about30ms();
     // to initialise, send 3 times to be shure to be in 8 Bit mode
     lcd_write_init(1);
-    wait5ms();
+    wait_about5ms();
 
     lcd_write_init(1);
     wait1ms();
@@ -95,7 +101,7 @@ void lcd_init(void)
     wait1ms();
 
     lcd_write_init(0); // switch to 4 Bit mode
-    wait10ms();
+    wait_about10ms();
 
     // 4Bit / 2 rows / 5x7
     lcd_command(CMD_SetIFOptions | 0x08);
@@ -113,7 +119,7 @@ void lcd_init(void)
 void lcd_clear(void)
 {
     lcd_command(CLEAR_DISPLAY);
-    wait10ms();
+    wait_about10ms();
 #ifdef WITH_UART
     uart_newline();
 #endif

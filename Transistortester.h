@@ -1,7 +1,4 @@
 #include <avr/io.h>
-#include "lcd-routines.h"
-#include "wait1000ms.h"
-#include "config.h"
 #include <util/delay.h>
 #include <avr/sleep.h>
 #include <stdlib.h>
@@ -11,6 +8,10 @@
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
 #include <math.h>
+#include "tt_function.h"
+#include "config.h"
+#include "lcd-routines.h"
+#include "wait1000ms.h"
 
 #if defined(MAIN_C)
 #define COMMON
@@ -33,7 +34,10 @@ H_Fakt = 707/100 for a result in pF units.
 COMMON const uint16_t RLtab[] MEM_TEXT = {22447, 20665, 19138, 17815, 16657, 15635, 14727, 13914, 13182, 12520, 11918, 11369, 10865, 10401, 9973, 9577, 9209, 8866, 8546, 8247, 7966, 7702, 7454, 7220, 6999, 6789, 6591, 6403, 6224, 6054, 5892, 5738, 5590, 5449, 5314, 5185, 5061, 4942, 4828, 4718, 4613, 4511, 4413, 4319, 4228};
 
 #if FLASHEND > 0x1fff
-COMMON const uint8_t LogTab[] MEM2_TEXT = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 24, 25, 26, 27, 29, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48, 49, 51, 53, 54, 56, 58, 60, 62, 63, 65, 67, 69, 71, 73, 76, 78, 80, 82, 84, 87, 89, 92, 94, 97, 99, 102, 105, 108, 111, 114, 117, 120, 124, 127, 131, 135, 139, 143, 147, 151, 156, 161, 166, 171, 177, 183, 190, 197, 204, 212, 221, 230, 241};
+//                                        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91 };
+// COMMON const uint8_t LogTab[] MEM2_TEXT = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 22, 24, 25, 26, 27, 29, 30, 31, 33, 34, 36, 37, 39, 40, 42, 43, 45, 46, 48, 49, 51, 53, 54, 56, 58, 60, 62, 63, 65, 67, 69, 71, 73, 76, 78, 80, 82, 84, 87, 89, 92, 94, 97, 99, 102, 105, 108, 111, 114, 117, 120, 124, 127, 131, 135, 139, 143, 147, 151, 156, 161, 166, 171, 177, 183, 190, 197, 204, 212, 221, 230, 241 };
+COMMON const uint16_t LogTab[] PROGMEM = {0, 20, 41, 62, 83, 105, 128, 151, 174, 198, 223, 248, 274, 301, 329, 357, 386, 416, 446, 478, 511, 545, 580, 616, 654, 693, 734, 777, 821, 868, 916, 968, 1022, 1079, 1139, 1204, 1273, 1347, 1427, 1514, 1609, 1715, 1833, 1966, 2120, 2303, 2526};
+
 #endif
 
 #ifdef AUTO_RH
@@ -60,13 +64,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "leer!";        // ���";
 const unsigned char TestFailed2[] MEM_TEXT = "defektes "; // ���";
 const unsigned char Bauteil[] MEM_TEXT = "Bauteil";       // ���";
 const unsigned char Diode[] MEM_TEXT = "Diode: ";
-const unsigned char GAK[] MEM_TEXT = "GAK=";
 const unsigned char Triac[] MEM_TEXT = "Triac";
 const unsigned char Thyristor[] MEM_TEXT = "Thyristor";
 const unsigned char Unknown[] MEM_TEXT = " unbek."; // ��";
 const unsigned char TestFailed1[] MEM_TEXT = "Kein,unbek. oder";
 const unsigned char OrBroken[] MEM_TEXT = "oder defekt "; // �";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'K'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selbsttest ..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
@@ -81,13 +85,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "empty!";        // ��";
 const unsigned char TestFailed2[] MEM_TEXT = "damaged ";   // ����";
 const unsigned char Bauteil[] MEM_TEXT = "part";           // ������";
 const unsigned char Diode[] MEM_TEXT = "Diode: ";
-const unsigned char GAK[] MEM_TEXT = "GAC=";
 const unsigned char Triac[] MEM_TEXT = "Triac";
 const unsigned char Thyristor[] MEM_TEXT = "Thyristor";
 const unsigned char Unknown[] MEM_TEXT = " unknown";            // �";
 const unsigned char TestFailed1[] MEM_TEXT = "No, unknown, or"; // �";
 const unsigned char OrBroken[] MEM_TEXT = "or damaged ";        // ��";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'C'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
@@ -102,13 +106,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "za slaba";
 const unsigned char TestFailed2[] MEM_TEXT = "lub uszkodz.";
 const unsigned char Bauteil[] MEM_TEXT = "Elemen"; // t���";
 const unsigned char Diode[] MEM_TEXT = "Dioda: ";
-const unsigned char GAK[] MEM_TEXT = "GAK=";
 const unsigned char Triac[] MEM_TEXT = "Triak";
 const unsigned char Thyristor[] MEM_TEXT = "Tyrystor"; // �";
 const unsigned char Unknown[] MEM_TEXT = " nieznany";
 const unsigned char TestFailed1[] MEM_TEXT = "brak elementu"; // ���";
 const unsigned char OrBroken[] MEM_TEXT = "lub uszkodz. ";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'K'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
@@ -123,13 +127,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "prazdna!";
 const unsigned char TestFailed2[] MEM_TEXT = "vadna "; // ������";
 const unsigned char Bauteil[] MEM_TEXT = "soucastka";  // �";
 const unsigned char Diode[] MEM_TEXT = "Dioda: ";
-const unsigned char GAK[] MEM_TEXT = "GAK=";
 const unsigned char Triac[] MEM_TEXT = "Triak";
 const unsigned char Thyristor[] MEM_TEXT = "Tyristor";         // �";
 const unsigned char Unknown[] MEM_TEXT = " neznama";           // �";
 const unsigned char TestFailed1[] MEM_TEXT = "Zadna, neznama"; // ��";
 const unsigned char OrBroken[] MEM_TEXT = "nebo vadna ";       // ��";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'K'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
@@ -144,13 +148,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "prazdna!";
 const unsigned char TestFailed2[] MEM_TEXT = "vadna "; // ������";
 const unsigned char Bauteil[] MEM_TEXT = "suciastka!";
 const unsigned char Diode[] MEM_TEXT = "Dioda: ";
-const unsigned char GAK[] MEM_TEXT = "GAK=";
 const unsigned char Triac[] MEM_TEXT = "Triak";
 const unsigned char Thyristor[] MEM_TEXT = "Tyristor";          // �";
 const unsigned char Unknown[] MEM_TEXT = " neznama";            // �";
 const unsigned char TestFailed1[] MEM_TEXT = "Ziadna, neznama"; // �";
 const unsigned char OrBroken[] MEM_TEXT = "alebo vadna ";       // �";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'K'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
@@ -165,13 +169,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "prazna!";
 const unsigned char TestFailed2[] MEM_TEXT = "pokvarjen ";
 const unsigned char Bauteil[] MEM_TEXT = "del";
 const unsigned char Diode[] MEM_TEXT = "Dioda: ";
-const unsigned char GAK[] MEM_TEXT = "GAC=";
 const unsigned char Triac[] MEM_TEXT = "Triak";
 const unsigned char Thyristor[] MEM_TEXT = "Tiristor";
 const unsigned char Unknown[] MEM_TEXT = " neznan";
 const unsigned char TestFailed1[] MEM_TEXT = "Ni, neznan, ali";
 const unsigned char OrBroken[] MEM_TEXT = "ali zanic ";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'C'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe!";
@@ -185,13 +189,13 @@ const unsigned char BatEmpty[] MEM_TEXT = "leeg!";
 const unsigned char TestFailed2[] MEM_TEXT = "defect ";
 const unsigned char Bauteil[] MEM_TEXT = "component";
 const unsigned char Diode[] MEM_TEXT = "Diode: ";
-const unsigned char GAK[] MEM_TEXT = "GAC=";
 const unsigned char Triac[] MEM_TEXT = "Triac";
 const unsigned char Thyristor[] MEM_TEXT = "Thyristor";
 const unsigned char Unknown[] MEM_TEXT = " onbekend";
 const unsigned char TestFailed1[] MEM_TEXT = "Geen, onbekend,";
 const unsigned char OrBroken[] MEM_TEXT = "of defect ";
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
+#define Cathode_char 'C'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Zelftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate Probe";
@@ -206,13 +210,13 @@ const unsigned char BatEmpty[] MEM_TEXT = {Cyr_p, Cyr_U, 'c', Cyr_t, 'o', Cyr_j,
 const unsigned char TestFailed2[] MEM_TEXT = {Cyr_p, 'o', Cyr_v, 'p', 'e', Cyr_zsch, Cyr_d, 'e', Cyr_n, ' ', 0};
 const unsigned char Bauteil[] MEM_TEXT = {Cyr_tsch, 'a', 'c', Cyr_t, Cyr_hh, 0};
 const unsigned char Diode[] MEM_TEXT = {Cyr_D, Cyr_i, 'o', Cyr_d, ':', 0};
-const unsigned char GAK[] MEM_TEXT = "GAC=";
 const unsigned char Triac[] MEM_TEXT = {'C', Cyr_i, Cyr_m, Cyr_i, 'c', Cyr_t, 'o', 'p', 0};
 const unsigned char Thyristor[] MEM_TEXT = {Cyr_t, Cyr_i, 'p', Cyr_i, 'c', Cyr_t, 'o', 'p', 0};
 const unsigned char Unknown[] MEM_TEXT = {' ', Cyr_n, 'e', Cyr_i, Cyr_z, Cyr_v, 'e', 'c', Cyr_t, Cyr_n, Cyr_y, Cyr_j, 0};
 const unsigned char TestFailed1[] MEM_TEXT = {'o', Cyr_t, 'c', Cyr_U, Cyr_t, 'c', Cyr_t, Cyr_v, Cyr_U, 'e', Cyr_t, 0};
 const unsigned char OrBroken[] MEM_TEXT = {Cyr_i, Cyr_l, Cyr_i, ' ', Cyr_p, 'o', Cyr_v, 'p', 'e', Cyr_zsch, Cyr_d, 'e', Cyr_n, 0};
 const unsigned char TestTimedOut[] MEM_TEXT = {Cyr_v, 'p', 'e', Cyr_m, Cyr_ja, ' ', Cyr_t, 'e', 'c', Cyr_t, Cyr_i, 'p', 'o', Cyr_v, 'a', Cyr_n, Cyr_i, Cyr_ja, Cyr_v, Cyr_y, Cyr_sch, Cyr_l, 'o', '!', 0};
+#define Cathode_char 'C'
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = {'o', Cyr_t, Cyr_k, Cyr_l, Cyr_ju, Cyr_tsch, Cyr_i, Cyr_t, 'b', ' ', Cyr_z, 'o', Cyr_n, Cyr_d, 0};
@@ -229,12 +233,13 @@ const unsigned char GateCap_str[] MEM_TEXT = "C=";
 const unsigned char hfe_str[] MEM_TEXT = "B=";
 const unsigned char NPN_str[] MEM_TEXT = "NPN ";
 const unsigned char PNP_str[] MEM_TEXT = "PNP ";
-#ifdef EBC_STYLE
-const unsigned char EBC_str[] MEM_TEXT = " EBC=";
-const unsigned char GDS_str[] MEM_TEXT = " GDS=";
-#else
+#ifndef EBC_STYLE
 const unsigned char N123_str[] MEM_TEXT = " 123=";
 // const unsigned char N123_str[] MEM_TEXT = " Pin=";
+#else
+#if EBC_STYLE == 321
+const unsigned char N321_str[] MEM_TEXT = " 321=";
+#endif
 #endif
 const unsigned char Uf_str[] MEM_TEXT = "Uf=";
 const unsigned char vt_str[] MEM_TEXT = " Vt=";
@@ -245,12 +250,25 @@ const unsigned char VCC_str[] MEM_TEXT = "VCC=";
 #if FLASHEND > 0x1fff
 const unsigned char ESR_str[] MEM_TEXT = " ESR=";
 const unsigned char Lis_str[] MEM_TEXT = "L=";
+#ifndef WITH_UART
+#define WITH_VEXT
+#endif
+#else
+#ifndef BAT_CHECK
+#ifndef WITH_UART
+#define WITH_VEXT
+#endif
+#endif
+#endif
+#ifdef WITH_VEXT
+const unsigned char Vext_str[] MEM_TEXT = "Vext=";
+#define LCD_CLEAR
 #endif
 const unsigned char AnKat[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
 const unsigned char KatAn[] MEM_TEXT = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Dioden[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
 const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
-const unsigned char VERSION_str[] MEM_TEXT = "Version 1.05k";
+const unsigned char VERSION_str[] MEM_TEXT = "Version 1.06k";
 
 #ifdef WITH_SELFTEST
 const unsigned char URefT[] MEM2_TEXT = "Ref=";
@@ -334,9 +352,9 @@ const unsigned char CyrillicMuIcon[] MEM_TEXT = {0, 17, 17, 17, 19, 29, 16, 16};
 #endif
 
 #ifdef AUTO_CAL
-const uint16_t R680pl EEMEM = R_L_VAL + PIN_RP; // total resistor to VCC
-const uint16_t R680mi EEMEM = R_L_VAL + PIN_RM; // total resistor to GND
-const int8_t RefDiff EEMEM = REF_R_KORR;        // correction of internal Reference Voltage
+//   const uint16_t R680pl EEMEM = R_L_VAL+PIN_RP;	// total resistor to VCC
+//   const uint16_t R680mi EEMEM = R_L_VAL+PIN_RM;	// total resistor to GND
+const int8_t RefDiff EEMEM = REF_R_KORR; // correction of internal Reference Voltage
 #endif
 const uint8_t PrefixTab[] MEM_TEXT = {'p', 'n', LCD_CHAR_U, 'm', 0, 'k', 'M'}; // p,n,u,m,-,k,M
 #ifdef AUTO_CAL
@@ -358,52 +376,27 @@ extern const unsigned char RELPROBE[] MEM2_TEXT;
 extern const unsigned char ATE[] MEM_TEXT;
 #endif
 #ifdef AUTO_CAL
-extern uint16_t R680pl;
-extern uint16_t R680mi;
+//  extern uint16_t R680pl;
+//  extern uint16_t R680mi;
 extern int8_t RefDiff;
 extern uint16_t ref_offset;
 extern uint8_t c_zero_tab[];
 #endif
-extern uint8_t EE_ESR_ZERO EEMEM; // zero offset of ESR measurement
-extern uint16_t RLtab[];
+extern const uint8_t EE_ESR_ZERO EEMEM; // zero offset of ESR measurement
+extern const uint16_t RLtab[];
 
 #if FLASHEND > 0x1fff
-extern uint8_t LogTab[];
+extern uint16_t LogTab[];
 extern const unsigned char ESR_str[];
 #endif
 
 #ifdef AUTO_RH
-extern uint16_t RHtab[];
+extern const uint16_t RHtab[];
 #endif
-extern unsigned char PinRLtab[];
-extern unsigned char PinADCtab[];
+extern const unsigned char PinRLtab[];
+extern const unsigned char PinADCtab[];
 extern unsigned int RHmultip;
 #endif
-
-void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin);
-void ChargePin10ms(uint8_t PinToCharge, uint8_t ChargeDirection);
-unsigned int ReadADC(uint8_t mux);      // read Routine for ADC
-unsigned int W5msReadADC(uint8_t mux);  // wait 5ms and read than ADC
-unsigned int W10msReadADC(uint8_t mux); // wait 10ms and read than ADC
-unsigned int W20msReadADC(uint8_t mux); // wait 20ms and read then ADC
-void lcd_show_format_cap(void);
-void ReadCapacity(uint8_t HighPin, uint8_t LowPin); // capacity measurement
-void ReadInductance(void);                          // inductance measurement
-void GetESR();                                      // get ESR of capacitor
-void UfAusgabe(uint8_t bcdchar);                    // Output of the threshold voltage(s) Uf
-void mVAusgabe(uint8_t nn);                         // Output of the theshold voltage for Diode nn
-void RvalOut(uint8_t ii);                           // Output of the resistore value(s)
-void ShowResistor(void);                            // show one or two Resistors
-void EntladePins();                                 // discharge capacitors
-void RefVoltage();                                  // compensate the reference voltage for comparator
-void AutoCheck();                                   // check if self-test should be done
-unsigned int getRLmultip(unsigned int cvolt);       // get C-Multiplikator for voltage cvolt
-void Scale_C_with_vcc();                            // scale capacity value for different VCC Voltages
-void scale_intref_adc();                            // get scale factors for ReadADC with internal reference
-// uint8_t value_out(unsigned long vval,uint8_t pp);    // output 4 digits with (pp-1) digits after point
-void DisplayValue(unsigned long vval, int8_t Expo, unsigned char Unit, unsigned char Digits); // output Digits characters with exponent and unit
-unsigned int compute_hfe(unsigned int lpx, unsigned int tpy);
-void sleep_5ms(uint16_t xxx); // set processor to sleep state for xxx times 5ms
 
 // definitions of parts
 #define PART_NONE 0
@@ -481,6 +474,11 @@ COMMON struct cap_t
     int8_t cpre;     // Prefix for capacitor value  -12=p, -9=n, -6=�, -3=m
     int8_t cpre_max; // Prefix of the biggest capacitor
 } cap;
+#ifndef INHIBIT_SLEEP_MODE
+/* with sleep mode we need a global ovcnt16 */
+COMMON volatile uint16_t ovcnt16;
+COMMON volatile uint8_t unfinished;
+#endif
 COMMON int16_t load_diff; // difference voltage of loaded capacitor and internal reference
 
 COMMON uint8_t WithReference; // Marker for found precision voltage reference = 1
@@ -498,9 +496,11 @@ COMMON struct ADCconfig_t
 } ADCconfig;
 
 #ifdef AUTO_CAL
-COMMON uint16_t resis680pl;
-COMMON uint16_t resis680mi;
 COMMON uint8_t pin_combination; // coded Pin-combination  2:1,3:1,1:2,x:x,3:2,1:3,2:3
+COMMON uint16_t resis680pl;     // port output resistance + 680
+COMMON uint16_t resis680mi;     // port output resistance + 680
+COMMON uint16_t pin_rmi;        // port output resistance to GND side, 0.1 Ohm units
+COMMON uint16_t pin_rpl;        // port output resistance to VCC side, 0.1 Ohm units
 #endif
 
 #if POWER_OFF + 0 > 1

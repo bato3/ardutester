@@ -28,7 +28,6 @@
 
 #include <avr/io.h>
 #include <stdlib.h>
-#include "config.h"
 #include "Transistortester.h"
 
 //=================================================================
@@ -37,7 +36,9 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     // check if capacitor and measure the capacity value
     unsigned int tmpint;
     unsigned int adcv[4];
+#ifdef INHIBIT_SLEEP_MODE
     unsigned int ovcnt16;
+#endif
     uint8_t HiPinR_L, HiPinR_H;
     uint8_t LoADC;
     uint8_t ii;
@@ -102,6 +103,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     R_DDR = HiPinR_L;           // switch R_L port for HighPin to output (GND)
     adcv[0] = ReadADC(HighPin); // voltage before any load
                                 // ******** should adcv[0] be measured without current???
+    adcv[2] = adcv[0];          // preset to prevent compiler warning
     for (ovcnt16 = 0; ovcnt16 < 500; ovcnt16++)
     {
         R_PORT = HiPinR_L; // R_L to 1 (VCC)
@@ -186,6 +188,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     cap.cval_uncorrected.dw *= getRLmultip(adcv[2]); // get factor to convert time to capacity from table
 #else
     // wait the same time which is required for loading
+    adcv[3] = adcv[2]; // preset to prevent compiler warning
     for (tmpint = 0; tmpint <= ovcnt16; tmpint++)
     {
         wait5ms();
@@ -260,12 +263,16 @@ messe_mit_rh:
     ADCSRA = (1 << ADIF) | AUTO_CLOCK_DIV;                       // disable ADC
     wait200us();                                                 // wait for bandgap to start up
 
-    ovcnt16 = 0;
     // setup Counter1
+    ovcnt16 = 0;
     TCCR1A = 0;                                                              // set Counter1 to normal Mode
     TCNT1 = 0;                                                               // set Counter to 0
-    TI1_INT_FLAGS = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1); // mega88
-    R_PORT = HiPinR_H;                                                       // switch R_H resistor port for HighPin to VCC
+    TI1_INT_FLAGS = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1); // clear interrupt flags
+#ifndef INHIBIT_SLEEP_MODE
+    TIMSK1 = (1 << TOIE1) | (1 << ICIE1); // enable Timer overflow interrupt and input capture interrupt
+    unfinished = 1;
+#endif
+    R_PORT = HiPinR_H; // switch R_H resistor port for HighPin to VCC
     if (PartFound == PART_FET)
     {
         // charge capacitor with R_H resistor
@@ -277,7 +284,8 @@ messe_mit_rh:
         TCCR1B = (1 << CS10); // start counter 1MHz or 8MHz
         ADC_DDR = LoADC;      // stay LoADC Pin switched to GND, charge capacitor with R_H slowly
     }
-    //******************************
+//******************************
+#ifdef INHIBIT_SLEEP_MODE
     while (1)
     {
         // Wait, until  Input Capture is set
@@ -307,6 +315,26 @@ messe_mit_rh:
         TI1_INT_FLAGS = (1 << TOV1); // Reset OV Flag
         ovcnt16++;
     }
+#else
+    while (unfinished)
+    {
+        set_sleep_mode(SLEEP_MODE_IDLE);
+        sleep_mode(); /* wait for interrupt */
+        wdt_reset();
+        if (ovcnt16 == (F_CPU / 5000))
+        {
+            break; // Timeout for Charging, above 12 s
+        }
+    }
+    TCCR1B = (0 << ICNC1) | (0 << ICES1) | (0 << CS10); // stop counter
+    tmpint = ICR1;                                      // get previous Input Capture Counter flag
+    TIMSK1 = (0 << TOIE1) | (0 << ICIE1);               // disable Timer overflow interrupt and input capture interrupt
+    if (TCNT1 < tmpint)
+    {
+        ovcnt16--; // one ov to much
+    }
+
+#endif
     // ############################################################
     ADCSRA = (1 << ADEN) | (1 << ADIF) | AUTO_CLOCK_DIV; // enable ADC
     R_DDR = 0;                                           // switch R_H resistor port for input
@@ -479,3 +507,14 @@ void Scale_C_with_vcc(void)
     cap.cval *= ADCconfig.U_AVCC; // scale with measured voltage
     cap.cval /= U_VCC;            // Factors are computed for U_VCC
 }
+#ifndef INHIBIT_SLEEP_MODE
+
+ISR(TIMER1_OVF_vect, ISR_BLOCK)
+{
+    ovcnt16++; // count overflow
+}
+ISR(TIMER1_CAPT_vect, ISR_BLOCK)
+{
+    unfinished = 0; // clear unfinished flag
+}
+#endif

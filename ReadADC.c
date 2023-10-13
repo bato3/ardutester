@@ -1,8 +1,6 @@
 #include <avr/io.h>
 #include "config.h"
 #include <stdlib.h>
-#include "wait1000ms.h"
-#include "lcd-routines.h"
 #include "Transistortester.h"
 
 /*
@@ -20,7 +18,9 @@ unsigned int ReadADC(uint8_t Probe)
     uint8_t Samples;       /* loop counter */
     unsigned long Value;   /* ADC value */
     Probe |= (1 << REFS0); /* use internal reference anyway */
+#ifdef AUTOSCALE_ADC
 sample:
+#endif
     ADMUX = Probe; /* set input channel and U reference */
 #ifdef AUTOSCALE_ADC
     /* if voltage reference changed run a dummy conversion */
@@ -37,7 +37,7 @@ sample:
         //    ADCconfig.RefFlag = Samples; /* update flag */
     }
 #endif
-#ifdef __AVR_ATmega8__
+#ifdef INHIBIT_SLEEP_MODE
     // one dummy read of ADC, 112us
     ADCSRA |= (1 << ADSC); /* start conversion */
     while (ADCSRA & (1 << ADSC))
@@ -52,7 +52,7 @@ sample:
     Samples = 0;                        /* number of samples to take */
     while (Samples < ADCconfig.Samples) /* take samples */
     {
-#ifdef __AVR_ATmega8__
+#ifdef INHIBIT_SLEEP_MODE
         ADCSRA |= (1 << ADSC); /* start conversion */
         while (ADCSRA & (1 << ADSC))
             ; /* wait until conversion is done */

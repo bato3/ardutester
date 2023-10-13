@@ -501,6 +501,7 @@
   #define SW_INDUCTOR
   #define SW_ESR
   #define SW_ENCODER
+  #define SW_IR_RECEIVER
 #endif
 
 

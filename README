@@ -11,12 +11,13 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-07-15
+Last edit:  2015-12-07
 
 Content
   - About
   - Safety Advice
   - License
+    - Additional Disclaimer
   - Whats different?
   - Building the firmware
   - Source Code
@@ -32,6 +33,7 @@ Content
     - ESR Tool
     - Frequency Counter
     - Rotary Encoder
+    - IR RC detector
     - Selftest
     - Self Adjustment
     - Save
@@ -71,6 +73,7 @@ for the ATmega328/P:
 - ESR measurement and ESR in-circuit measurement
 - frequency counter (hardware option)
 - rotary encoder test
+- IR RC detection
 
 Hint: Run the self adjustment for a new tester or if you've done any
 modifications, like a firmware update or changing probe leads.
@@ -97,6 +100,11 @@ this problem I will choose an open source license at 2016-01-01, if the
 original author doesn't contact us to state his wishes until that date.
 Since the source code of this firmware version is a major rewrite with
 tons of new code and features, I think that this approach is justified.
+
+
++ Additional Disclaimer
+
+Product or company names are possibly trademarks of the respective owners.
 
 
 * What's different?
@@ -340,6 +348,46 @@ When a rotary encoder is detected the tester will display the pin-out and
 wait for a key press (or a moment for continous mode) before resuming testing.
 To exit the rotary encoder test please press the test push button once while
 testing.
+
+
++ IR RC detector
+
+This function requires a TSOP IR receiver module (or similar) to be connected
+to the probes and will detect and decode IR remote controls. If a known
+protocol is detected the tester displays the protocol, address (when
+available), command and in some cases optional data in hexadecimal.
+The format is:
+  <protocol> [<addr>:]<command>[:<extra data>]
+For a malformend packet the protocol and a "?" are shown.
+
+For a unknown protocol the tester displays the number of pauses and pulses,
+the duration of the first pulse and the first pause in units of 50µs:
+  ? <pulses>:<first pulse>-<first pause>
+When the number of pulses stay the same for different buttons of the RC, the
+modulation is most likely PDM or PWM. A changing number of pulses indicates
+bi-phase modulation.
+
+To exit the tool please press the test key.
+
+Supported protocols:
+  - JVC
+  - Kaseikyo (aka Japanese Code, 48 bit)
+  - Matsushita/Emerson
+  - Motorola
+  - NEC (standard & extended)
+  - RC-5 (standard)
+  - Samsung (32 bit Toshiba)
+  - Sharp
+  - Sony SIRC (12, 15 & 20 bit)
+
+The carrier frequency of the TSOP receiver module doesn't have to match the RC
+exactly. A mismatch reduces the possible range, but that doesn't matter much
+for this application.
+
+How to connect the TSOP module:
+  Probe #1:  Gnd
+  Probe #2:  Vs (current limited by 680 ohms resistor)
+  Probe #3:  Out/Data
 
 
 + Selftest

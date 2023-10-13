@@ -10,6 +10,11 @@
 
 ------------------------------------------------------------------------------
 
+v1.20m 2015-12
+- Added IR RC detector and decoder function (requires TSOP IR receiver
+  module).
+- Changed MainMenu() to reduce RAM usage.
+
 v1.19m 2015-10
 - Changed ShowDiode() to output the number of diodes directy (not via
   Show_Fail()i anymore) when more than 3 diodes are found (hint by

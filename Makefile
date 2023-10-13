@@ -91,7 +91,7 @@ HEADERS = config.h common.h variables.h HD44780.h functions.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o HD44780.o
-OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o
+OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 

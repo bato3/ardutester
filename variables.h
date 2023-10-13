@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -113,6 +113,10 @@
       const unsigned char Encoder_str[] EEMEM = "Dreh-Encoder";
       const unsigned char TurnRight_str[] EEMEM = "Drehe rechts!";
     #endif
+    #ifdef SW_IR_RECEIVER
+      const unsigned char IR_Detector_str[] EEMEM = "IR-Detektor";
+    #endif
+
 
   /* language specific: Czech */
   #elif defined (UI_CZECH)
@@ -151,6 +155,10 @@
       const unsigned char Encoder_str[] EEMEM = "IRC snimac";
       const unsigned char TurnRight_str[] EEMEM = "Otoc vpravo!";
     #endif
+    #ifdef SW_IR_RECEIVER
+      const unsigned char IR_Detector_str[] EEMEM = "IR detector";
+    #endif
+
 
   /* language specific: another language */
   #elif defined (UI_WHATEVER)
@@ -192,7 +200,11 @@
       const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
       const unsigned char TurnRight_str[] EEMEM = "Turn right!";
     #endif
+    #ifdef SW_IR_RECEIVER
+      const unsigned char IR_Detector_str[] EEMEM = "IR detector";
+    #endif
   #endif
+
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
@@ -240,6 +252,19 @@
     const unsigned char PWM_Probes_str[] EEMEM = "2-13";
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
+  #ifdef SW_IR_RECEIVER
+    const unsigned char IR_Probes_str[] EEMEM = "1=0V 2=5V 3=Out";
+    const unsigned char IR_JVC_str[] EEMEM = "JVC";
+    const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
+    const unsigned char IR_Matsushita_str[] EEMEM = "Mats";
+    const unsigned char IR_Motorola_str[] EEMEM = "Mot";
+    const unsigned char IR_NEC_str[] EEMEM = "NEC";
+    const unsigned char IR_Proton_str[] EEMEM = "Prot";
+    const unsigned char IR_RC5_str[] EEMEM = "RC-5";
+    const unsigned char IR_Samsung_str[] EEMEM = "Sams";
+    const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
+    const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
+  #endif
 
 
   /* component symbols */
@@ -249,7 +274,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.19m";
+  const unsigned char Version_str[] EEMEM = "v1.20m";
 
 
   /*
@@ -436,6 +461,21 @@
     extern const unsigned char Encoder_str[];
     extern const unsigned char TurnRight_str[];
   #endif
+  #ifdef SW_IR_RECEIVER
+    extern const unsigned char IR_Detector_str[];
+    extern const unsigned char IR_Probes_str[];  
+    extern const unsigned char IR_JVC_str[];
+    extern const unsigned char IR_Kaseikyo_str[];
+    extern const unsigned char IR_Matsushita_str[];
+    extern const unsigned char IR_Motorola_str[];
+    extern const unsigned char IR_NEC_str[];
+    extern const unsigned char IR_RC5_str[];
+    extern const unsigned char IR_Proton_str[];
+    extern const unsigned char IR_Samsung_str[];
+    extern const unsigned char IR_Sharp_str[];
+    extern const unsigned char IR_SIRC_str[];
+  #endif
+
 
   /*
    *  constant tables (stored in EEPROM or PROGMEM)

@@ -23,9 +23,15 @@ void GetVloss()
     uint8_t LoADC;
 
     if (cap.v_loss > 0)
-        return; // Voltage loss is already known
-    LoADC = pgm_read_byte(&PinADCtab[cap.ca]) | TXD_MSK;
-    HiPinR_L = pgm_read_byte(&PinRLtab[cap.cb]); // R_L mask for HighPin R_L load
+    {
+        return; // Voltage loss is already known (big Capacitor)
+    }
+#if (((PIN_RL1 + 1) != PIN_RH1) || ((PIN_RL2 + 1) != PIN_RH2) || ((PIN_RL3 + 1) != PIN_RH3))
+    LoADC = pgm_read_byte((&PinRLRHADCtab[6]) + cap.ca - TP1) | TXD_MSK;
+#else
+    LoADC = pgm_read_byte((&PinRLRHADCtab[3]) + cap.ca - TP1) | TXD_MSK;
+#endif
+    HiPinR_L = pgm_read_byte(&PinRLRHADCtab[cap.cb - TP1]); // R_L mask for HighPin R_L load
 
     EntladePins();             // discharge capacitor
     ADC_PORT = TXD_VAL;        // switch ADC-Port to GND
@@ -34,20 +40,20 @@ void GetVloss()
     R_DDR = HiPinR_L;          // switch R_L port for HighPin to output (GND)
     adcv[0] = ReadADC(cap.cb); // voltage before any load
                                // ******** should adcv[0] be measured without current???
-    if (cap.cpre_max > -9)
-        return; // too much capacity
+    if ((cap.cpre_max > -9) || (cap.cpre_max < -12))
+        return; // too much or too less capacity
     lval.dw = cap.cval_max;
-    //  for (ii=cap.cpre_max+12;ii<5;ii++) {
-    for (ii = cap.cpre_max + 12; ii < 4; ii++)
+    for (ii = cap.cpre_max + 15; ii < 7; ii++)
     {
         lval.dw = (lval.dw + 5) / 10;
     }
-    //  if ((lval.dw == 0) || (lval.dw > 500)) {
-    if ((lval.dw == 0) || (lval.dw > 5000))
+    if (lval.dw > 5000)
     {
         /* capacity more than 50uF, Voltage loss is already measured  */
         return;
     }
+    if (lval.w[0] < 5)
+        return;        // Capacity below 5nF
     R_PORT = HiPinR_L; // R_L to 1 (VCC)
     R_DDR = HiPinR_L;  // switch Pin to output, across R to GND or VCC
     for (tmpint = 0; tmpint < lval.w[0]; tmpint += 2)
@@ -105,10 +111,10 @@ void GetVloss()
     }
 #if 0
   lcd_line3();
-  DisplayValue(adcv[2],0,' ',4);
-  DisplayValue(adcv[1],0,' ',4);
+  DisplayValue16(adcv[2],0,' ',4);
+  DisplayValue16(adcv[1],0,' ',4);
   lcd_line4();
-  DisplayValue(lval.w[0],0,'x',4);
+  DisplayValue16(lval.w[0],0,'x',4);
 #endif
 
     // discharge capacitor again
@@ -121,4 +127,4 @@ void GetVloss()
     R_PORT = 0;         // switch all resistor outputs to GND, no pull up
 #endif
     return;
-} // end GetVdrop()
+} // end GetVloss()

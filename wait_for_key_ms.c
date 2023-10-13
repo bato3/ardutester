@@ -1,5 +1,6 @@
 #include <avr/io.h>
 #include "Transistortester.h"
+#include "lcd-routines.h"
 
 #define MAX_CS 150 /* maximum key hold time in 10ms units  */
 
@@ -24,6 +25,10 @@ uint8_t wait_for_key_ms(int max_time)
 // separate Up / Down key instead of rotary encoder, sample with 1ms
 #define WWend 5
 #define WaitRotary wait1ms
+#endif
+
+#if (LCD_ST_TYPE == 7920)
+    lcd_refresh();
 #endif
 
 #ifdef WITH_ROTARY_SWITCH
@@ -263,23 +268,38 @@ void check_rotary(void)
 
 #ifdef WAIT_LINE2_CLEAR
 /* *********************************************************** */
-/* wait 5 seconds or previous key press, then clear line 2 of LCD and */
-/* set the cursor to the beginning of line 2 */
+/* wait 5 seconds or previous key press, then clear last line  of LCD and */
+/* set the cursor to the beginning of last line */
 /* *********************************************************** */
 void wait_for_key_5s_line2(void)
 {
-#ifdef WITH_ROTARY_SWITCH
-    do
+    uint8_t current_line;
+    current_line = lcd_save_position();
+    if (last_line_used != 0)
     {
-        if (wait_for_key_ms(SHORT_WAIT_TIME) > 0)
-            break;
-        // continue waiting, if the key is not pressed, but rotary switch is rotated
-    } while (rotary.incre > 0);
+        if ((last_line_used == 1) && (current_line == (LCD_LINES - 1)))
+        {
+            // add a + sign at the last location of screen
+            lcd_set_cursor(((LCD_LINES - 1) * PAGES_PER_LINE), (LCD_LINE_LENGTH - 1));
+            lcd_data('+');
+            lcd_set_cursor(((LCD_LINES - 1) * PAGES_PER_LINE), (LCD_LINE_LENGTH - 1));
+        };
+#ifdef WITH_ROTARY_SWITCH
+        do
+        {
+            if (wait_for_key_ms(SHORT_WAIT_TIME) > 0)
+                break;
+            // continue waiting, if the key is not pressed, but rotary switch is rotated
+        } while (rotary.incre > 0);
 #else
-    wait_for_key_ms(SHORT_WAIT_TIME); // wait until time is elapsed or key is pressed
+        wait_for_key_ms(SHORT_WAIT_TIME); // wait until time is elapsed or key is pressed
 #endif
-    lcd_line2();      // 2. row
-    lcd_clear_line(); // clear the whole line
-    lcd_line2();      // 2. row
+        if ((current_line == (LCD_LINES - 1)) && (last_line_used == 1))
+        {
+            lcd_set_cursor((LCD_LINES - 1) * PAGES_PER_LINE, 0);
+            lcd_clear_line(); // clear the whole line
+        }
+        lcd_restore_position();
+    } /* end if last_line_used */
 } /* end wait_for_key_5s_line2() */
 #endif

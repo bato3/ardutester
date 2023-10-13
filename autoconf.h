@@ -3,26 +3,110 @@
        Automatic Configuration
 */
 
-#if ((LCD_ST_TYPE == 7565) || (LCD_ST_TYPE == 1306))
+#if ((LCD_ST_TYPE == 7565) || (LCD_ST_TYPE == 1306) || (LCD_ST_TYPE == 7108) || (LCD_ST_TYPE == 7920) || (LCD_ST_TYPE == 7735) || (LCD_ST_TYPE == 9163) || (LCD_ST_TYPE == 9341))
 /* Define under which conditions a graphical display is supported. */
-/* The graphical display should at least support 128x64 pixels. */
- #define WITH_GRAPHICS
- #undef FOUR_LINE_LCD
- #define FOUR_LINE_LCD
- #ifdef FONT_6X8
-  #define TWENTY_COLUMN_LCD
+/* The graphical display should support at least 128x64 pixels. */
+ #if ((SCREEN_HEIGHT > 127) && (SCREEN_WIDTH > 255))
+  #define ONE_B 16
+ #else
+  #define ONE_B 8
  #endif
+ #define WITH_GRAPHICS 1
+ #undef PAGES_PER_LINE
+ #define PAGES_PER_LINE ((FONT_HEIGHT + 7) / 8)
+ #undef LCD_LINES
+ #define LCD_LINES ((SCREEN_HEIGHT/ONE_B) / PAGES_PER_LINE)
+ #undef LCD_LINE_LENGTH
+ #define LCD_LINE_LENGTH (SCREEN_WIDTH / (ONE_B/8) / FONT_WIDTH )
+ #define TEXT_RIGHT_TO_ICON ((ICON_WIDTH + 16 + 5 + 7) / FONT_WIDTH)
+#elif (LCD_ST_TYPE == 8812)
+ /* defines for PCF8812 */
+ /* The space at the display is too small for the big icons for this type, some characters are missing */
+ #define ONE_B 8
+ #define WITH_GRAPHICS 1
+ #undef PAGES_PER_LINE
+ #define PAGES_PER_LINE ((FONT_HEIGHT + 7) / 8)
+ #undef LCD_LINES
+ #define LCD_LINES ((SCREEN_HEIGHT/8) / PAGES_PER_LINE)
+ #undef LCD_LINE_LENGTH
+ #define LCD_LINE_LENGTH (SCREEN_WIDTH / FONT_WIDTH)
+ #define TEXT_RIGHT_TO_ICON ((ICON_WIDTH + 16 + 5 + 7) / FONT_WIDTH)
+#elif (LCD_ST_TYPE == 8814)
+ /* defines for PCF8814 */
+ /* The space at the display is too small for the big icons for this type, some characters are missing */
+ #define ONE_B 8
+ #define WITH_GRAPHICS 1
+ #undef PAGES_PER_LINE
+ #define PAGES_PER_LINE ((FONT_HEIGHT + 7) / 8)
+ #undef LCD_LINES
+ #define LCD_LINES ((SCREEN_HEIGHT/8) / PAGES_PER_LINE)
+ #undef LCD_LINE_LENGTH
+ #define LCD_LINE_LENGTH (SCREEN_WIDTH / FONT_WIDTH)
+ #define TEXT_RIGHT_TO_ICON ((ICON_WIDTH + 16 + 5 + 7) / FONT_WIDTH)
 #else  /* no ST7565 or SSD1306 graphic controller */
- #ifdef FOUR_LINE_LCD
-  #define TWENTY_COLUMN_LCD   /* usually 20x4 character display */
+// #ifdef FOUR_LINE_LCD
+//  #if FOUR_LINE_LCD == 3
+//   #define LCD_LINES 3
+//   #define PAGES_PER_LINE 1
+//   #ifndef LCD_LINE_LENGTH
+//    #define LCD_LINE_LENGTH 16	/* usually a 16 character line */
+//   #endif
+//  #else
+//   #define LCD_LINES 4
+//   #define PAGES_PER_LINE 1
+//   #ifndef LCD_LINE_LENGTH
+//    #define LCD_LINE_LENGTH 20	/* usually a 20 character line */
+//   #endif
+//  #endif
+// #else	/* no FOUR_LINE_LCD */
+//   #define PAGES_PER_LINE 1
+//   #define LCD_LINES 2
+//   #define LCD_LINE_LENGTH 16
+// #endif
+ #define TEXT_RIGHT_TO_ICON 0
+ #ifndef FONT_HEIGHT
+  #define FONT_HEIGHT 8
  #endif
-#endif
+#endif	/* end LCD_ST_TYPE == */
+
 #ifndef LCD_ST7565_H_OFFSET
  #define LCD_ST7565_H_OFFSET 0	/* default horizontal offset of the display window */
 #endif
 
+#ifndef LCD_ST7565_Y_START
+ #define LCD_ST7565_Y_START  0
+#endif
+#if LCD_ST7565_Y_START >= SCREEN_HEIGHT
+ #warning LCD_ST7565_Y_START is set higher than SCREEN_HEIGHT!
+#endif
+
 #ifndef LCD_LINE_LENGTH
+ // if line length is not specified otherwise, use 16 characters
  #define LCD_LINE_LENGTH 16
+#endif
+
+#if (defined(WITH_GRAPHICS) && (((SCREEN_WIDTH-(TEXT_RIGHT_TO_ICON*FONT_WIDTH))/FONT_WIDTH) < 9))
+ #define LOW_H_SPACE 1
+#else
+ #define LOW_H_SPACE 0
+#endif
+
+#if (LCD_ST_TYPE != 7920)
+#define lcd_refresh()
+#endif
+#if (LCD_LINES < 2)
+ #warning LCD_LINES is not correctly set!
+ #if (SCREEN_HEIGHT < 32)
+  #warning SCREEN_HEIGHT is not correctly set!
+ #endif
+ #if (FONT_HEIGHT < 8)
+  #warning FONT_HEIGHT is not correctly set!
+ #endif
+#endif
+
+#if (LCD_LINES < 7) && defined(WITH_6_SELECTION_MENU)
+ #warning Display has not sufficient count of lines for WITH_6_SELECTION_MENU !
+ #undef WITH_6_SELECTION_MENU
 #endif
 
 /* configure WITH_VEXT, TPext and TPex2  */
@@ -77,19 +161,9 @@
 /* check the R_L_VAL and R_H_VAL setting */
 #ifndef R_L_VAL
   #define R_L_VAL 6800          // standard value 680 Ohm, multiplied by 10 for 0.1 Ohm resolution
-#else
- #if R_L_VAL != 6800
-  // please check the table RLtab in Transistortester.h for non standard RL value
-  #warning "no standard RL !=680"
- #endif
 #endif
 #ifndef R_H_VAL
   #define R_H_VAL 47000         // standard value 470000 Ohm, multiplied by 10, divided by 100
-#else
- #if R_H_VAL != 47000
-  // please check the table RHtab in Transistortester.h for non standard RH value
-  #warning "no standard RH !=470k"
- #endif
 #endif
 
 /* check the R_ANZ_MESS setting */
@@ -123,6 +197,7 @@
   #define MEM2_read_byte(a)  eeprom_read_byte(a)
   #define MEM2_read_word(a)  eeprom_read_word(a)
   #define lcd_MEM2_string(a)  lcd_fix_string(a)
+  #define use_lcd_pgm
  #else
   #define MEM2_TEXT PROGMEM
   #define MEM2_read_byte(a)  pgm_read_byte(a)
@@ -208,6 +283,15 @@
 //------------------=========----------
 #elif PROCESSOR_TYP == 644
 //------------------=========----------
+ #ifndef WITH_ROTARY_CHECK
+  #define WITH_ROTARY_CHECK		/* ROTARY Check is default for 644 */
+ #endif
+ #ifndef WITH_UJT
+  #define WITH_UJT
+ #endif
+ #ifndef WITH_PUT
+  #define WITH_PUT
+ #endif
   #define MCU_STATUS_REG MCUCR
   #define ADC_COMP_CONTROL ADCSRB
   #define TI1_INT_FLAGS TIFR1
@@ -234,6 +318,9 @@
 //------------------=========----------
 #elif PROCESSOR_TYP == 1280
 //------------------=========----------
+ #ifndef WITH_ROTARY_CHECK
+  #define WITH_ROTARY_CHECK		/* ROTARY Check is default for 1280 */
+ #endif
   #define MCU_STATUS_REG MCUCR
   #define ADC_COMP_CONTROL ADCSRB
   #define TI1_INT_FLAGS TIFR1
@@ -317,52 +404,31 @@
 // 250 kHz is out of the full accuracy specification!
 // clock divider is 4, when CPU_Clock==1MHz and ADC_Clock==250kHz
 // clock divider is 128, when CPU_Clock==16MHz and ADC_Clock==125kHz
-#define F_ADC 125000
+#define F_ADC 200000
 //#define F_ADC 250000
-#if F_CPU/F_ADC == 2
- #define AUTO_CLOCK_DIV (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC == 4
- #define AUTO_CLOCK_DIV (1<<ADPS1)
-#endif
-#if F_CPU/F_ADC == 8
- #define AUTO_CLOCK_DIV (1<<ADPS1) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC == 16
- #define AUTO_CLOCK_DIV (1<<ADPS2)
-#endif
-#if F_CPU/F_ADC == 32
- #define AUTO_CLOCK_DIV (1<<ADPS2) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC == 64
- #define AUTO_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1)
-#endif
-#if F_CPU/F_ADC == 128
- #define AUTO_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0)
+#if F_CPU/F_ADC <= 2
+ #define TICS_PER_ADC_CLOCK 2
+ #define AUTO_CLOCK_DIV ((0<<ADPS2) | (0<<ADPS1) | (1<<ADPS0))
+#elif F_CPU/F_ADC <= 4
+ #define TICS_PER_ADC_CLOCK 4
+ #define AUTO_CLOCK_DIV ((0<<ADPS2) | (1<<ADPS1) | (0<<ADPS0))
+#elif F_CPU/F_ADC <= 8
+ #define TICS_PER_ADC_CLOCK 8
+ #define AUTO_CLOCK_DIV ((0<<ADPS2) | (1<<ADPS1) | (1<<ADPS0))
+#elif F_CPU/F_ADC <= 16
+ #define TICS_PER_ADC_CLOCK 16
+ #define AUTO_CLOCK_DIV ((1<<ADPS2) | (0<<ADPS1) | (0<<ADPS0))
+#elif F_CPU/F_ADC <= 32
+ #define TICS_PER_ADC_CLOCK 32
+ #define AUTO_CLOCK_DIV ((1<<ADPS2) | (0<<ADPS1) | (1<<ADPS0))
+#elif F_CPU/F_ADC <= 64
+ #define TICS_PER_ADC_CLOCK 64
+ #define AUTO_CLOCK_DIV ((1<<ADPS2) | (1<<ADPS1) | (0<<ADPS0))
+#else
+ #define TICS_PER_ADC_CLOCK 128
+ #define AUTO_CLOCK_DIV ((1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0))
 #endif
 //**********************************************************
-#define F_ADC_F 500000
-#if F_CPU/F_ADC_F == 2
- #define FAST_CLOCK_DIV (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC_F == 4
- #define FAST_CLOCK_DIV (1<<ADPS1)
-#endif
-#if F_CPU/F_ADC_F == 8
- #define FAST_CLOCK_DIV (1<<ADPS1) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC_F == 16
- #define FAST_CLOCK_DIV (1<<ADPS2)
-#endif
-#if F_CPU/F_ADC_F == 32
- #define FAST_CLOCK_DIV (1<<ADPS2) | (1<<ADPS0)
-#endif
-#if F_CPU/F_ADC_F == 64
- #define FAST_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1)
-#endif
-#if F_CPU/F_ADC_F == 128
- #define FAST_CLOCK_DIV (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0)
-#endif
 
 #ifndef PIN_RP
   #define PIN_RP  220           //estimated internal resistance PORT to VCC
@@ -469,6 +535,14 @@
 #define LCD_CHAR_RESIS1 7       // Resistor left part will be generated as custom character
 #define LCD_CHAR_RESIS2 6       // Resistor right part will be generated as custom character
 
+#ifndef LCD_CYRILLIC
+ #if (defined(LANG_RUSSIAN) || defined(LANG_UKRAINIAN))
+  #warning LCD_CYRILLIC automatically set!
+  #define LCD_CYRILLIC
+ #endif
+#endif
+
+
 #ifdef LCD_CYRILLIC
         #define LCD_CHAR_OMEGA  4       //Omega-character
         #define LCD_CHAR_U  5           //�-character
@@ -484,17 +558,30 @@
         #define LCD_CHAR_U  5           //�-character for DOGM module loadable
 #endif
 
+
 #define LCD_CHAR_DEGREE 0xdf            // Character for degree
 #define LCD_CHAR_INSEP 0xff		// used as space character without separating text
+#define LCD_CHAR_LINE1 '-'		// usually the minus sign is used for line symbol
+#define LCD_CHAR_INDUCTOR1 'w'		// use ww for inductor symbol
+#define LCD_CHAR_INDUCTOR2 'w'		// use ww for inductor symbol
 
-#if ((LCD_ST_TYPE == 7565) || (LCD_ST_TYPE == 1306))
+#if (defined(WITH_GRAPHICS) || defined(LCD_USE_OWN_FONT))
+// redefine the special symbols for software character set used with graphical display
         #undef LCD_CHAR_DEGREE
         #define LCD_CHAR_DEGREE 0xf8	// Character for degree
         #undef LCD_CHAR_OMEGA
         #define LCD_CHAR_OMEGA  4       //Omega-character
         #undef LCD_CHAR_U
         #define LCD_CHAR_U  5		//�-character
+        #undef LCD_CHAR_LINE1
+        #define LCD_CHAR_LINE1  8	// line is specified as long -
+        #undef LCD_CHAR_INDUCTOR1
+        #define LCD_CHAR_INDUCTOR1  9		//begin of coil
+        #undef LCD_CHAR_INDUCTOR2
+        #define LCD_CHAR_INDUCTOR2  10		//end of coil
+	#define LCD_CHAR_BETA 11
 #endif
+
 
 #if FLASHEND > 0x3fff
  #define LCD_CHAR_RESIS3 0
@@ -507,7 +594,9 @@
 // The one with the lower capacity value is the parasitic, the other is shown by default
 // This is enabled for all processors (deselecting save about 120 bytes flash)
 // Otherwise the shown type (NPNp or PNPn) depends on the selected pin sequence of the tester!
-#define SEARCH_PARASITIC
+#if FLASHEND > 0x1fff
+ #define SEARCH_PARASITIC
+#endif
 
 //#if FLASHEND > 0x1fff
 // you can save about 14 bytes of Flash, if you deselect Thyristor gate voltage
@@ -518,7 +607,13 @@
  // You can save about 328 bytes of Flash, if you don't show the ICE0 and ICEs Collector cutoff current.
  // Only enabled for mega328, but you can also enable it for mega168, if you deselect other functions.
  // You can save about 250 bytes flash, if you deselect the WITH_UART option.
- #define SHOW_ICE
+ #define SHOW_R_DS
+ #if defined(NO_COMMON_EMITTER_HFE) && !defined(NO_TEST_T1_T7)
+  #warning  Uf parameter of VAKDiode and ICE can not be shown with full selftest
+ #else
+  #define SHOW_VAKDIODE
+  #define SHOW_ICE
+ #endif
 #endif
 
 // COMMON_COLLECTOR activates measurement of current amplification factor in common collector circuit  (Emitter follower)
@@ -616,24 +711,24 @@
  #define LCD_CLEAR
 #endif
 
-#if F_CPU <= 1000000UL
-  #define CNTR2_PRESCALER (1<<CS22) | (0<<CS21) | (1<<CS20)   /* prescaler 128, 128us @ 1MHz */
-  #define T2_PERIOD 128
+// check for required T2 clock divider for 5ms / 10ms delay (max 255)
+#if ((F_CPU/100) / 32) < 256
+ #define CNTR2_PRESCALER (0<<CS22) | (1<<CS21) | (1<<CS20)	/* prescaler 32 */
+ #define TICS_PER_T2_COUNT 32
+#elif ((F_CPU/100) / 64) < 256
+ #define CNTR2_PRESCALER (1<<CS22) | (0<<CS21) | (0<<CS20)	/* prescaler 64 */
+ #define TICS_PER_T2_COUNT 64
+#elif ((F_CPU/100) / 128) < 256
+ #define CNTR2_PRESCALER (1<<CS22) | (0<<CS21) | (1<<CS20)	/* prescaler 128 */
+ #define TICS_PER_T2_COUNT 128
+#elif ((F_CPU/100) / 256) < 256
+ #define CNTR2_PRESCALER (1<<CS22) | (1<<CS21) | (0<<CS20)	/* prescaler 256 */
+ #define TICS_PER_T2_COUNT 256
+#else
+ #define CNTR2_PRESCALER (1<<CS22) | (1<<CS21) | (1<<CS20)	/* prescaler 1024 */
+ #define TICS_PER_T2_COUNT 1024
 #endif
-#if F_CPU == 2000000UL
-  #define CNTR2_PRESCALER (1<<CS22) | (1<<CS21) | (0<<CS20)   /* prescaler 256, 128us @ 2MHz */
-  #define T2_PERIOD 128
-#endif
-#if F_CPU == 4000000UL
-  #define CNTR2_PRESCALER (1<<CS22) | (1<<CS21) | (0<<CS20)   /* prescaler 256, 64us @ 2MHz */
-  #define T2_PERIOD 64
-#endif
-#if F_CPU >= 8000000UL
-  #define CNTR2_PRESCALER (1<<CS22) | (1<<CS21) | (1<<CS20)   /* prescaler 1024, 128us @ 8MHz, 64us @ 16MHz */
-// #define T2_PERIOD (1024/(F_CPU/1000000UL))
-  #define T2_PERIOD (1024 / MHZ_CPU)
-       /* set to 128 or 64 us */
-#endif
+
 #if FLASHEND <= 0x3fff
  #ifdef WITH_MENU
   #undef WITH_MENU
@@ -659,4 +754,71 @@
 #endif
 #ifndef TP_OFFSET
  #define TP_OFFSET 0
+#endif
+#if  !defined(LCD_INTERFACE_MODE)  || (LCD_INTERFACE_MODE == MODE_PARALLEL)
+ #define MODE_8BIT 0x00         /* 4-bit Mode */
+#else
+ #define MODE_8BIT 0x10
+#endif
+
+#if defined(WITH_GRAPHICS) && !defined(NO_ICONS_DEMO)
+  #undef SHOW_ICONS		/* if allready defined */
+  #define SHOW_ICONS
+#endif
+#ifdef PWM_SERVO
+ #ifndef SERVO_MIN
+  #define SERVO_MIN 40	/* Pulswidth 0.8ms, Period 20ms : 4 percent */
+ #endif
+ #ifndef SERVO_MAX
+  #define SERVO_MAX 111	/* Pulswidth 2.2ms, Period 20ms : 11 percent */
+ #endif
+ #ifndef SERVO_PERIOD
+  #define SERVO_PERIOD 20000UL	/* Period 20ms in us units */
+ #endif
+ #define SERVO_DIV 1
+ #define SERVO_START ((0<<CS12) | (0<<CS11) | (1<<CS10))
+ #if ((SERVO_PERIOD*MHZ_CPU)  > 0xffff)
+  #undef SERVO_DIV
+  #define SERVO_DIV 8
+  #undef SERVO_START
+  #define SERVO_START ((0<<CS12) | (1<<CS11) | (0<<CS10))
+  #if (((SERVO_PERIOD * MHZ_CPU) / SERVO_DIV) > 0xffff)
+   #undef SERVO_DIV
+   #define SERVO_DIV 64
+   #undef SERVO_START
+   #define SERVO_START ((0<<CS12) | (1<<CS11) | (1<<CS10))
+  #endif
+ #endif
+ #if SERVO_MAX > 251
+  #warning  The maximum pulse width SERVO_MAX must set below 25.2% !
+  #undef SERVO_MAX
+  #define SERVO_MAX 251
+ #endif
+ #if SERVO_MIN >= SERVO_MAX
+  #warning  The minimum pulse width SERVO_MIN must set below SERVO_MAX !
+  #undef SERVO_MIN
+  #define SERVO_MIN (SERVO_MAX/2)
+ #endif
+ #define PWM_MAX_COUNT ((SERVO_PERIOD * MHZ_CPU) / SERVO_DIV)
+ #if PWM_MAX_COUNT < 0x3ff
+  #warning PWM_MAX_COUNT
+ #endif
+#else
+
+ #ifndef SERVO_MIN
+  #define SERVO_MIN 0
+ #endif
+ #ifndef SERVO_MAX
+  #define SERVO_MAX 100
+ #endif
+ #define PWM_MAX_COUNT 0x3ff
+#endif
+#if defined(LCD_SPI_OPEN_COL) && defined(WITH_ROTARY_SWITCH)
+// #if ((ROTARY_A_DDR == HW_LCD_RES_DDR) && (ROTARY_A_PIN == HW_LCD_RES_PIN)) || ((ROTARY_A_DDR == HW_LCD_EN_DDR) && (ROTARY_A_PIN == HW_LCD_EN_PIN)) || ((ROTARY_A_DDR == HW_LCD_RS_DDR) && (ROTARY_A_PIN == HW_LCD_RS_PIN)) || ((ROTARY_A_DDR == HW_LCD_B0_DDR) && (ROTARY_A_PIN == HW_LCD_B0_PIN)) || ((ROTARY_A_DDR == HW_LCD_CE_DDR) && (ROTARY_A_PIN == HW_LCD_CE_PIN))
+//  #warning Option WITH_ROTARY_SWITCH can not be used together with option LCD_SPI_OPEN_COL, if the ROTARY_A switch signals use the same port signals as the LCD.
+// #endif
+// #if ((ROTARY_B_DDR == HW_LCD_RES_DDR) && (ROTARY_B_PIN == HW_LCD_RES_PIN)) || ((ROTARY_B_DDR == HW_LCD_EN_DDR) && (ROTARY_B_PIN == HW_LCD_EN_PIN)) || ((ROTARY_B_DDR == HW_LCD_RS_DDR) && (ROTARY_B_PIN == HW_LCD_RS_PIN)) || ((ROTARY_B_DDR == HW_LCD_B0_DDR) && (ROTARY_B_PIN == HW_LCD_B0_PIN)) || ((ROTARY_B_DDR == HW_LCD_CE_DDR) && (ROTARY_B_PIN == HW_LCD_CE_PIN))
+//  #warning Option WITH_ROTARY_SWITCH can not be used together with option LCD_SPI_OPEN_COL, if the ROTARY_B switch signals use the same port signals as the LCD.
+// #endif
+  #pragma message "Option WITH_ROTARY_SWITCH can not be used together with option LCD_SPI_OPEN_COL, if the ROTARY switch signals use the same port signals as the LCD."
 #endif

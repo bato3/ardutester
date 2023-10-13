@@ -9,9 +9,9 @@ void SerienDiodenAusgabe()
     first = diode_sequence >> 4;
     second = diode_sequence & 3;
     lcd_testpin(diodes.Anode[first]);
-    lcd_MEM_string(AnKat); //"->|-"
+    lcd_MEM_string(AnKat_str); //"->|-"
     lcd_testpin(diodes.Cathode[first]);
-    lcd_MEM_string(AnKat); //"->|-"
+    lcd_MEM_string(AnKat_str); //"->|-"
     lcd_testpin(diodes.Cathode[second]);
     UfAusgabe(diode_sequence);
 }
@@ -36,10 +36,10 @@ void UfAusgabe(uint8_t bcdnum)
 }
 void mVAusgabe(uint8_t nn)
 {
-    if (nn < 3)
+    if (nn < 6)
     {
         // Output in mV units
-        DisplayValue(diodes.Voltage[nn], -3, 'V', 3);
+        Display_mV(diodes.Voltage[nn], 3);
         lcd_space();
     }
 }

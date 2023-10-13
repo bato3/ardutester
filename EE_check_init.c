@@ -6,7 +6,7 @@
 // check some EEprom values for correct values
 void EE_check_init(void)
 {
-#ifndef USE_EEPROM
+#if (!defined(SamplingADC) || (PROCESSOR_TYP != 328)) && !defined(USE_EEPROM)
     uint8_t tt; // read test value
     tt = (uint8_t)eeprom_read_byte(&EE_ESR_ZEROtab[0]);
     // this value will never be changed by calibration
@@ -54,8 +54,8 @@ init_ee:
     (void)eeprom_write_byte((uint8_t *)(&EE_Volume_Value), VOLUME_VALUE);
 #endif
 #ifdef WITH_ROTARY_SWITCH
-// (void) eeprom_write_byte(&EE_RotarySwitch,0); 		// no switch is detected
+    // (void) eeprom_write_byte(&EE_RotarySwitch,0); 		// no switch is detected
 #endif
-    wait_about1s();
+    wait_about1s(); // time to read the "EE" message, initialization of EEprom finished
 #endif
 }

@@ -171,7 +171,8 @@ typedef struct
     uint8_t C;         /* probe pin connected to collector */
     uint8_t E;         /* probe pin connected to emitter */
     unsigned long hFE; /* current amplification factor */
-                       /* BE voltage */
+    /* U_BE voltage */
+    uint16_t I_CE0; /* leakage current (in �A) */
 } BJT_Type;
 
 /* FET */

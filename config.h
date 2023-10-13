@@ -10,10 +10,17 @@
 #define MEM_read_byte(a) pgm_read_byte(a)
 #endif
 
+// RH_OFFSET : systematic offset of resistor measurement with RH (470k)
+// resolution is 0.1 Ohm, 7000 defines a offset of 700 Ohm
+#define RH_OFFSET 7000
+
+// CABLE_CAP defines the capacity (pF) of 12cm cable with clip at the terminal pins
+#define CABLE_CAP 3
 // automatic selection of option and parameters for different AVR s
 //----------------========----------
 #if defined(__AVR_ATmega48__)
 //----------------========----------
+#define ACALL rcall
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
@@ -44,13 +51,14 @@
 #undef BAT_CHECK
 #endif
 
-#define C_NULL (((52 * F_CPU) / 10000000) + 4)
+#define C_NULL 50
 #define PIN_RM 190
 #define PIN_RP 220
 
 //------------------========----------
 #elif defined(__AVR_ATmega88__)
 //------------------========----------
+#define ACALL rcall
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
@@ -60,13 +68,19 @@
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
 #define COMMON_COLLECTOR
 
-#define C_NULL (((52 * F_CPU) / 10000000) + 4)
 #define PIN_RM 190
 #define PIN_RP 225
+// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
+#define CC0 36
+// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
+#define COMP_SLEW1 4000
+#define COMP_SLEW2 220
+#define C_NULL CC0 + CABLE_CAP + (COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
 
 //------------------=========----------
 #elif defined(__AVR_ATmega168__)
 //------------------=========----------
+#define ACALL call
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
@@ -76,13 +90,21 @@
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
 #define COMMON_COLLECTOR
 
-#define C_NULL (((55 * F_CPU) / 10000000) + 4)
 #define PIN_RM 196
 #define PIN_RP 225
+// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
+// CC0 35 for ATmega168A
+// CC0 36 for ATmega168
+#define CC0 36
+// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
+#define COMP_SLEW1 4000
+#define COMP_SLEW2 220
+#define C_NULL CC0 + CABLE_CAP + (COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
 
 //------------------=========----------
 #elif defined(__AVR_ATmega328__)
 //------------------=========----------
+#define ACALL call
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
@@ -92,14 +114,20 @@
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
 #define COMMON_COLLECTOR
 
-#define C_NULL (((52 * F_CPU) / 10000000) + 4)
 #define PIN_RM 200
 #define PIN_RP 220
+// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
+#define CC0 36
+// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
+#define COMP_SLEW1 4000
+#define COMP_SLEW2 220
+#define C_NULL CC0 + CABLE_CAP + (COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
 
 //------------------=========----------
 #else
 //                   ATmega8
 //------------------=========----------
+#define ACALL rcall
 #define MCU_STATUS_REG MCUCSR
 #define ADC_COMP_CONTROL SFIOR
 #define TI1_INT_FLAGS TIFR
@@ -109,13 +137,21 @@
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
 #define COMMON_COLLECTOR
 
-#define C_NULL (((46 * F_CPU) / 10000000) + 4)
-#define PIN_RM 190
-#define PIN_RP 220
+#define PIN_RM 196
+#define PIN_RP 240
+// CC0 defines the capacity of empty terminal pins 1 & 3 without cable
+#define CC0 27
+// Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
+#define COMP_SLEW1 0
+#define COMP_SLEW2 33
+#define C_NULL CC0 + CABLE_CAP + (COMP_SLEW1 / (CC0 + CABLE_CAP + COMP_SLEW2))
 #endif
 
-#ifndef REF_KORR
-#define REF_KORR 0
+#ifndef REF_R_KORR
+#define REF_R_KORR 0
+#endif
+#ifndef REF_C_KORR
+#define REF_C_KORR 0
 #endif
 
 #ifdef POWER_OFF
@@ -139,6 +175,7 @@
 // clock divider is 4, when CPU_Clock==1MHz and ADC_Clock==250kHz
 // clock divider is 128, when CPU_Clock==16MHz and ADC_Clock==125kHz
 #define F_ADC 125000
+// #define F_ADC 250000
 #if F_CPU / F_ADC == 4
 #define AUTO_CLOCK_DIV (1 << ADPS1)
 #endif

@@ -105,11 +105,12 @@ start:
 #endif
     ref_mv = ReadADC(0x0e);      // read Reference-voltage
     ref_mv = W20msReadADC(0x0e); // read Reference-voltage
+    ref_mv += REF_R_KORR;        // correction for the resistor measurement
 #ifdef AUTOSCALE_ADC
     scale_intref_adc(); // scale ADC to internal Reference
 #endif
 
-    ref_mv += REF_KORR; // correction for the capacity measurement
+    ref_mv += (REF_C_KORR - REF_R_KORR); // correction for the capacity measurement
 
 #ifdef BAT_CHECK
     // Battery check is selected
@@ -672,8 +673,22 @@ void mVAusgabe(uint8_t nn)
 {
     if (nn < 3)
     {
+#ifdef UF_OUT_MV
+        // Output in mV units
         lcd_string(utoa(diodes[nn].Voltage, outval, 10));
         lcd_data('m');
+#else
+        // Output with format x.xxV or .xxV
+        // round up last digit, first digit will never appear (10000)
+        utoa((diodes[nn].Voltage + 10005), outval, 10);
+        if (outval[1] != '0')
+        {
+            lcd_data(outval[1]);
+        }
+        lcd_data('.');
+        lcd_data(outval[2]);
+        lcd_data(outval[3]);
+#endif
         lcd_data('V');
         lcd_data(' ');
     }
@@ -708,7 +723,8 @@ void RvalOut(uint8_t ii)
 #include "CheckPins.c"
 
 #ifdef __AVR_ATmega8__
-#define WishVolt 2560
+// 2.54V reference voltage + korrection (fix for ATmega8)
+#define WishVolt (2560 + REF_R_KORR)
 #else
 #define WishVolt ref_mv
 #endif
@@ -719,7 +735,7 @@ void scale_intref_adc(void)
     uint8_t multip, divid;
     unsigned int diff;
 
-    mindiff = WishVolt;
+    mindiff = WishVolt; // WishVolt == ref_mv  or 2560 for ATmega8
     for (multip = 2; multip < 64; multip++)
     {
         // find factors for ADC-resolution in mV
@@ -728,7 +744,7 @@ void scale_intref_adc(void)
         {
             ergeb = (unsigned int)(1023 * multip) / divid;
             diff = abs((int)(WishVolt - ergeb));
-#if ANZ_MES == 44
+#if ANZ_MESS == 44
             if (!(diff > mindiff))
             // find result where is most added, biggest minmul,mindiv
 #else
@@ -791,7 +807,7 @@ void EntladePins()
         adcmv[0] = W5msReadADC(PC0);                                    // which voltage has Pin 1?
         adcmv[1] = ReadADC(PC1);                                        // which voltage has Pin 2?
         adcmv[2] = ReadADC(PC2);                                        // which voltage has Pin 3?
-        if ((PartFound == PART_CELL) || (adcmv[0] < 3) & (adcmv[1] < 3) & (adcmv[2] < 3))
+        if ((PartFound == PART_CELL) || (adcmv[0] < CAP_EMPTY_LEVEL) & (adcmv[1] < CAP_EMPTY_LEVEL) & (adcmv[2] < CAP_EMPTY_LEVEL))
         {
             ADC_DDR = TXD_MSK; // switch all ADC-Pins to input
             R_DDR = 0;         // switch all R_L Ports (and R_H) to input
@@ -834,7 +850,7 @@ void EntladePins()
             {
                 ADC_DDR |= (1 << PC2); // below 1.3V, switch directly with ADC-Port to GND
             }
-            if ((adcmv[0] < 5) && (adcmv[1] < 5) && (adcmv[2] < 5))
+            if ((adcmv[0] < (CAP_EMPTY_LEVEL + 2)) && (adcmv[1] < (CAP_EMPTY_LEVEL + 2)) && (adcmv[2] < (CAP_EMPTY_LEVEL + 2)))
             {
                 break;
             }
@@ -874,11 +890,13 @@ unsigned int getRLmultip(unsigned int cvolt)
 {
 
     // interpolate table RLtab corresponding to voltage cvolt
-    // resistor   680 Ohm          300   325   350   375   400   425   450   475   500   525   550   575   600   625   650  675  700  725  750  775  800  825  850  875  900  925  950  975 1000 1025 1050 1075 1100 1125 1150 1175 1200 1225 1250 1275 1300 mV
-    // uint16_t RLtab[] MEM_TEXT = {22447,20665,19138,17815,16657,15635,14727,13914,13182,12520,11918,11369,10865,10401,9973,9577,9209,8866,8546,8247,7966,7702,7454,7220,6999,6789,6591,6403,6224,6054,5892,5738,5590,5449,5314,5185,5061,4942,4828,4718,4613};
+    // Widerstand 680 Ohm          300   325   350   375   400   425   450   475   500   525   550   575   600   625   650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400  mV
+    // uint16_t RLtab[] MEM_TEXT = {22447,20665,19138,17815,16657,15635,14727,13914,13182,12520,11918,11369,10865,10401, 9973, 9577, 9209, 8866, 8546, 8247, 7966, 7702, 7454, 7220, 6999, 6789, 6591, 6403, 6224, 6054, 5892, 5738, 5590, 5449, 5314, 5185, 5061, 4942, 4828, 4718, 4613, 4511, 4413, 4319, 4228};
 
-#define RL_Tab_Abstand 25 // displacement of table 25mV
-#define RL_Tab_Beginn 300 // begin of table ist 300mV
+#define RL_Tab_Abstand 25  // displacement of table 25mV
+#define RL_Tab_Beginn 300  // begin of table ist 300mV
+#define RL_Tab_Length 1100 // length of table is 1400-300
+
     unsigned int uvolt;
     unsigned int y1, y2;
     uint8_t tabind;
@@ -894,9 +912,9 @@ unsigned int getRLmultip(unsigned int cvolt)
     tabind = uvolt / RL_Tab_Abstand;
     tabres = uvolt % RL_Tab_Abstand;
     tabres = RL_Tab_Abstand - tabres;
-    if (tabind > 39)
+    if (tabind > (RL_Tab_Length / RL_Tab_Abstand))
     {
-        tabind = 39; // limit to end of table
+        tabind = (RL_Tab_Length / RL_Tab_Abstand); // limit to end of table
     }
     y1 = MEM_read_word(&RLtab[tabind]);
     y2 = MEM_read_word(&RLtab[tabind + 1]);
@@ -1071,19 +1089,16 @@ void AutoCheck(void)
             lcd_data('0' + tt); // followed by the test number
             lcd_data(' ');
             if (tt == 1)
-            {                                          // output of reference voltage and factors for capacity measurement
-                ref_mv = ReadADC(0x0e);                // read reference voltage
-                ref_mv = W5msReadADC(0x0e) + REF_KORR; // read reference voltage
-                lcd_fix_string(URefT);                 //"URef="
+            {                                            // output of reference voltage and factors for capacity measurement
+                ref_mv = ReadADC(0x0e);                  // read reference voltage
+                ref_mv = W5msReadADC(0x0e) + REF_C_KORR; // read reference voltage
+                lcd_fix_string(URefT);                   //"URef="
                 lcd_string(utoa(ref_mv, outval, 10));
                 lcd_fix_string(mVT);    //"mV "
                 Line2();                // Cursor to column 1, row 2
+                RefVoltage();           // compute RHmultip = f(reference voltage)
                 lcd_fix_string(RHfakt); //"RHf="
                 lcd_string(utoa(RHmultip, outval, 10));
-#ifdef C_MESS
-                lcd_fix_string(RLfakt); //" RLf="
-                lcd_string(utoa(getRLmultip(ref_mv), outval, 10));
-#endif
             }
             if (tt == 2)
             {                                                // how equal are the RL resistors?

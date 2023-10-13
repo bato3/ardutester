@@ -1,27 +1,28 @@
 #include <avr/io.h>
-//#include <config.h>
+#include "config.h"
 #include <stdlib.h>
 //#include "autoinout.h"
 
-#ifndef ANZ_MES
-#define ANZ_MES 44
+#ifndef ANZ_MESS
+#define ANZ_MESS 44
 #endif
 
 .GLOBAL ReadADC
 .GLOBAL W20msReadADC
 .GLOBAL W5msReadADC
 // assembler version of ReadADC.c
+// ACALL is defined in config.h as rcall for ATmega8 and as call for ATmega168
 
 ;unsigned int W20msReadADC(uint8_t mux) {
 W20msReadADC:
-  rcall	wait10ms;
-  rcall wait5ms;
+  ACALL	wait10ms
+  ACALL wait5ms
 // runs to W5msReadADC
 
 ;unsigned int W5msReadADC(uint8_t mux) {
 W5msReadADC:
-  rcall	wait5ms;
-// runs directly to ReadADC, this will replace "rcall ReadADC + ret"
+  ACALL	wait5ms;
+// runs directly to ReadADC, this will replace "ACALL ReadADC + ret"
 
 ;unsigned int ReadADC(uint8_t mux) {
 ReadADC:
@@ -42,7 +43,7 @@ ReadADC:
   rjmp  lowADC			; 1.1V is selected, go to special routine
 #endif
 ; normal 5V reference
-;  adcx = (ANZ_MES/11); 	// round up the result (+4)
+;  adcx = (ANZ_MESS/11); 	// round up the result (+4)
 ;  ADCSRA |= (1<<ADSC);		//start Conversion
 #if ADCSRA < 32
   sbi	ADCSRA,ADSC
@@ -64,17 +65,17 @@ w3f6:
 
 #ifdef NO_AREF_CAP
 ; wait50us();		// AVR126 recommend a 70µs wait-time for band gap ADC
-  rcall wait50us
+  ACALL wait50us
 #else
 ;  wait300us();
-  rcall	wait300us
+  ACALL	wait300us
 #endif
 
-;  adcx = (ANZ_MES/11); 	// round up the result (+4)
-  ldi	r24, (ANZ_MES/11)
+;  adcx = (ANZ_MESS/11); 	// round up the result (+4)
+  ldi	r24, (ANZ_MESS/11)
   ldi	r25, 0
 
-;  for (jj = 0; jj < ANZ_MES; jj++) {
+;  for (jj = 0; jj < ANZ_MESS; jj++) {
      //repeat ANZ_MESS measurements for oversampling
   ldi	r20, 0
 
@@ -118,19 +119,19 @@ w416:
   brcs	lowADC 
 #endif
 
-;  for (jj = 0; jj < ANZ_MES; jj++) {
+;  for (jj = 0; jj < ANZ_MESS; jj++) {
 r436:
   subi	r20, 0xFF	; 255
-  cpi	r20, ANZ_MES
+  cpi	r20, ANZ_MESS
   brne	forlop1 
 
-#if ANZ_MES == 22
+#if ANZ_MESS == 22
 ;  adcx *= 2;		// multiply sum by 2
   add	r24,r24
   adc	r25,r25		;*2
 #endif
   
-#if ANZ_MES == 11
+#if ANZ_MESS == 11
 ;  adcx *= 4;		// multiply sum by 4
   add	r24,r24
   adc	r25,r25		;*2
@@ -176,12 +177,12 @@ w454:
 
 #ifdef NO_AREF_CAP
 ;  wait300us();			//wait 300µs for no or 1nF AREF capacitor
-  rcall wait300us
+  ACALL wait300us
 #else
 ;  wait5ms();			//wait 6ms for up to 100nF AREF capacitor
 ;  wait1ms();
-  rcall	wait5ms
-  rcall	wait1ms
+  ACALL	wait5ms
+  ACALL	wait1ms
 #endif
 
 ;  adcx = 0;
@@ -235,7 +236,7 @@ r48c:
   ldi	r23, 0
 #endif
 diviret:
-  rcall	__udivmodhi4
+  ACALL	__udivmodhi4
   movw	r24, r22
   clr	r0
   ret

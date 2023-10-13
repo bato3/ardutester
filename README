@@ -9,13 +9,13 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-11-4
+Last edit:  2012-11-8
 
 
 * About
 
 The Component Tester is based on the project of Markus Frejek [1&2] and the
-successor of Karl-Heinz Kübbeler [3&4]. It's an alternative software for the
+successor of Karl-Heinz Kï¿½bbeler [3&4]. It's an alternative software for the
 current circuit by Karl-Heinz and offers some changes in the user interface
 and the methods used for probing and measuring. While Karl-Heinz provides an
 official release supporting most ATmega MCUs this is a playground version
@@ -32,7 +32,7 @@ won't survive higher voltages than 5V. Don't use the tester for live circuits!
 Just use it for unsoldered electronic components! If you test a capacitor make
 sure it's discharged before connecting the probes. This isn't just the Safety
 Sally, your life may be at risk if you connect the probes to a live circuit
-or a power supply (or even mains). 
+or a power supply (or even mains).
 
 
 * Whats different?
@@ -72,7 +72,7 @@ a corrupted EEPROM, i.e. caused by too much write operations. In that case
 the default calibration values from config.h will be used.
 
 
-* Probing Loop 
+* Probing Loop
 
 While displaying the result of the last test a long key press (0.3s) powers
 the tester off. The tester will display a short goodbye message. As long as
@@ -110,7 +110,7 @@ by the self calibration.
 
 The voltage offset of the analog comparator is automatically calibrated in
 the capacitance measurement if the capacitor is in the range of 100nF up
-to 20µF. Also the offset of the internal bandgap reference is determined
+to 20ï¿½F. Also the offset of the internal bandgap reference is determined
 in the same way. Both offsets are displayed at the end of the self
 calibration.
 
@@ -123,7 +123,7 @@ those default values using the the "Save" function. The next time you power
 on the tester the updated values will be loaded and used.
 
 If you run the tester the first time or changed the hardware setup, i.e. using
-other probe leads, I recommend to measure a capacitor (100nF - 20µF) to
+other probe leads, I recommend to measure a capacitor (100nF - 20ï¿½F) to
 trigger the voltage offset calibrations, then run the selftest and save the
 new values.
 
@@ -136,7 +136,7 @@ because the old values are still stored. Just powercycle the tester.
 
 + Values
 
-This displays the current calibrations values and offsets used. 
+This displays the current calibrations values and offsets used.
 
 
 * Resistors
@@ -155,11 +155,11 @@ validity of the results. In that case simply re-run the test.
 
 * Measuring Capacitance
 
-The measurement of capacitance is split into three methods. Large caps >47µF
+The measurement of capacitance is split into three methods. Large caps >47ï¿½F
 are still measured by the charging cycle method with 10ms impulses. Mid-sized
-caps between 4.7µF and 47µF are processed the same way but with 1ms charging
+caps between 4.7ï¿½F and 47ï¿½F are processed the same way but with 1ms charging
 impulses. And small caps are still done by the analog comparator method. That
-way the accuracy of the measurement of caps between 4.7µF and 47µF is
+way the accuracy of the measurement of caps between 4.7ï¿½F and 47ï¿½F is
 increased.
 
 Also I found a simple correction solution for large caps. Without correction
@@ -168,7 +168,7 @@ method, since the ADC conversion after the charging impuls needs some time
 during which the cap looses some charge due to internal resistive losses. So
 it takes longer to charge the cap and it seems to have a larger capacitance.
 A discharge measurement later on tries to compensate that, but the capacitance
-is still too large. 
+is still too large.
 
 A logic for preventing large caps to be detected as resistors was added.
 Resistors < 10 Ohms are checked for being large caps.
@@ -221,10 +221,17 @@ increases over time. Tests showed that this works only in a quite limited way,
 so we won't support inductors. A better way is to add a signal source (sinus
 AC), meassuring frequency, current and voltage, and calculating the inductance
 by the frequency and the complex resistance. But that's something for a new
-hardware version of the tester. 
+hardware version of the tester.
 
 
 * Change Log
+
+v1,03m 2012-11
+- Fixed detection problem of power diodes with high leakage current (mistaken
+  for resistors).
+- Fixed compiler warnings about possible uninitialized variables. That
+  increased the firmware size by about 44 bytes :-(
+
 v1.02m 2012-11
 - Added upper limit for resistance of probe leads in the self calibration
   function (1.00 Ohms).
@@ -239,7 +246,7 @@ v1.01m 2012-10
 - Extended self calibration to support an auto-zero for the resistance of the
   probe leads.
 - CheckResistor() runs an extra measurement for small resistors (<10 Ohms).
-- Added a function to compare two scaled values. 
+- Added a function to compare two scaled values.
 - Adapted several functions to support variable scaling of values.
 
 v1.00m 2012-09
@@ -264,7 +271,7 @@ v0.99m 2012-09
     Online documentation of the Transistortester, Online Article, 2009-2011
 
 [4] http://www.mikrocontroller.net/articles/AVR_Transistortester
-    Short description of the TransistorTester, Karl-Heinz Kübbeler,
+    Short description of the TransistorTester, Karl-Heinz Kï¿½bbeler,
     Online Article, 2012
 
 

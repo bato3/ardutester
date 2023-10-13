@@ -22,7 +22,7 @@ void EE_check_init(void)
         if (ww == 0)
             tt0 = tt; // save first value
         // for forth element, tt must be tt0 or tt0+1
-        if ((ww == 3) && ((tt != tt0) && (tt != (tt0 + 1))))
+        if ((ww == 3) && ((tt != tt0) && (tt != (tt0 + 1)) && (tt != (tt0 + 2))))
             goto init_ee;
         if ((tt > 190) || (tt < 10))
             goto init_ee; // value too low or too big
@@ -43,13 +43,19 @@ init_ee:
     // write all 7 c_zero_tab values
     (void)eeprom_write_word((uint16_t *)(&c_zero_tab[0]), ((C_NULL)*256) + (C_NULL));
     (void)eeprom_write_byte((uint8_t *)(&c_zero_tab[2]), (C_NULL + TP2_CAP_OFFSET));
-    (void)eeprom_write_byte((uint8_t *)(&c_zero_tab[3]), (C_NULL + 1));
+    (void)eeprom_write_byte((uint8_t *)(&c_zero_tab[3]), (C_NULL + 2));
     (void)eeprom_write_byte((uint8_t *)(&c_zero_tab[4]), (C_NULL + TP2_CAP_OFFSET));
     (void)eeprom_write_word((uint16_t *)(&c_zero_tab[5]), ((C_NULL)*256) + (C_NULL));
 #endif
     // write 4 EE_ESR_ZEROtab values
     (void)eeprom_write_word((uint16_t *)(&EE_ESR_ZEROtab[0]), (ESR_ZERO * 256) + ESR_ZERO);
     (void)eeprom_write_word((uint16_t *)(&EE_ESR_ZEROtab[2]), (ESR_ZERO * 256) + ESR_ZERO);
+#if ((LCD_ST_TYPE == 7565) || (LCD_ST_TYPE == 1306))
+    (void)eeprom_write_byte((uint8_t *)(&EE_Volume_Value), VOLUME_VALUE);
+#endif
+#ifdef WITH_ROTARY_SWITCH
+// (void) eeprom_write_byte(&EE_RotarySwitch,0); 		// no switch is detected
+#endif
     wait_about1s();
 #endif
 }

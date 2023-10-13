@@ -75,7 +75,7 @@
 	.GLOBAL UfAusgabe
  	.extern lcd_space
 	.extern lcd_data
-	.extern lcd_command
+	.extern lcd_line2
 	.extern mVAusgabe
 
 	.func UfAusgabe
@@ -85,13 +85,12 @@ UfAusgabe:
  	mov	r17, r24
  	lds	r24, ResistorsFound;	0x0168
  	and	r24, r24
- 	breq	ad1cbe; 	   if (ResistorsFound > 0) {
+ 	breq	ad1cbe; 	   if (ResistorsFound > 0) { 
  	RCALL	lcd_space;	lcd_space();
  	ldi	r24, LCD_CHAR_RESIS3;	0
  	RCALL	lcd_data;      lcd_data(LCD_CHAR_RESIS3);	// special symbol or R
 ad1cbe:
- 	ldi	r24, 0xC0	; 192
- 	RCALL	lcd_command	;lcd_line2(); 				//2. row
+ 	RCALL	lcd_line2;					//2. row
  	ldi	r24, lo8(Uf_str);	0xE9
  	ldi	r25, hi8(Uf_str);	0x01
 #ifdef USE_EEPROM

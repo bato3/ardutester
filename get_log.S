@@ -22,7 +22,7 @@ get_log:
  	push	r29
 
  	ldi	r18, lo8(Log_Tab_Distance)	;0x14
- 	ldi	r19, hi8(Log_Tab_Distance)	;0x00
+ 	ldi	r19, hi8(Log_Tab_Distance)	;0x00	
  	movw	r22, r18
  	call	__udivmodhi4		; tabind = permil / Log_Tab_Distance;	// index to table
  	movw	r26, r24
@@ -39,7 +39,7 @@ get_log:
  	lpm	r20, Z+		; y2 = pgm_read_word(&LogTab[tabind+1]); // get the higher table value
  	lpm	r21, Z+
 ;  result = ((y2 - y1) * tabres ) / Log_Tab_Distance + y1; // interpolate
- 	sub	r20, r28	;  (y2 - y1)
+ 	sub	r20, r28	;  (y2 - y1) 
 ;;	sbc	r21, r29	;  hi8(y2 - y1) is allways zero
  	mul	r20, r26	; * tabres   (maximum 19)
  	movw	r24, r0		;  r24:25 =  ((y2 - y1) * tabres )

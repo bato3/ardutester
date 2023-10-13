@@ -8,6 +8,13 @@
 #include "part_defs.h"
 #include "lcd_defines.h"
 
+#if (LCD_ST_TYPE == 7565)
+ # warning "use lcd-routines.c instead of lcd-routines.S for ST7565 controller support!"
+#endif
+#if (LCD_ST_TYPE == 7920)
+ # warning "use lcd-routines.c instead of lcd-routines.S for ST7920 controller support!"
+#endif
+
 #define RCALL rcall
  .section .text
 
@@ -27,7 +34,7 @@ lcd_space:
 ;// from binary 0 we send ASCII 1 ....
 ;void lcd_testpin(unsigned char temp) {
 lcd_testpin:
- 	subi	r24, -'1'	; 0xCF
+ 	subi	r24, -'1'-TP_OFFSET	; 0xCF
 ;       run to lcd_data ....
 
 ;// sends data byte to the LCD 
@@ -236,7 +243,7 @@ lcd_init:
  	RCALL	lcd_command	; lcd_command(CMD1_FollowerControl | 0x09);	// Follower on / Rab2:0 = 1
  	ldi	r24, (CMD1_SetContrast | 0x04)	; // set contrast C3:0 = 4
  	RCALL	lcd_command	; lcd_command(CMD1_SetContrast | 0x04);	// set contrast C3:0 = 4
-#endif
+	// old intitialize without OLED display
  	ldi	r24, (CMD_SetIFOptions | 0x08) ; 0x28  4Bit / 2 rows / 5x7
  	RCALL	lcd_command	; lcd_command(CMD_SetIFOptions | 0x08);	// 4Bit / 2 rows / 5x7
 
@@ -246,6 +253,38 @@ lcd_init:
  	ldi	r24, (CMD_SetEntryMode | 0x02)	; 0x06 // increment / no Scroll    
  	RCALL	lcd_command	; lcd_command(CMD_SetEntryMode | 0x02);	// increment / no Scroll    
  	RCALL	lcd_clear	; lcd_clear();
+#else
+	// new initialize with OLED display
+	ldi	r24, (CMD_SetIFOptions) ; 0x20                          //Add for OLED
+	RCALL	lcd_command	; lcd_command(CMD_SetIFOptions);        //Add for OLED
+
+	ldi	r24, (CMD_SetIFOptions) ; 0x20                          //Add for OLED
+	RCALL	lcd_command	; lcd_command(CMD_SetIFOptions);        //Add for OLED
+
+	ldi	r24, (CMD_SetIFOptions | 0x0A) ; //0x2A  4Bit / 2 rows / 5x7/ table3 /Add for OLED
+	RCALL	lcd_command	; lcd_command(CMD_SetIFOptions | 0x0A); // 4Bit / 2 rows / 5x7 / table3 /Add fo OLED
+
+	ldi	r24, (CMD_SetDisplayAndCursor) ; 0x08  //Display off/ Cursor off / no Blinking  //Add for OLED
+	RCALL	lcd_command	; lcd_command(CMD_SetDisplayAndCursor); // // Display off / Cursor off / no Blinking OLED
+
+ 	RCALL	lcd_clear	; lcd_clear();
+
+ 	ldi	r24, (CMD_SetEntryMode | 0x02)	; 0x06 // increment / no Scroll    
+ 	RCALL	lcd_command	; lcd_command(CMD_SetEntryMode | 0x02);	// increment / no Scroll    
+
+	ldi	r24, 2		; 0x02 // Home Command //Add fo OLED    
+	RCALL	lcd_command	; lcd_command(0x02);    //Home Command //Add for OLED          
+#ifdef INHIBIT_SLEEP_MODE
+	RCALL	wait5ms		; wait5ms();
+#else
+ 	ldi	r24, 1		; 0x01	
+ 	RCALL	sleep_5ms	; wait_about5ms();
+#endif
+
+	ldi	r24, (CMD_SetDisplayAndCursor | 0x04) ; 0x0c // Display on / Cursor off / no Blinking
+	RCALL	lcd_command	; lcd_command(CMD_SetDisplayAndCursor | 0x04); // Display on / Cursor off / no Blinking
+#endif
+
  	ret
  .endfunc
 
@@ -411,4 +450,42 @@ clr_lop:
  	ret
  .endfunc
 #endif
+
+ .global lcd_line1
+lcd_line1:
+ .func lcd_line1
+ 	ldi	r24, 0x80	; 128
+ 	RCALL	lcd_command	; lcd_line1();	// set cursor to Line1
+ 	ret
+ .endfunc
+
+ .global lcd_line2
+ .func lcd_line2
+lcd_line2:
+ 	ldi	r24, 0xc0	; 192
+ 	RCALL	lcd_command	; lcd_line2();	// set cursor to Line2
+ 	ret
+ .endfunc
+
+ .global lcd_line3
+ .func lcd_line3
+lcd_line3:
+ 	ldi	r24, 0x94	; 148
+ 	RCALL	lcd_command	; lcd_line3();	// set cursor to Line3
+ 	ret
+ .endfunc
+
+ .global lcd_line4
+ .func lcd_line4
+lcd_line4:
+ 	ldi	r24, 0xd4	; 212
+ 	RCALL	lcd_command	; lcd_line4();	// set cursor to Line4
+ 	ret
+ .endfunc
+
+ .global lcd_powersave
+ .func lcd_powersave
+lcd_powersave:
+ 	ret
+ .endfunc
 

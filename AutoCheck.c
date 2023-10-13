@@ -54,8 +54,8 @@ void AutoCheck(void)
 #ifdef WITH_SELFTEST
     lcd_clear();
     lcd_fix2_string(SELFTEST); // "Selftest mode.."
-    wait1s();
-#define TEST_COUNT 7
+    wait_about1s();
+#define TEST_COUNT 8
 
     for (tt = 1; tt < TEST_COUNT; tt++)
     { // loop for all Tests
@@ -74,9 +74,9 @@ void AutoCheck(void)
             {                            // output of reference voltage and factors for capacity measurement
                 ADCconfig.Samples = 190; // set number of ADC reads near to maximum
 #ifdef WITH_AUTO_REF
-                (void)ReadADC(0x0e);        // read reference voltage
-                ref_mv = W5msReadADC(0x0e); // read reference voltage
-                RefVoltage();               // compute RHmultip = f(reference voltage)
+                (void)ReadADC(MUX_INT_REF);        // read reference voltage
+                ref_mv = W5msReadADC(MUX_INT_REF); // read reference voltage
+                RefVoltage();                      // compute RHmultip = f(reference voltage)
 #endif
                 lcd_fix2_string(URefT); //"URef="
                 DisplayValue(ref_mv, -3, 'V', 4);
@@ -86,18 +86,19 @@ void AutoCheck(void)
             }
             // ############################################
             if (tt == 2)
-            {                                                // how equal are the RL resistors?
+            { // how equal are the RL resistors?
+                u680 = ((long)ADCconfig.U_AVCC * (PIN_RM + R_L_VAL) / (PIN_RM + R_L_VAL + R_L_VAL + PIN_RP));
                 R_PORT = 1 << (TP1 * 2);                     // RL1 to VCC
                 R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2)); // RL2 to -
                 adcmv[0] = W20msReadADC(TP1);
-                adcmv[0] -= ((long)ADCconfig.U_AVCC * (PIN_RM + R_L_VAL) / (PIN_RM + R_L_VAL + R_L_VAL + PIN_RP));
+                adcmv[0] -= u680;
                 R_DDR = (1 << (TP1 * 2)) | (1 << (TP3 * 2)); // RL3 to -
                 adcmv[1] = W20msReadADC(TP1);
-                adcmv[1] -= ((long)ADCconfig.U_AVCC * (PIN_RM + R_L_VAL) / (PIN_RM + R_L_VAL + R_L_VAL + PIN_RP));
+                adcmv[1] -= u680;
                 R_PORT = 1 << (TP2 * 2);                     // RL2 to VCC
                 R_DDR = (1 << (TP2 * 2)) | (1 << (TP3 * 2)); // RL3 to -
                 adcmv[2] = W20msReadADC(TP2);
-                adcmv[2] -= ((long)ADCconfig.U_AVCC * (PIN_RM + R_L_VAL) / (PIN_RM + R_L_VAL + R_L_VAL + PIN_RP));
+                adcmv[2] -= u680;
                 lcd_fix2_string(RLRL); // "RLRL"
             }
             // ############################################
@@ -150,6 +151,23 @@ void AutoCheck(void)
                 adcmv[2] = W20msReadADC(TP3) - ADCconfig.U_AVCC;
                 lcd_fix2_string(RH1H); // "RH_Hi="
             }
+            if (tt == 7)
+            { // can we switch the ADC pins to VCC across the R_H resistor?
+                u680 = ((long)ADCconfig.U_AVCC * (PIN_RM + R_L_VAL) / (PIN_RM + R_L_VAL + R_H_VAL * 100));
+                R_PORT = 2 << (TP1 * 2);                     // RH1 to VCC
+                R_DDR = (2 << (TP1 * 2)) | (1 << (TP1 * 2)); // RH1 to +, RL1 to -
+                adcmv[0] = W20msReadADC(TP1);
+                adcmv[0] -= u680;
+                R_PORT = 2 << (TP2 * 2);                     // RH2 to VCC
+                R_DDR = (2 << (TP2 * 2)) | (1 << (TP2 * 2)); // RH2 to +, RL2 to -
+                adcmv[1] = W20msReadADC(TP2);
+                adcmv[1] -= u680;
+                R_PORT = 2 << (TP3 * 2);                     // RH3 to VCC
+                R_DDR = (2 << (TP3 * 2)) | (1 << (TP3 * 2)); // RH3 to +, RL3 to -
+                adcmv[2] = W20msReadADC(TP3);
+                adcmv[2] -= u680;
+                lcd_fix2_string(RHRL); // "RH/RL"
+            }
             // ############################################
             if (tt > 1)
             {                                           // output 3 voltages
@@ -169,15 +187,15 @@ void AutoCheck(void)
                 // if key is pressed, don't repeat
                 break;
             }
-            wait500ms();
+            wait_about500ms();
             if (!(ON_PIN_REG & (1 << RST_PIN)))
             {
                 // if key is pressed, don't repeat
                 break;
             }
-            wait500ms();
+            wait_about500ms();
         } // end for ww
-        wait1s();
+        wait_about1s();
     } // end for tt
 #endif
 
@@ -226,7 +244,7 @@ void AutoCheck(void)
     lcd_line2();
     lcd_fix_string(RILO); // "RiLo="
     DisplayValue(pin_rm, -1, LCD_CHAR_OMEGA, 3);
-    wait2s(); // wait 2 seconds
+    wait_about2s(); // wait 2 seconds
 #ifdef AUTO_CAL
     if ((pin_rp < 280) && (pin_rm < 250))
     {
@@ -240,17 +258,17 @@ void AutoCheck(void)
     adcmv[3] = 0;
     PartFound = PART_NONE;
     ReadCapacity(TP3, TP1);
-    adcmv[5] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 1:3
+    adcmv[5] = (unsigned int)cap.cval_uncorrected.dw; // save capacity value of empty Pin 1:3
     ReadCapacity(TP3, TP2);
-    adcmv[6] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 2:3
+    adcmv[6] = (unsigned int)cap.cval_uncorrected.dw; // save capacity value of empty Pin 2:3
     ReadCapacity(TP2, TP1);
-    adcmv[2] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 1:2
+    adcmv[2] = (unsigned int)cap.cval_uncorrected.dw; // save capacity value of empty Pin 1:2
     ReadCapacity(TP1, TP3);
-    adcmv[1] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 3:1
+    adcmv[1] = (unsigned int)cap.cval_uncorrected.dw; // save capacity value of empty Pin 3:1
     ReadCapacity(TP2, TP3);
-    adcmv[4] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 3:2
+    adcmv[4] = (unsigned int)cap.cval_uncorrected.dw; // save capacity value of empty Pin 3:2
     ReadCapacity(TP1, TP2);
-    adcmv[0] = (unsigned int)cap.cval_uncorrected; // save capacity value of empty Pin 2:1
+    adcmv[0] = (unsigned int)cap.cval_uncorrected.dw; // save capacity value of empty Pin 2:1
     lcd_clear();
     lcd_fix_string(C0_str);              // output "C0 "
     DisplayValue(adcmv[5], 0, ' ', 3);   // output cap0 1:3
@@ -271,7 +289,7 @@ void AutoCheck(void)
     lcd_fix_string(OK_str); // output "OK"
 no_c0save:
 #endif
-    wait2s(); // wait 2 seconds
+    wait_about2s(); // wait 2 seconds
 
 #ifdef AUTO_CAL
     // Message C > 100nF
@@ -307,6 +325,36 @@ no_c0save:
             lcd_fix_string(REF_C_str);                                       // "REF_C="
             lcd_string(itoa(load_diff, outval, 10));                         // output REF_C_KORR
             eeprom_write_byte((uint8_t *)(&EE_ESR_ZERO), (uint8_t)ESR_ZERO); // set to initial zero offset
+#if 0
+//#######################################
+        // Test for switching level of the digital input of port TP3
+        for (ii=0;ii<8;ii++) {
+        ADC_PORT =  TXD_VAL;	//ADC-Port 1 to GND
+        ADC_DDR = 1<<TP1 | TXD_MSK;	//ADC-Pin  1 to output 0V
+        R_PORT = 2<<(TP3*2);		//Pin 3 over R_H to VCC
+        R_DDR = 2<<(TP3*2);		//Pin 3 over R_H to VCC
+        while (1) {
+           wdt_reset();
+           if ((ADC_PIN&(1<<TP3)) == (1<<TP3)) break;
+        }
+        R_DDR = 0;		//Pin 3 without current
+        R_PORT = 0;
+        adcmv[0] = ReadADC(TP3);
+        lcd_line3();
+        DisplayValue(adcmv[0],-3,'V',4);
+        R_DDR = 2<<(TP3*2);		//Pin 3 over R_H to GND
+        while (1) {
+           wdt_reset();
+           if ((ADC_PIN&(1<<TP3)) != (1<<TP3)) break;
+        }
+        R_DDR = 0;		//Pin 3 without current
+        lcd_line4();
+        adcmv[0] = ReadADC(TP3);
+        DisplayValue(adcmv[0],-3,'V',4);
+        wait_about1s();
+        }
+//#######################################
+#endif
 #ifdef AUTOSCALE_ADC
             ADC_PORT = TXD_VAL;           // ADC-Port 1 to GND
             ADC_DDR = 1 << TP1 | TXD_MSK; // ADC-Pin  1 to output 0V
@@ -330,13 +378,13 @@ no_c0save:
             (void)eeprom_write_byte((uint8_t *)(&RefDiff), (uint8_t)udiff2); // hold offset for true reference Voltage
             lcd_string(itoa(udiff2, outval, 10));                            // output correction voltage
 #endif
-            wait4s();
+            wait_about4s();
             break;
         }
         lcd_line2();
         DisplayValue(cap.cval, cap.cpre, 'F', 4);
-        wait200ms(); // wait additional time
-    }
+        wait_about200ms(); // wait additional time
+    }                      // end for ww
 
 #endif
 
@@ -346,7 +394,9 @@ no_c0save:
     lcd_fix_string(VERSION_str); //"Version ..."
     lcd_line1();
     lcd_fix_string(ATE); //"Selftest End"
+
 #ifdef FREQUENCY_50HZ
+    // #define TEST_SLEEP_MODE	/* only select for checking the sleep delay */
     lcd_fix2_string(T50HZ); //" 50Hz"
     ADC_PORT = TXD_VAL;
     ADC_DDR = 1 << TP1 | TXD_MSK; // Pin 1 to GND
@@ -356,9 +406,17 @@ no_c0save:
         for (ii = 0; ii < 100; ii++)
         {                              // for 2 s generate 50 Hz
             R_PORT = (1 << (TP2 * 2)); // Pin 2 over R_L to VCC, Pin 3 over R_L to GND
-            wait10ms();
+#ifdef TEST_SLEEP_MODE
+            sleep_5ms(2); // test of timing of sleep mode call
+#else
+            wait10ms(); // normal delay
+#endif
             R_PORT = (1 << (TP3 * 2)); // Pin 3 over R_L to VCC, Pin 2 over R_L to GND
-            wait10ms();
+#ifdef TEST_SLEEP_MODE
+            sleep_5ms(2); // test of timing of sleep mode call
+#else
+            wait10ms(); // normal delay
+#endif
             wdt_reset();
         }
         if (!(ON_PIN_REG & (1 << RST_PIN)))
@@ -369,5 +427,5 @@ no_c0save:
     }
 #endif
     PartFound = PART_NONE;
-    wait1s(); // wait 1 seconds
+    wait_about1s(); // wait 1 seconds
 }

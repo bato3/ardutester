@@ -31,8 +31,6 @@
 #include "config.h"
 #include "Transistortester.h"
 
-unsigned long CombineII2Long(unsigned int ovcnt16, unsigned int tmpcnt); // tricky function to build unsigned long from two unsigned int values
-
 //=================================================================
 void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
 {
@@ -68,7 +66,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     //     lcd_data('p');
     //     lcd_space();
     //     DisplayValue(cap.cval,cap.cpre,'F',3);
-    //     wait2s();
+    //     wait_about2s();
     // #endif
     //     return;	//We have found a capacitor already
     //  }
@@ -76,7 +74,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     {
 #if DebugOut == 10
         lcd_data('R');
-        wait2s();
+        wait_about2s();
 #endif
         return; // We have found a resistor already
     }
@@ -86,7 +84,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
         {
 #if DebugOut == 10
             lcd_data('D');
-            wait2s();
+            wait_about2s();
 #endif
             return;
         }
@@ -106,8 +104,12 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
                                 // ******** should adcv[0] be measured without current???
     for (ovcnt16 = 0; ovcnt16 < 500; ovcnt16++)
     {
-        ChargePin10ms(HiPinR_L, 1); // HighPin with R_L 10ms to VCC ,then currentless
-        wait500us();                // wait a little time
+        R_PORT = HiPinR_L; // R_L to 1 (VCC)
+        R_DDR = HiPinR_L;  // switch Pin to output, across R to GND or VCC
+        wait10ms();        // wait exactly 10ms, do not sleep
+        R_DDR = 0;         // switch back to input
+        R_PORT = 0;        // no Pull up
+        wait500us();       // wait a little time
         wdt_reset();
         // read voltage without current, is already charged enough?
         adcv[2] = ReadADC(HighPin);
@@ -169,19 +171,19 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     lcd_data(':');
     lcd_string(utoa(adcv[3], outval, 10));
     lcd_space();
-    wait2s();
+    wait_about2s();
 #endif
     if ((adcv[3] + adcv[3]) < adcv[2])
     {
 #if DebugOut == 10
         lcd_data('H');
         lcd_space();
-        wait1s();
+        wait_about1s();
 #endif
         goto keinC; // implausible, not yet the half voltage
     }
-    cap.cval_uncorrected = ovcnt16 + 1;
-    cap.cval_uncorrected *= getRLmultip(adcv[2]); // get factor to convert time to capacity from table
+    cap.cval_uncorrected.dw = ovcnt16 + 1;
+    cap.cval_uncorrected.dw *= getRLmultip(adcv[2]); // get factor to convert time to capacity from table
 #else
     // wait the same time which is required for loading
     for (tmpint = 0; tmpint <= ovcnt16; tmpint++)
@@ -213,15 +215,15 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
 #if DebugOut == 10
         lcd_data('L');
         lcd_space();
-        wait1s();
+        wait_about1s();
 #endif
         goto keinC; // capacitor does not keep the voltage about 5ms
     }
-    cap.cval_uncorrected = ovcnt16 + 1;
+    cap.cval_uncorrected.dw = ovcnt16 + 1;
     // compute factor with load voltage + lost voltage during the voltage load time
-    cap.cval_uncorrected *= getRLmultip(adcv[2] + adcv[3]); // get factor to convert time to capacity from table
+    cap.cval_uncorrected.dw *= getRLmultip(adcv[2] + adcv[3]); // get factor to convert time to capacity from table
 #endif
-    cap.cval = cap.cval_uncorrected; // set result to uncorrected
+    cap.cval = cap.cval_uncorrected.dw; // set result to uncorrected
     Scale_C_with_vcc();
     // cap.cval for this type is at least 40000nF, so the last digit will be never shown
     cap.cval *= (1000 - C_H_KORR); // correct with C_H_KORR with 0.1% resolution, but prevent overflow
@@ -237,7 +239,7 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin)
     DisplayValue(cap.cval, cap.cpre, 'F', 4);
     lcd_space();
     lcd_string(utoa(ovcnt16, outval, 10));
-    wait3s();
+    wait_about3s();
 #endif
     goto checkDiodes;
 
@@ -315,17 +317,19 @@ messe_mit_rh:
     {
         goto keinC; // no normal end
     }
-    cap.cval_uncorrected = CombineII2Long(ovcnt16, tmpint);
+    //  cap.cval_uncorrected = CombineII2Long(ovcnt16, tmpint);
+    cap.cval_uncorrected.w[1] = ovcnt16;
+    cap.cval_uncorrected.w[0] = tmpint;
 
     cap.cpre = -12; // cap.cval unit is pF
     if (ovcnt16 > 65)
     {
-        cap.cval_uncorrected /= 100; // switch to next unit
-        cap.cpre += 2;               // set unit, prevent overflow
+        cap.cval_uncorrected.dw /= 100; // switch to next unit
+        cap.cpre += 2;                  // set unit, prevent overflow
     }
-    cap.cval_uncorrected *= RHmultip;        // 708
-    cap.cval_uncorrected /= (F_CPU / 10000); // divide by 100 (@ 1MHz clock), 800 (@ 8MHz clock)
-    cap.cval = cap.cval_uncorrected;         // set the corrected cap.cval
+    cap.cval_uncorrected.dw *= RHmultip;        // 708
+    cap.cval_uncorrected.dw /= (F_CPU / 10000); // divide by 100 (@ 1MHz clock), 800 (@ 8MHz clock)
+    cap.cval = cap.cval_uncorrected.dw;         // set the corrected cap.cval
     Scale_C_with_vcc();
     if (cap.cpre == -12)
     {
@@ -371,7 +375,7 @@ messe_mit_rh:
     lcd_testpin(HighPin);
     lcd_space();
     DisplayValue(cap.cval, cap.cpre, 'F', 4);
-    wait3s();
+    wait_about3s();
 #endif
     R_DDR = HiPinR_L; // switch R_L for High-Pin to GND
 #if F_CPU < 2000001
@@ -384,7 +388,7 @@ messe_mit_rh:
 #if DebugOut == 10
         lcd_data('<');
         lcd_space();
-        wait1s();
+        wait_about1s();
 #endif
         goto keinC; // capacity to low, < 70pF @1MHz (35pF @8MHz)
     }
@@ -400,7 +404,7 @@ checkDiodes:
 #if DebugOut == 10
         lcd_data('D');
         lcd_space();
-        wait1s();
+        wait_about1s();
 #endif
         // nearly shure, that there is one or more diodes in reverse direction,
         // which would be wrongly detected as capacitor
@@ -424,7 +428,7 @@ keinC:
     // ready
     // switch all ports to input
     ADC_DDR = TXD_MSK;  // switch all ADC ports to input
-    ADC_PORT = TXD_VAL; // switch all ADC outputs to GNG, no pull up
+    ADC_PORT = TXD_VAL; // switch all ADC outputs to GND, no pull up
     R_DDR = 0;          // switch all resistor ports to input
     R_PORT = 0;         // switch all resistor outputs to GND, no pull up
     return;

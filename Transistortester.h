@@ -250,7 +250,7 @@ const unsigned char AnKat[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
 const unsigned char KatAn[] MEM_TEXT = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Dioden[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
 const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
-const unsigned char VERSION_str[] MEM_TEXT = "Version 1.04k";
+const unsigned char VERSION_str[] MEM_TEXT = "Version 1.05k";
 
 #ifdef WITH_SELFTEST
 const unsigned char URefT[] MEM2_TEXT = "Ref=";
@@ -259,6 +259,7 @@ const unsigned char RH1L[] MEM2_TEXT = "RH-";
 const unsigned char RH1H[] MEM2_TEXT = "RH+";
 const unsigned char RLRL[] MEM2_TEXT = "+RL- 12 13 23";
 const unsigned char RHRH[] MEM2_TEXT = "+RH- 12 13 23";
+const unsigned char RHRL[] MEM2_TEXT = "RH/RL";
 #define LCD_CLEAR
 #endif
 
@@ -352,9 +353,9 @@ unsigned int RHmultip = DEFAULT_RH_FAKT;
 // no MAIN_C
 #define COMMON extern
 #ifdef WITH_SELFTEST
-extern unsigned char SELFTEST[] MEM2_TEXT;
-extern unsigned char RELPROBE[] MEM2_TEXT;
-extern unsigned char ATE[] MEM_TEXT;
+extern const unsigned char SELFTEST[] MEM2_TEXT;
+extern const unsigned char RELPROBE[] MEM2_TEXT;
+extern const unsigned char ATE[] MEM_TEXT;
 #endif
 #ifdef AUTO_CAL
 extern uint16_t R680pl;
@@ -402,6 +403,7 @@ void scale_intref_adc();                            // get scale factors for Rea
 // uint8_t value_out(unsigned long vval,uint8_t pp);    // output 4 digits with (pp-1) digits after point
 void DisplayValue(unsigned long vval, int8_t Expo, unsigned char Unit, unsigned char Digits); // output Digits characters with exponent and unit
 unsigned int compute_hfe(unsigned int lpx, unsigned int tpy);
+void sleep_5ms(uint16_t xxx); // set processor to sleep state for xxx times 5ms
 
 // definitions of parts
 #define PART_NONE 0
@@ -465,9 +467,13 @@ COMMON uint8_t ResistorsFound; // Number of found resistors
 COMMON uint8_t ii; // multipurpose counter
 COMMON struct cap_t
 {
-    unsigned long cval;             // capacitor value
-    unsigned long cval_max;         // capacitor with maximum value
-    unsigned long cval_uncorrected; // capacity value without corrections
+    unsigned long cval;     // capacitor value
+    unsigned long cval_max; // capacitor with maximum value
+    union t_combi
+    {
+        unsigned long dw; // capacity value without corrections
+        uint16_t w[2];
+    } cval_uncorrected;
 #if FLASHEND > 0x1fff
     unsigned int esr; // serial resistance of C in 0.01 Ohm
 #endif

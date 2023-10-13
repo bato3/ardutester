@@ -8,8 +8,6 @@
 #include "config.h"
 #include "Transistortester.h"
 
-unsigned long CombineII2Long(unsigned int ovcnt16, unsigned int tmpcnt); // tricky function to build unsigned long from two unsigned int values
-
 //=================================================================
 void ReadInductance(void)
 {
@@ -91,7 +89,7 @@ void ReadInductance(void)
             ovcnt16 = 0;
             TCCR1A = 0;                                                              // set Counter1 to normal Mode
             TCNT1 = 0;                                                               // set Counter to 0
-            TI1_INT_FLAGS = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1); // mega88
+            TI1_INT_FLAGS = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1); // reset TIFR or TIFR1
             HiADC |= TXD_VAL;
             wait200us(); // wait for bandgap to start up
             if ((count & 0x01) == 0)
@@ -155,7 +153,9 @@ void ReadInductance(void)
                 if ((umax < 2) && (total_r < 2))
                     break; // low current detected
             }
-            cap.cval = CombineII2Long(ovcnt16, tmpint);
+            //      cap.cval_uncorrected.dw = CombineII2Long(ovcnt16, tmpint);
+            cap.cval_uncorrected.w[1] = ovcnt16;
+            cap.cval_uncorrected.w[0] = tmpint;
 #define CNT_ZERO_42 6
 #define CNT_ZERO_720 7
 #if F_CPU == 16000000UL
@@ -173,37 +173,37 @@ void ReadInductance(void)
             if (mess_r < R_L_VAL)
             {
                 // measurement without 680 Ohm
-                if (cap.cval > CNT_ZERO_42)
-                    cap.cval -= CNT_ZERO_42;
+                if (cap.cval_uncorrected.dw > CNT_ZERO_42)
+                    cap.cval_uncorrected.dw -= CNT_ZERO_42;
                 else
-                    cap.cval = 0;
+                    cap.cval_uncorrected.dw = 0;
             }
             else
             {
                 // measurement with 680 Ohm resistor
                 // if 680 Ohm resistor is used, use REF_L_KORR for correction
                 tmpint += REF_L_KORR;
-                if (cap.cval > CNT_ZERO_720)
-                    cap.cval -= CNT_ZERO_720;
+                if (cap.cval_uncorrected.dw > CNT_ZERO_720)
+                    cap.cval_uncorrected.dw -= CNT_ZERO_720;
                 else
-                    cap.cval = 0;
-                if (cap.cval > 12)
-                    cap.cval -= 1;
+                    cap.cval_uncorrected.dw = 0;
+                if (cap.cval_uncorrected.dw > 12)
+                    cap.cval_uncorrected.dw -= 1;
             }
             if ((count & 0x01) == 1)
             {
                 // second pass with delayed counter start
-                cap.cval += (3 * (F_CPU / 1000000)) + 10;
+                cap.cval_uncorrected.dw += (3 * (F_CPU / 1000000)) + 10;
             }
             if (ovcnt16 >= (F_CPU / 100000))
-                cap.cval = 0; // no transition found
+                cap.cval_uncorrected.dw = 0; // no transition found
             total_r = (mess_r + resis[found].rx + RR680PL - R_L_VAL);
             // compute the maximum Voltage umax with the Resistor of the coil
             umax = ((unsigned long)mess_r * (unsigned long)ADCconfig.U_AVCC) / total_r;
             per_ref = ((unsigned long)tmpint * 100) / umax;
             per_ref = (uint8_t)MEM2_read_byte(&LogTab[per_ref]); // -log(1 - per_ref/100)
             // lx in 0.01mH units,  L = Tau * R
-            inductance[count] = (cap.cval * total_r) / ((unsigned int)per_ref * (F_CPU / 1000000));
+            inductance[count] = (cap.cval_uncorrected.dw * total_r) / ((unsigned int)per_ref * (F_CPU / 1000000));
             if (((count & 0x01) == 0) && (inductance[count] > (F_CPU / 1000000)))
             {
                 // transition is found, measurement with delayed counter start is not necessary
@@ -213,7 +213,7 @@ void ReadInductance(void)
             wdt_reset();
         }                   // end for count
         ADC_PORT = TXD_VAL; // switch ADC Port to GND
-        wait20ms();
+        wait_about20ms();
         if (inductance[1] > inductance[0])
         {
             resis[found].lx = inductance[1]; // use value found with delayed counter start

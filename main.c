@@ -15,11 +15,22 @@
 #define MAIN_C
 #include "Transistortester.h"
 
+#ifndef __AVR_ATmega8__
+// prepare sleep mode
+EMPTY_INTERRUPT(TIMER2_COMPA_vect);
+EMPTY_INTERRUPT(ADC_vect);
+#endif
+
 // begin of transistortester program
 int main(void)
 {
     // switch on
+#ifndef EXTREF2PD6
+    // Switch on directly only without the PC4-PD6 connection.
+    // With this connection the PD6 (AIN0) is connected to the external 2.5V reference voltage
+    // and should never be switched to VCC directly.
     ON_DDR = (1 << ON_PIN);
+#endif
 #ifdef PULLUP_DISABLE
     ON_PORT = (1 << ON_PIN); // switch power on
 #else
@@ -37,7 +48,30 @@ int main(void)
     tmp = (WDRF_HOME & (1 << WDRF)); // save Watch Dog Flag
     WDRF_HOME &= ~(1 << WDRF);       // reset Watch Dog flag
     wdt_disable();                   // disable Watch Dog
-    lcd_init();                      // initialize LCD
+#ifndef __AVR_ATmega8__
+    // switch off unused Parts
+    PRR = (1 << PRTWI) | (1 << PRTIM0) | (1 << PRSPI) | (1 << PRUSART0);
+    DIDR0 = (1 << ADC5D) | (1 << ADC4D) | (1 << ADC3D);
+    TCCR2A = (0 << WGM21) | (0 << WGM20); // Counter 2 normal mode
+#if F_CPU <= 1000000UL
+    TCCR2B = (1 << CS22) | (0 << CS21) | (1 << CS20); // prescaler 128, 128us @ 1MHz
+#define T2_PERIOD 128
+#endif
+#if F_CPU == 2000000UL
+    TCCR2B = (1 << CS22) | (1 << CS21) | (0 << CS20); // prescaler 256, 128us @ 2MHz
+#define T2_PERIOD 128
+#endif
+#if F_CPU == 4000000UL
+    TCCR2B = (1 << CS22) | (1 << CS21) | (0 << CS20); // prescaler 256, 64us @ 2MHz
+#define T2_PERIOD 64
+#endif
+#if F_CPU >= 8000000UL
+    TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20); // prescaler 1024, 128us @ 8MHz, 64us @ 16MHz
+#define T2_PERIOD (1024 / (F_CPU / 1000000UL));       /* set to 128 or 64 us */
+#endif
+    sei(); // enable interrupts
+#endif
+    lcd_init(); // initialize LCD
 
     //  ADC_PORT = TXD_VAL;
     //  ADC_DDR = TXD_MSK;
@@ -48,8 +82,9 @@ int main(void)
         // can happen, if any loop in the Program doen't finish.
         lcd_line1();
         lcd_fix_string(TestTimedOut); // Output Timeout
-        wait3s();                     // wait for 3 s
+        wait_about3s();               // wait for 3 s
         ON_PORT = 0;                  // shut off!
+        ON_DDR = (1 << ON_PIN);       // switch to GND
         return 0;
     }
     LCDLoadCustomChar(LCD_CHAR_DIODE1); // Custom-Character Diode symbol
@@ -88,7 +123,7 @@ int main(void)
     if (!(ON_PIN_REG & (1 << RST_PIN)))
     {
         // if power button is pressed ...
-        wait300ms(); // wait to catch a long key press
+        wait_about300ms(); // wait to catch a long key press
         if (!(ON_PIN_REG & (1 << RST_PIN)))
         {
             // check if power button is still pressed
@@ -131,7 +166,7 @@ start:
     wait1ms();
     ADC_DDR = TXD_MSK; // switch pin with reference back to input
 #if FLASHEND > 0x1fff
-    trans.uBE[1] = W5msReadADC(TPREF); // read voltage of precision reference
+    trans.uBE[1] = W5msReadADC(TPREF); // read voltage of 2.5V precision reference
     if ((trans.uBE[1] > 2250) && (trans.uBE[1] < 2750))
     {
         // precision voltage reference connected, update U_AVCC
@@ -142,8 +177,8 @@ start:
     lcd_line1(); // 1. row
 
 #ifdef WITH_AUTO_REF
-    (void)ReadADC(0x0e);         // read Reference-voltage
-    ref_mv = W20msReadADC(0x0e); // read Reference-voltage
+    (void)ReadADC(MUX_INT_REF);         // read Reference-voltage
+    ref_mv = W20msReadADC(MUX_INT_REF); // read Reference-voltage
 #else
     ref_mv = DEFAULT_BAND_GAP;                // set to default Reference Voltage
 #endif
@@ -163,14 +198,23 @@ start:
     DisplayValue(cap.cval, -2, 'V', 2);                        // Display 2 Digits of this 10mV units
     lcd_space();
 #endif
-#if (BAT_POOR > 52) && (BAT_POOR < 190)
-#define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 1000) * (unsigned long)33) / 133)
-#define POOR_LEVEL (((unsigned long)(BAT_POOR * 100) * (unsigned long)33) / 133)
-#else
-#warning "Battery POOR level is set for 7805 regulator"
-#define WARN_LEVEL (((unsigned long)7300 * (unsigned long)33) / 133)
-#define POOR_LEVEL (((unsigned long)6300 * (unsigned long)33) / 133)
+#if (BAT_POOR > 120)
+#warning "Battery POOR level is set very high!"
 #endif
+#if (BAT_POOR < 25)
+#warning "Battery POOR level is set very low!"
+#endif
+#if (BAT_POOR > 53)
+// use .8 V difference to Warn-Level
+#define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 800) * (unsigned long)33) / 133)
+#elif (BAT_POOR > 29)
+// less than 5.4 V only .4V difference to Warn-Level
+#define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 400) * (unsigned long)33) / 133)
+#else
+// less than 3.0 V only .2V difference to Warn-Level
+#define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 200) * (unsigned long)33) / 133)
+#endif
+#define POOR_LEVEL (((unsigned long)(BAT_POOR * 100) * (unsigned long)33) / 133)
     // check the battery voltage
     if (trans.uBE[0] < WARN_LEVEL)
     {
@@ -179,7 +223,7 @@ start:
         {
             // Vcc <6,3V; no proper operation is possible
             lcd_fix_string(BatEmpty); // Battery empty!
-            wait2s();
+            wait_about2s();
             PORTD = 0; // switch power off
             return 0;
         }
@@ -196,7 +240,7 @@ start:
     wdt_enable(WDTO_2S); // Watchdog on
 #endif
 
-//  wait1s();			// add more time for reading batterie voltage
+//  wait_about1s();			// add more time for reading batterie voltage
 // begin tests
 #ifdef AUTO_RH
     RefVoltage(); // compute RHmultip = f(reference voltage)
@@ -204,10 +248,15 @@ start:
 #if FLASHEND > 0x1fff
     if (WithReference)
     {
-        lcd_line2();
-        lcd_fix_string(VCC_str);                    // VCC=
-        DisplayValue(ADCconfig.U_AVCC, -3, 'V', 3); // Display 3 Digits of this mV units
-        wait1s();
+        /* 2.5V precision reference is checked OK */
+        if ((mess_count == 0) && (empty_count == 0))
+        {
+            /* display VCC= only first time */
+            lcd_line2();
+            lcd_fix_string(VCC_str);                    // VCC=
+            DisplayValue(ADCconfig.U_AVCC, -3, 'V', 3); // Display 3 Digits of this mV units
+            wait_about1s();
+        }
     }
 #endif
 
@@ -529,7 +578,7 @@ start:
             lcd_fix_string(Vgs_str); // " Vgs="
         }
         // Gate-threshold voltage
-        DisplayValue(gthvoltage, -3, 'V', 2);
+        DisplayValue(gthvoltage, -3, 'V', 3);
         goto end;
         // end (PartFound == PART_FET)
     }
@@ -567,31 +616,27 @@ start:
                     ii = 2;
                 }
             }
+            char x = '1';
+            char y = '3';
+            char z = '2';
 
-            if (ii == 0)
-            {
-                lcd_data('1');
-                lcd_fix_string(Resistor_str); // -[=]-
-                lcd_data('3');
-                lcd_fix_string(Resistor_str); // -[=]-
-                lcd_data('2');
-            }
             if (ii == 1)
             {
-                lcd_data('1');
-                lcd_fix_string(Resistor_str); // -[=]-
-                lcd_data('2');
-                lcd_fix_string(Resistor_str); // -[=]-
-                lcd_data('3');
+                // x = '1';
+                y = '2';
+                z = '3';
             }
             if (ii == 2)
             {
-                lcd_data('2');
-                lcd_fix_string(Resistor_str); // -[=]-
-                lcd_data('1');
-                lcd_fix_string(Resistor_str); // -[=]-
-                lcd_data('3');
+                x = '2';
+                y = '1';
+                z = '3';
             }
+            lcd_data(x);
+            lcd_fix_string(Resistor_str); // -[=]-
+            lcd_data(y);
+            lcd_fix_string(Resistor_str); // -[=]-
+            lcd_data(z);
         }
         lcd_line2(); // 2. row
         if (ResistorsFound == 1)
@@ -635,8 +680,11 @@ start:
         //     lcd_fix_string(Capacitor);
         lcd_testpin(cap.ca);      // Pin number 1
         lcd_fix_string(CapZeich); // capacitor sign
-        lcd_testpin(cap.cb);      // Pin number 2
-        lcd_line2();              // 2. row
+                                  // #if FLASHEND > 0x1fff
+        //      lcd_fix_string(Resistor_str);	// -[=]-
+        // #endif
+        lcd_testpin(cap.cb); // Pin number 2
+        lcd_line2();         // 2. row
         DisplayValue(cap.cval_max, cap.cpre_max, 'F', 4);
 #if FLASHEND > 0x1fff
         GetESR(); // get ESR of capacitor
@@ -675,11 +723,12 @@ end:
     mess_count++;    // count measurements
 
 end2:
+    ADC_DDR = (1 << TPREF) | TXD_MSK; // switch pin with reference to GND, release relay
     while (!(ON_PIN_REG & (1 << RST_PIN)))
         ; // wait ,until button is released
-    wait200ms();
-    // wait 10 seconds or 3 seconds (if repeat function)
-    for (gthvoltage = 0; gthvoltage < display_time; gthvoltage++)
+    wait_about200ms();
+    // wait 14 seconds or 5 seconds (if repeat function)
+    for (gthvoltage = 0; gthvoltage < display_time; gthvoltage += 10)
     {
         if (!(ON_PIN_REG & (1 << RST_PIN)))
         {
@@ -688,7 +737,7 @@ end2:
             goto start;
         }
         wdt_reset();
-        wait1ms();
+        wait_about10ms();
     }
 #ifdef POWER_OFF
 #if POWER_OFF > 127
@@ -705,6 +754,7 @@ end2:
     // only one Measurement requested, shut off
     wdt_disable();             // Watchdog off
     ON_PORT &= ~(1 << ON_PIN); // switch off power
+    ON_DDR = (1 << ON_PIN);    // switch to GND
     // never ending loop
     while (1)
     {
@@ -772,7 +822,7 @@ void ChargePin10ms(uint8_t PinToCharge, uint8_t ChargeDirection)
         R_PORT &= ~PinToCharge; // or 0 (GND)
     }
     R_DDR |= PinToCharge; // switch Pin to output, across R to GND or VCC
-    wait10ms();
+    wait_about10ms();     // wait about 10ms
     // switch back Input, no current
     R_DDR &= ~PinToCharge;  // switch back to input
     R_PORT &= ~PinToCharge; // no Pull up
@@ -802,7 +852,7 @@ void EntladePins()
         {
             ADC_DDR = TXD_MSK; // switch all ADC-Pins to input
             R_DDR = 0;         // switch all R_L Ports (and R_H) to input
-            return;
+            return;            // all is discharged
         }
         // all Pins with voltage lower than 1V can be connected directly to GND (ADC-Port)
         if (adcmv[0] < 1000)
@@ -1013,6 +1063,48 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit, unsi
     if (Unit)
         lcd_data(Unit);
 }
+
+#ifndef __AVR_ATmega8__
+/* set the processor to sleep state */
+/* wake up will be done with compare match interrupt of counter 2 */
+void sleep_5ms(uint16_t pause)
+{
+    // pause is the delay in 5ms units
+    uint8_t t2_offset;
+#define RESTART_DELAY_US (RESTART_DELAY_TICS / (F_CPU / 1000000UL))
+    // for 8 MHz crystal the Restart delay is 16384/8 = 2048us
+
+    while (pause > 0)
+    {
+#if 3000 > RESTART_DELAY_US
+        if (pause > 1)
+        {
+            // Startup time is too long with 1MHz Clock!!!!
+            t2_offset = (10000 - RESTART_DELAY_US) / T2_PERIOD; /* set to 10ms above the actual counter */
+            pause -= 2;
+        }
+        else
+        {
+            t2_offset = (5000 - RESTART_DELAY_US) / T2_PERIOD; /* set to 5ms above the actual counter */
+            pause = 0;
+        }
+
+        OCR2A = TCNT2 + t2_offset;                             /* set the compare value */
+        TIMSK2 = (0 << OCIE2B) | (1 << OCIE2A) | (0 << TOIE2); /* enable output compare match A interrupt */
+                                                               //   set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+        set_sleep_mode(SLEEP_MODE_PWR_SAVE);
+        //   set_sleep_mode(SLEEP_MODE_IDLE);
+        sleep_mode();
+// wake up after output compare match interrupt
+#else
+        // restart delay ist too long, use normal delay of 5ms
+        wait5ms();
+#endif
+        wdt_reset();
+    }
+    TIMSK2 = (0 << OCIE2B) | (0 << OCIE2A) | (0 << TOIE2); /* disable output compare match A interrupt */
+}
+#endif
 
 #ifdef CHECK_CALL
 #include "AutoCheck.c"

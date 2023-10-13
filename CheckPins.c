@@ -102,7 +102,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         lcd_data('F');
         lcd_testpin(HighPin);
         lcd_space();
-        wait1s();
+        wait_about1s();
 #endif
         // Test if N-JFET or if self-conducting N-MOSFET
         R_DDR = LoPinRL | TriPinRH;     // switch R_H for Tristate-Pin (probably Gate) to GND
@@ -219,7 +219,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     R_PORT = 0;        // switch all resistor ports to GND
     ADC_DDR = HiADCm;  // switch High-Pin to output
     ADC_PORT = HiADCp; // switch High-Pin to VCC
-    wait5ms();
+    wait_about5ms();
 
     if (adc.lp_otr < 977)
     {
@@ -229,7 +229,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         lcd_data('P');
         lcd_testpin(HighPin);
         lcd_space();
-        wait1s();
+        wait_about1s();
 #endif
         // Test to PNP
         R_DDR = LoPinRL | TriPinRL;    // switch R_L port for Tristate-Pin to output (GND), for Test of PNP
@@ -292,10 +292,39 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                     {
                         // is flow voltage low enough in the closed  state?
                         //(since D-Mode-FET would be by mistake detected as E-Mode )
-                        PartFound = PART_FET; // P-Kanal-MOSFET if found (Basis/Gate moves not to VCC)
+                        PartFound = PART_FET; // P-Kanal-MOSFET is found (Basis/Gate moves not to VCC)
                         PartMode = PART_MODE_P_E_MOS;
-                        PinMSK = LoADCm & 7;
                         // measure the Gate threshold voltage
+#ifdef EXTREF2PD6
+                        // Switching of Drain is monitored with the analog comparator to 2.5V
+                        gthvoltage = 1; // round up ((1*4)/9)
+                        for (ii = 0; ii < 11; ii++)
+                        {
+                            // setup Analog Comparator
+                            ADC_COMP_CONTROL = (1 << ACME);        // enable Analog Comparator Multiplexer (negative input)
+                            ACSR = (1 << ACI) | (0 << ACIC);       // enable, positive AIN0 input, no Interrupt
+                            ADMUX = (1 << REFS0) | LowPin;         // switch Mux to Low-Pin
+                            ADCSRA = (1 << ADIF) | AUTO_CLOCK_DIV; // disable ADC
+                            wdt_reset();
+                            ChargePin10ms(TriPinRL, 1); // discharge Gate 10ms with RL
+                            R_DDR = LoPinRL | TriPinRH; // slowly charge Gate
+                            R_PORT = 0;
+                            while ((ACSR & (1 << ACO)))
+                                ;            // Wait, until Highpin < 2.5V
+                            R_DDR = LoPinRL; // switch off current
+
+                            ADCSRA = (1 << ADEN) | (1 << ADIF) | AUTO_CLOCK_DIV; // enable ADC
+                            ADMUX = TristatePin | (1 << REFS0);                  // measure TristatePin, Ref. VCC
+                            ADCSRA |= (1 << ADSC);                               // start ADC conversion
+                            while (ADCSRA & (1 << ADSC))
+                                ;                        // wait until ADC finished
+                            gthvoltage += (1023 - ADCW); // add result of ADC
+                        }
+#else
+                        // Switching of Drain is monitored with digital input
+                        //  Low level is specified up to 0.3 * VCC
+                        //  High level is specified above 0.6 * VCC
+                        PinMSK = LoADCm & 7;
                         ADMUX = TristatePin | (1 << REFS0); // switch to TristatePin, Ref. VCC
                         gthvoltage = 1;                     // round up ((1*4)/9)
                         for (ii = 0; ii < 11; ii++)
@@ -305,12 +334,14 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                             R_DDR = LoPinRL | TriPinRH; // switch R_H for Tristate-Pin (Basis) to GND
                             while (!(ADC_PIN & PinMSK))
                                 ; // Wait, until the MOSFET switches and Drain moves to VCC
+                                  // 1 is detected with more than 2.5V (up to 2.57V) with tests of mega168 and mega328
                             R_DDR = LoPinRL;
                             ADCSRA |= (1 << ADSC); // Start Conversion
                             while (ADCSRA & (1 << ADSC))
                                 ;                        // wait
                             gthvoltage += (1023 - ADCW); // Add Tristatepin-Voltage
                         }
+#endif
                         gthvoltage *= 4; // is equal to 44*ADCW
                         gthvoltage /= 9; // gives resolution in mV
                     }
@@ -356,7 +387,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         lcd_data('T');
         lcd_data('P');
         lcd_string(utoa(adc.tp1, outval, 10));
-        wait1s();
+        wait_about1s();
 #endif
 #endif
         // Tristate (can be Base) to VCC, Test if NPN
@@ -373,7 +404,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
             lcd_data('N');
             lcd_testpin(HighPin);
             lcd_space();
-            wait1s();
+            wait_about1s();
 #endif
             if (PartReady == 1)
             {
@@ -388,7 +419,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                                             //  no Thyristor or holding current to low
 
             R_PORT = 0; // switch R_L for High-Pin (probably Anode) to GND (turn off)
-            wait5ms();
+            wait_about5ms();
             R_PORT = HiPinRL;               // switch R_L for High-Pin (probably Anode) again to VCC
             adc.hp2 = W5msReadADC(HighPin); // measure voltage at the High-Pin (probably Anode) again
             if ((adc.hp3 < 1600) && (adc.hp2 > 4400))
@@ -400,7 +431,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                 R_DDR = 0;
                 R_PORT = 0;
                 ADC_PORT = LoADCp; // Low-Pin fix to VCC
-                wait5ms();
+                wait_about5ms();
                 R_DDR = HiPinRL; // switch R_L port HighPin to output (GND)
                 if (W5msReadADC(HighPin) > 244)
                 {
@@ -423,7 +454,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                     goto savenresult; // component has no current without base current => no Triac => abort
                 }
                 R_PORT = HiPinRL; // switch R_L port for HighPin to VCC => switch off holding current
-                wait5ms();
+                wait_about5ms();
                 R_PORT = 0; // switch R_L port for HighPin again to GND; Triac should now switched off
                 if (W5msReadADC(HighPin) > 244)
                 {
@@ -438,7 +469,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
             //  ADC_DDR = LoADCm;	//Low-Pin to output 0V
             R_DDR = HiPinRL | TriPinRH;  // R_H port of Tristate-Pin (Basis) to output
             R_PORT = HiPinRL | TriPinRH; // R_H port of Tristate-Pin (Basis) to VCC
-            wait50ms();
+            wait_about50ms();
             adc.hp2 = ADCconfig.U_AVCC - ReadADC(HighPin);     // measure the voltage at the collector resistor
             adc.tp2 = ADCconfig.U_AVCC - ReadADC(TristatePin); // measure the voltage at the base resistor
 
@@ -508,8 +539,37 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                     lcd_line3();
                     lcd_data('N');
                     lcd_data('F');
-                    wait1s();
+                    wait_about1s();
 #endif
+#ifdef EXTREF2PD6
+                    // Switching of Drain is monitored with the analog comparator to 2.5V
+                    gthvoltage = 1; // round up ((1*4)/9)
+                    for (ii = 0; ii < 11; ii++)
+                    {
+                        // setup Analog Comparator
+                        ADC_COMP_CONTROL = (1 << ACME);        // enable Analog Comparator Multiplexer (negative input)
+                        ACSR = (1 << ACI) | (0 << ACIC);       // enable, positive AIN0 input, no Interrupt, no connection to timer
+                        ADMUX = (1 << REFS0) | HighPin;        // switch Mux to High-Pin
+                        ADCSRA = (1 << ADIF) | AUTO_CLOCK_DIV; // disable ADC
+                        wdt_reset();
+                        ChargePin10ms(TriPinRL, 0); // discharge Gate 10ms with RL
+                        R_DDR = HiPinRL | TriPinRH; // slowly charge Gate
+                        R_PORT = HiPinRL | TriPinRH;
+                        while (!(ACSR & (1 << ACO)))
+                            ;            // Wait, until Highpin > 2.5V
+                        R_DDR = HiPinRL; // switch off current
+
+                        ADCSRA = (1 << ADEN) | (1 << ADIF) | AUTO_CLOCK_DIV; // enable ADC
+                        ADMUX = TristatePin | (1 << REFS0);                  // measure TristatePin, Ref. VCC
+                        ADCSRA |= (1 << ADSC);                               // start ADC conversion
+                        while (ADCSRA & (1 << ADSC))
+                            ;               // wait until ADC finished
+                        gthvoltage += ADCW; // add result of ADC
+                    }
+#else
+                    // Switching of Drain is monitored with digital input
+                    //  Low level is specified up to 0.3 * VCC
+                    //  High level is specified above 0.6 * VCC
                     PinMSK = HiADCm & 7;
                     // measure Threshold voltage of Gate
                     ADMUX = TristatePin | (1 << REFS0); // measure TristatePin, Ref. VCC
@@ -521,16 +581,15 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
                         R_DDR = HiPinRL | TriPinRH; // slowly charge Gate
                         R_PORT = HiPinRL | TriPinRH;
                         while ((ADC_PIN & PinMSK))
-                            ; // Wait, until the MOSFET switch and Drain moved to low
-                        R_DDR = HiPinRL;
+                            ;                  // Wait, until the MOSFET switch and Drain moved to low
+                                               // 0 is detected with input voltage of 2.12V to 2.24V (tested with mega168 & mega328)
+                        R_DDR = HiPinRL;       // switch off current
                         ADCSRA |= (1 << ADSC); // start ADC conversion
                         while (ADCSRA & (1 << ADSC))
                             ;               // wait until ADC finished
                         gthvoltage += ADCW; // add result of ADC
-#if DebugOut == 5
-                        lcd_data('.');
-#endif
                     }
+#endif
                     gthvoltage *= 4; // is equal to 44 * ADCW
                     gthvoltage /= 9; // scale to mV
                 }
@@ -592,7 +651,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     lcd_data('H');
     lcd_string(utoa(adc.hp3, outval, 10));
     lcd_space();
-    wait1s();
+    wait_about1s();
 #endif
 
     if ((adc.hp1 > 150) && (adc.hp1 < 4640) && (adc.hp1 > (adc.hp3 + (adc.hp3 / 8))) && (adc.hp3 * 8 > adc.hp1))
@@ -884,7 +943,7 @@ testend:
 #endif
 #ifdef DebugOut
 #if DebugOut < 10
-    wait2s();
+    wait_about2s();
 #endif
 #endif
 clean_ports:

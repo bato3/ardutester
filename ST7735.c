@@ -4,7 +4,7 @@
  *   - 128 x 160 (132 x 162) pixels
  *   - SPI interface (4 line)
  *
- *   (c) 2016 by Markus Reschke
+ *   (c) 2016-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -16,7 +16,7 @@
  *    D/CX     LCD_DC
  *    SCL      LCD_SCL
  *    SDA      LCD_SDA
- *    For hardware SPI, LCD_SCL and LCD_SDA have to be the MCU's SCK and
+ *    For hardware SPI LCD_SCL and LCD_SDA have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock: 15.1MHz write, 6.6MHz read 
  */
@@ -51,7 +51,7 @@
 #include "font_8x8_h.h"
 #include "font_10x16_h.h"
 #include "symbols_24x24_h.h"
-#include "symbols_32x32_h.h"
+#include "symbols_30x32_h.h"
 
 
 /*
@@ -73,8 +73,8 @@
 
 /* component symbols */
 #ifdef SW_SYMBOLS
-  /* resize symbols by a factor of 2 */
-  #define SYMBOL_RESIZE         2
+  /* resize symbols by a factor of 1 */
+  #define SYMBOL_RESIZE         1
 
   /* size in relation to a character */
   #define LCD_SYMBOL_CHAR_X   (((SYMBOL_SIZE_X * SYMBOL_RESIZE) + FONT_SIZE_X - 1) / FONT_SIZE_X)
@@ -407,7 +407,7 @@ void LCD_Send(uint8_t Byte)
 
   /* send byte */
   SPDR = Byte;                     /* start transmission */
-  while (!(SPSR & (1 << SPIF)))    /* wait for flag */
+  while (!(SPSR & (1 << SPIF)));   /* wait for flag */
   Byte = SPDR;                     /* clear flag by reading data */
 
   /* deselect chip, if pin available */
@@ -742,6 +742,9 @@ void LCD_Char(unsigned char Char)
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
 
+  /* prevent x overflow */
+  if (UI.CharPos_X > LCD_CHAR_X) return;
+
   /* get font index number from lookup table */
   Table = (uint8_t *)&FontTable;        /* start address */
   Table += Char;                        /* add offset for character */
@@ -981,40 +984,42 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
 
 /*
  *  show fancy pinout for semiconductors
- *  - display a nice symbol in the middle of the bottom text lines
+ *  - display a nice component symbol
+ *    starting in next line, aligned to right side
  *  - display pin numbers left and right of symbol
  *  - symbol ID (0-) in Check.Symbol
  */
 
 void LCD_FancySemiPinout(void)
 {
-  uint8_t           n;             /* temp. value */
   uint8_t           Line;          /* line number */
+  uint8_t           x, y;          /* position of char */
   uint8_t           *Table;        /* pointer to pin table */
   uint16_t          Offset;        /* address offset */
 
-  /* check if we got enough unused lines left on the display */
-  Line = UI.CharPos_Y;        /* current text line */
-  n = LCD_CHAR_Y;             /* number of text lines */
-  n = n - Line;               /* free lines left */
-  if (n < LCD_SYMBOL_CHAR_Y) return;    /* too few lines */
-  if (n > LCD_SYMBOL_CHAR_Y) Line++;    /* add a spacer line */
+  /* save current char position */
+  x = UI.CharPos_X;        /* column */
+  y = UI.CharPos_Y;        /* line */
+
+  /* check for sufficient screen size */
+  Line = y + 1;               /* next line */
+  /* last line is reserved for cursor/touch bar */
+  if (Line > (LCD_CHAR_Y - LCD_SYMBOL_CHAR_Y)) return;  /* too few lines */
 
   /* determine positions */
-  Line++;                               /* next line */
-  SymbolTop = Line;
+  SymbolTop = Line;                          /* top is current line */
   SymbolBottom = Line;
-  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* add offset for symbol */
-  SymbolLeft = (LCD_CHAR_X - LCD_SYMBOL_CHAR_X) / 2;
-  SymbolRight = SymbolLeft;
-  SymbolRight += LCD_SYMBOL_CHAR_X + 1;      /* add offset for symbol */
+  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* plus symbol's height */
+  SymbolRight = LCD_CHAR_X;                  /* align to right side */
+  /* minus symbol's width and pin IDs */
+  SymbolLeft = LCD_CHAR_X - LCD_SYMBOL_CHAR_X - 1;
 
   /* calculate start address of pinout details */
   Table = (uint8_t *)&PinTable;         /* start address of pin table */
   Offset = Check.Symbol * 3;            /* offset for pin details */
   Table += Offset;                      /* address of pin details */
 
-  /* display pin numbers */
+  /* display probe numbers */
   LCD_FancyProbeNumber(Semi.A, Table);       /* A pin */
   Table++;                                   /* details for next pin */
   LCD_FancyProbeNumber(Semi.B, Table);       /* B pin */
@@ -1033,6 +1038,8 @@ void LCD_FancySemiPinout(void)
   #ifdef LCD_COLOR
     UI.PenColor = Offset;          /* restore pen color */
   #endif
+
+  LCD_CharPos(x, y);          /* restore old char position */
 }
 
 #endif

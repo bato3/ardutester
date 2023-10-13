@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2016 by Markus Reschke
+#  (c) 2012-2017 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -105,7 +105,7 @@ HEADERS += ADS7843.h
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
-OBJECTS_C += display.o
+OBJECTS_C += display.o I2C.o
 OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o
 OBJECTS_C += ADS7843.o
 OBJECTS_S = wait.o

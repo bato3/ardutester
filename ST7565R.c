@@ -4,7 +4,7 @@
  *   - 128 x 64 (132 x 64) pixels
  *   - SPI interface (4 and 5 line)
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -16,7 +16,7 @@
  *    SCL (DB6)   LCD_SCL
  *    SI (DB7)    LCD_SI
  *    /CS1        LCD_CS (optional)
- *    For hardware SPI, LCD_SCL and LCD_SI have to be the MCU's SCK and
+ *    For hardware SPI LCD_SCL and LCD_SI have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock rate: 20MHz
  *  - write only
@@ -332,7 +332,7 @@ void LCD_Send(uint8_t Byte)
 
   /* send byte */
   SPDR = Byte;                     /* start transmission */
-  while (!(SPSR & (1 << SPIF)))    /* wait for flag */
+  while (!(SPSR & (1 << SPIF)));   /* wait for flag */
   Byte = SPDR;                     /* clear flag by reading data */
 
   /* deselect chip, if pin available */
@@ -607,6 +607,9 @@ void LCD_Char(unsigned char Char)
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
 
+  /* prevent x overflow */
+  if (UI.CharPos_X > LCD_CHAR_X) return;
+
   /* get font index number from lookup table */
   Table = (uint8_t *)&FontTable;        /* start address */
   Table += Char;                        /* add offset for character */
@@ -762,40 +765,42 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
 
 /*
  *  show fancy pinout for semiconductors
- *  - display a nice symbol in the middle of the bottom text lines
+ *  - display a nice component symbol
+ *    starting in next line, aligned to right side
  *  - display pin numbers left and right of symbol
  *  - symbol ID (0-) in Check.Symbol
  */
 
 void LCD_FancySemiPinout(void)
 {
-  uint8_t           n;             /* temp. value */
   uint8_t           Line;          /* line number */
+  uint8_t           x, y;          /* position of char */
   uint8_t           *Table;        /* pointer to pin table */
   uint16_t          Offset;        /* address offset */
 
-  /* check if we got enough unused lines left on the display */
-  Line = UI.CharPos_Y;        /* current text line */
-  n = LCD_CHAR_Y;             /* number of text lines */
-  n = n - Line;               /* free lines left */
-  if (n < LCD_SYMBOL_CHAR_Y) return;    /* too few lines */
-  if (n > LCD_SYMBOL_CHAR_Y) Line++;    /* add a spacer line */
+  /* save current char position */
+  x = UI.CharPos_X;        /* column */
+  y = UI.CharPos_Y;        /* line */
+
+  /* check for sufficient screen size */
+  Line = y + 1;               /* next line */
+  /* last line is reserved for cursor/touch bar */
+  if (Line > (LCD_CHAR_Y - LCD_SYMBOL_CHAR_Y)) return;  /* too few lines */
 
   /* determine positions */
-  Line++;                               /* next line */
-  SymbolTop = Line;
+  SymbolTop = Line;                          /* top is current line */
   SymbolBottom = Line;
-  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* add offset for symbol */
-  SymbolLeft = (LCD_CHAR_X - LCD_SYMBOL_CHAR_X) / 2;
-  SymbolRight = SymbolLeft;
-  SymbolRight += LCD_SYMBOL_CHAR_X + 1;      /* add offset for symbol */
+  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* plus symbol's height */
+  SymbolRight = LCD_CHAR_X;                  /* align to right side */
+  /* minus symbol's width and pin IDs */
+  SymbolLeft = LCD_CHAR_X - LCD_SYMBOL_CHAR_X - 1;
 
   /* calculate start address of pinout details */
   Table = (uint8_t *)&PinTable;         /* start address of pin table */
   Offset = Check.Symbol * 3;            /* offset for pin details */
   Table += Offset;                      /* address of pin details */
 
-  /* display pin numbers */
+  /* display probe numbers */
   LCD_FancyProbeNumber(Semi.A, Table);       /* A pin */
   Table++;                                   /* details for next pin */
   LCD_FancyProbeNumber(Semi.B, Table);       /* B pin */
@@ -805,6 +810,8 @@ void LCD_FancySemiPinout(void)
   /* display symbol */
   LCD_CharPos(SymbolLeft + 1, SymbolTop);    /* set top left position  */
   LCD_Symbol(Check.Symbol);                  /* display symbol */
+
+  LCD_CharPos(x, y);          /* restore old char position */
 }
 
 #endif

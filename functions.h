@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -20,6 +20,7 @@
 #ifndef MAIN_C
 
   extern void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C);
+  extern void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3);
 
 #endif
 
@@ -50,12 +51,27 @@
 
 
 /* ************************************************************************
+ *   functions from I2C.c
+ * ************************************************************************ */
+
+#ifndef I2C_C
+
+  #ifdef HW_I2C
+    extern uint8_t I2C_Setup(void);
+    extern uint8_t I2C_Start(uint8_t Type);
+    extern uint8_t I2C_WriteByte(uint8_t Type);
+    extern void I2C_Stop(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
  *   functions from touchscreen specific driver
  * ************************************************************************ */
 
 #ifndef TOUCH_DRIVER_C
   #ifdef HW_TOUCH
-
 
   #endif
 #endif
@@ -122,7 +138,7 @@
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
 
 
-  #ifdef SW_SQUAREWAVE
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -156,8 +172,14 @@
 
 #ifndef EXTRAS_C
 
-  #ifdef SW_PWM
+  #ifdef SW_PWM_SIMPLE
     extern void PWM_Tool(uint16_t Frequency);
+  #endif
+  #ifdef SW_PWM_PLUS
+    extern void PWM_Tool(void);
+  #endif
+  #ifdef SW_SERVO
+    extern void Servo_Check(void);
   #endif
   #ifdef SW_SQUAREWAVE
     extern void SquareWave_SignalGenerator(void);
@@ -188,7 +210,7 @@
 
   extern void GetGateThreshold(uint8_t Type);
   extern uint32_t Get_hfe_c(uint8_t Type);
-  extern uint32_t GetLeakageCurrent(void);
+  extern void GetLeakageCurrent(uint8_t Mode);
 
   extern Diode_Type *SearchDiode(uint8_t A, uint8_t C);
   extern void CheckDiode(void);

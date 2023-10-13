@@ -5,7 +5,7 @@
  *   - 84 x 48 pixels
  *   - SPI interface (4 and 5 line)
  *
- *   (c) 2016 by Markus Reschke
+ *   (c) 2016-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -17,7 +17,7 @@
  *    SCLK        LCD_SCLK
  *    SDIN        LCD_SDIN
  *    /SCE        LCD_SCE (optional)
- *    For hardware SPI, LCD_SCLK and LCD_SDIN have to be the MCU's SCK and
+ *    For hardware SPI LCD_SCLK and LCD_SDIN have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock rate: 4MHz
  *  - write only
@@ -323,7 +323,7 @@ void LCD_Send(uint8_t Byte)
 
   /* send byte */
   SPDR = Byte;                     /* start transmission */
-  while (!(SPSR & (1 << SPIF)))    /* wait for flag */
+  while (!(SPSR & (1 << SPIF)));   /* wait for flag */
   Byte = SPDR;                     /* clear flag by reading data */
 
   /* deselect chip, if pin available */

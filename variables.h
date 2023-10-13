@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -76,6 +76,10 @@
     uint16_t        ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
   #endif
 
+  #ifdef HW_I2C
+    I2C_Type        I2C;                     /* I2C */
+  #endif
+
 
   /*
    *  NVRAM values (stored in EEPROM) with their defaults
@@ -97,7 +101,6 @@
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
-  const unsigned char Edition_str[] EEMEM = "trendy";
   const unsigned char Battery_str[] EEMEM = "Bat.";
   const unsigned char OK_str[] EEMEM = "ok";
   const unsigned char MOS_str[] EEMEM = "MOS";
@@ -109,10 +112,10 @@
   const unsigned char GateCap_str[] EEMEM = "Cgs";
   const unsigned char NPN_str[] EEMEM = "NPN";
   const unsigned char PNP_str[] EEMEM = "PNP";
-  const unsigned char hFE_str[] EEMEM ="h_FE";
-  const unsigned char V_BE_str[] EEMEM ="V_BE";
+  const unsigned char h_FE_str[] EEMEM ="hFE";
+  const unsigned char V_BE_str[] EEMEM ="Vbe";
   const unsigned char V_GT_str[] EEMEM ="V_GT";
-  const unsigned char I_CEO_str[] EEMEM = "I_CEO";
+  const unsigned char I_CEO_str[] EEMEM = "Iceo";
   const unsigned char Vf_str[] EEMEM = "Vf";
   const unsigned char DiodeCap_str[] EEMEM = "C";
   const unsigned char Vth_str[] EEMEM = "Vth";
@@ -132,23 +135,18 @@
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Profile1_str[] EEMEM = "#1";
   const unsigned char Profile2_str[] EEMEM = "#2";
-  const unsigned char I_DSS_str[] EEMEM = "I_DSS";
+  const unsigned char I_DSS_str[] EEMEM = "Idss";
   const unsigned char I_leak_str[] EEMEM = "I_l";
+  const unsigned char R_DS_str[] EEMEM = "Rds";
 
   #ifdef SW_ESR
-    const unsigned char Probes_str[] EEMEM = "Pins";
     const unsigned char ESR_str[] EEMEM = "ESR";
-    const unsigned char ESR_Probes_str[] EEMEM = "1-3";
   #endif
-  #ifdef SW_PWM
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     const unsigned char PWM_str[] EEMEM = "PWM";
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
-  #if defined(SW_PWM) || defined (SW_SQUAREWAVE)
-    const unsigned char PWM_Probes_str[] EEMEM = "2-13";
-  #endif
-  #ifdef SW_IR_RECEIVER
-    const unsigned char IR_Probes_str[] EEMEM = "1=0V 2=5V 3=Out";
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_JVC_str[] EEMEM = "JVC";
     const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
     const unsigned char IR_Matsushita_str[] EEMEM = "Mats";
@@ -178,7 +176,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.26m";
+  const unsigned char Version_str[] EEMEM = "v1.27m";
 
 
   /*
@@ -197,7 +195,7 @@
   const uint16_t SmallCap_table[] EEMEM = {954, 903, 856, 814, 775, 740, 707, 676, 648};
 //const uint16_t SmallCap_table[] EEMEM = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
-  #ifdef SW_PWM
+  #ifdef SW_PWM_SIMPLE
     /* PWM menu: frequencies */    
     const uint16_t PWM_Freq_table[] EEMEM = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
   #endif
@@ -280,6 +278,10 @@
     extern uint16_t      ProbeColors[3];          /* probe color coding */
   #endif
 
+  #ifdef HW_I2C
+    extern I2C_Type      I2C;                     /* I2C */
+  #endif
+
 
   /*
    *  NVRAM values (stored in EEPROM) with their defaults
@@ -330,16 +332,11 @@
 
   /* options */
   #ifdef SW_ESR
-    extern const unsigned char Probes_str[];
     extern const unsigned char ESR_str[];
-    extern const unsigned char ESR_Probes_str[];
   #endif
-  #ifdef SW_PWM
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     extern const unsigned char PWM_str[];    
     extern const unsigned char Hertz_str[];
-  #endif
-  #if defined(SW_PWM) || defined (SW_SQUAREWAVE)
-    extern const unsigned char PWM_Probes_str[];
   #endif
   #ifdef SW_SQUAREWAVE
     extern const unsigned char SquareWave_str[];
@@ -358,9 +355,8 @@
   #ifdef SW_CONTRAST
     extern const unsigned char Contrast_str[];
   #endif
-  #ifdef SW_IR_RECEIVER
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     extern const unsigned char IR_Detector_str[];
-    extern const unsigned char IR_Probes_str[];  
     extern const unsigned char IR_JVC_str[];
     extern const unsigned char IR_Kaseikyo_str[];
     extern const unsigned char IR_Matsushita_str[];
@@ -385,6 +381,11 @@
   #ifdef SW_UJT
     extern const unsigned char UJT_str[];
   #endif
+  #ifdef SW_SERVO
+    extern const unsigned char Servo_str[];
+    extern const unsigned char Sweep_str[];
+  #endif
+
 
   /*
    *  constant tables (stored in EEPROM)
@@ -399,7 +400,7 @@
   /* voltage based factors for small caps (using Rh) */
   extern const uint16_t SmallCap_table[];
 
-  #ifdef SW_PWM
+  #ifdef SW_PWM_SIMPLE
     /* PWM menu: frequencies */
     extern const uint16_t PWM_Freq_table[];
   #endif

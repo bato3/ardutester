@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -81,6 +81,10 @@
 #define TYPE_NPN              0b00000001     /* NPN */
 #define TYPE_PNP              0b00000010     /* PNP */
 #define TYPE_PARASITIC        0b00000100     /* parasitic BJT */
+
+
+/* diode types (bit mask) */
+#define TYPE_STANDARD         0b00000001     /* standard diode */
 
 
 /* flags for semicondutor detection logic */
@@ -162,15 +166,26 @@
 #define PIN_TOP               0b00001000     /* top */
 
 
-/* output pins of optional shift register */
-#define SH0                   0b00000000     /* pin #0 */
-#define SH1                   0b00000001     /* pin #1 */
-#define SH2                   0b00000010     /* pin #2 */
-#define SH3                   0b00000011     /* pin #3 */
-#define SH4                   0b00000100     /* pin #4 */
-#define SH5                   0b00000101     /* pin #5 */
-#define SH6                   0b00000110     /* pin #6 */
-#define SH7                   0b00000111     /* pin #7 */
+/* I2C */
+#define I2C_ERROR             0              /* bus error */
+#define I2C_OK                1              /* operation done */
+#define I2C_START             1              /* start condition */
+#define I2C_REPEATED_START    2              /* repeated start condition */
+#define I2C_DATA              1              /* data byte */
+#define I2C_ADDRESS           2              /* address byte */
+#define I2C_ACK               1              /* acknowledge */
+#define I2C_NACK              2              /* not-acknowledge */
+
+
+/* port pins of optional IO chip */
+#define PCF8574_P0            0b00000000     /* pin #0 */
+#define PCF8574_P1            0b00000001     /* pin #1 */
+#define PCF8574_P2            0b00000010     /* pin #2 */
+#define PCF8574_P3            0b00000011     /* pin #3 */
+#define PCF8574_P4            0b00000100     /* pin #4 */
+#define PCF8574_P5            0b00000101     /* pin #5 */
+#define PCF8574_P6            0b00000110     /* pin #6 */
+#define PCF8574_P7            0b00000111     /* pin #7 */
 
 
 
@@ -324,12 +339,12 @@ typedef struct
   uint8_t           B;             /* probe pin connected to pin B */
   uint8_t           C;             /* probe pin connected to pin C */
   uint16_t          U_1;           /* voltage #1 */
-  int16_t           U_2;           /* voltage #2 */
-  uint16_t          I_1;           /* current #1 */
+  int16_t           U_2;           /* voltage #2 (+/-) */
   uint32_t          F_1;           /* factor #1 */
-  uint32_t          F_2;           /* factor #2 */
-  uint32_t          C_value;
-  int8_t            C_scale;
+  uint32_t          I_value;       /* current */
+  int8_t            I_scale;       /* exponent of factor (value * 10^x) */
+  uint32_t          C_value;       /* capacitance */
+  int8_t            C_scale;       /* exponent of factor (value * 10^x) */
 } Semi_Type;
 
 /* 
@@ -340,11 +355,11 @@ typedef struct
   A        Base         Gate         Gate         Gate         Gate
   B        Collector    Drain        Anode        MT2          Collector
   C        Emitter      Source       Cathode      MT1          Emitter
-  U_1      U_BE (mV)                 V_GT (mV)    V_GT (mV)
+  U_1      U_BE (mV)    R_DS (0.01)  V_GT (mV)    V_GT (mV)
   U_2                   V_th (mV)                              V_th (mV)
-  I_1                   I_DSS (µA)                Ref (mV)
-  F_1      hFE
-  F_2      I_CEO (10nA)
+  F_1      hFE                                    MT2 (mV)
+  I_value  I_CEO        I_DSS
+  I_scale  I_CEO        I_DSS
   C_value  C_BE
   C_scale  C_BE
 */
@@ -378,6 +393,14 @@ typedef struct
 {
   uint16_t          Pulses;        /* number of pulses of input signal */
 } FreqCounter_Type;
+
+
+/* I2C */
+typedef struct
+{
+  uint8_t           Byte;          /* address/data byte */
+  uint8_t           Timeout;       /* ACK timeout in 10µs */
+} I2C_Type;
 
 
 

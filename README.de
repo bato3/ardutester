@@ -3,15 +3,13 @@
 
                    ReadMe für die Component Tester Firmware
 
-                                Trendy Edition
-
            für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
 
-        (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2017 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2016-12-02
+Letzte Änderung:  2017-02-22
 
 Inhaltsübersicht:
   - Über den Tester
@@ -19,8 +17,9 @@ Inhaltsübersicht:
   - Lizenz
     - Zusätzliche Hinweise
   - Unterschiede
-  - Firmware übersetzen
   - Quellcode
+  - Firmware übersetzen
+  - I2C/SPI
   - LCD-Module
     - HD44780
     - ST7565R
@@ -42,6 +41,7 @@ Inhaltsübersicht:
     - Kontrast
     - IR-Fernbedienungsdetektor
     - Opto-Koppler-Test
+    - Modellbau-Servo-Test
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -52,9 +52,11 @@ Inhaltsübersicht:
   - Induktivitäten
   - Bauteile entladen
   - ADC Oversampling
-  - Vf (V_BE) von Bipolartransistoren
+  - V_BE von Bipolartransistoren
   - Ergebnisanzeige
     - Spezielle Bauteile
+      - Spezial-Bipolar-Transistor
+      - CLD
   - Nicht unterstütze Bauelemente
   - Bekannte Probleme
   - Firmware-Änderungen
@@ -141,6 +143,13 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 Mehr Details dazu findest du in den nachfolgenden Abschnitten.
 
 
+* Quellcode
+
+Eine Menge wurde aufgeräumt, Kommentare, Variablen umbenannt, Funktionen
+umstrukturiert, große Funktionen in mehrere kleine aufgeteilt und mehr. Ich
+hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
+
+
 * Firmware übersetzen
 
 Als erstes solltest du das Makefile editieren und MCU-Modell, Frequenz,
@@ -162,6 +171,8 @@ Hardware-Optionen:
 - Schutz-Relais zur Kondensatorentladung
 - Messung von Zenerdioden (DC-DC-Konverter)
 - Frequenzzähler
+- Test von IR-Fernbedienungen (festes IR-Empfängermodul)
+- I2C-Bus (Bit-Bang und Hardware)
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
 um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
@@ -170,13 +181,14 @@ MCP1702 mit einer typischen Genauigkeit von 0,4% als Spannungsregler
 hast, brauchst du eigentlich keine zusätzliche Spannungsreferenz mehr.
 
 Und natürlich die Software-Optionen:
-- PWM Generator
+- PWM Generator (2 Varianten)
 - Messung von Induktivität
 - ESR-Messung und In-Circuit-ESR
 - Test von Drehencodern
 - Rechtecksignalgenerator (braucht Drehencoder)
-- Test von IR-Fernbedienungen (braucht TSOP IR-Empfängermodul)
+- Test von IR-Fernbedienungen (IR-Empfängermodul an Testpins)
 - Test von Opto-Kopplern
+- Test von Modellbau-Servos (braucht Drehencoder, Display >2 Zeilen)
 - Erkennung von UJTs
 - Farbkodierung für Testpins (benötigt Farbdisplay)
 
@@ -187,6 +199,7 @@ zu groß werden, versuche nicht so wichtige Optionen wieder zu deaktivieren.
 Verfügbare Sprachen:
 - Englisch
 - Deutsch
+- Spanisch (von pepe10000@EEVblog)
 - Tschechisch (von Kapa)
 
 Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
@@ -205,11 +218,41 @@ Das Makefile bietet folgende zusätzliche Targets:
 - upload   Firmware brennen
 
 
-* Quellcode
+* I2C/SPI
 
-Eine Menge wurde aufgeräumt, Kommentare, Variablen umbenannt, Funktionen
-umstrukturiert, große Funktionen in mehrere kleine aufgeteilt und mehr. Ich
-hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
+Some displays and other hardware might need I2C or SPI for connecting to the
+MCU. Therefore the firmware includes drivers for both bus systems. To cope
+with different pin assignments of the various testers the bus drivers support
+bit-bang and hardware operation modes. The bit-bang mode can use any IO pins
+on the same port, while the hardware mode uses the dedicated bus pins of the
+MCU. The drawback of the bit-bang mode is its speed, it's slow. The hardware
+mode is much faster. You can spot the difference in speeds easily for high
+resolution color LCD modules.
+
+Manche LCD-Module and andere Komponenten benötigen I2C oder SPI als Schnitt-
+stelle zur MCU. Daher hat der Firmware Treiber für beide Bussysteme. Um
+unterschiedliche Beschaltungen zu unterstützen haben die Bustreiber einen
+Bit-Bang und einen Hardware-Modus. Beim Bit-Bang-Modus können beliebige IO
+Pins an dem gleichen Port genutzt werden, während der Hardware-Modus die
+fest vorgegeben Bus-Pins der MCU nimmt. Der Nachteil des Bit-Bang-Modus ist
+seine Geschwindigkeit, er ist langsam. Der Hardware-Modus dagegen ist deutlich
+schneller. Du kannst den Unterschied leicht bei Farb-LCD-Modulen mit hoher
+Auflösung sehen.
+
+Für Tester mit ATmega 328 wird fast immer der Bit-Bang-Modus aufgrund der
+Beschaltung benötigt. Der ATmega 324/644/1284 hat mehr I/O Pins, plus die
+veränderte Beschaltung erlauben es, die festen Bus-Pins für den Hardware-
+Modus zu nutzen. 
+
+Die SPI-Treiber sind zur Optimierung in den LCD-Treibern integriert. Im Moment
+wird SPI auch nur von LCD-Modulen benutzt. Daher wird alles SPI-spezifische
+im Display-Abschnitt in config-<MCU>.h konfiguriert.
+
+Die Treiber für I2C sind als eigenständige Funktionsbibliothek zusammen-
+gefasst, um die Nutzung durch mehrere IC-Treiber zu erlauben. I2C wird in
+config.h aktiviert, und für den Bit-Bang-Modus werden Port und Pins in
+config-<MCU>.h definiert. IC-spezifische Dinge stehen in jeweils eigenen 
+Abschnitten.
 
 
 * LCD-Module
@@ -225,12 +268,6 @@ Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
 nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
 
-Die LCD-Module mit SPI-Schnittstelle können per Bit-Bang oder Hardware SPI
-angesteuert werden. Beim Tester mit ATmega 328 ist durch die Schaltung nur
-Bit-Bang SPI möglich. Beim ATmega 324/644/1284 mit mehr I/O Pins ist neben
-dem Bit-Bang SPI auch das deutlich schnellere Hardware SPI nutzbar. Für das
-Hardware SPI müssen natürlich die festen SPI-Pins der MCU genommen werden.
-
 Hinweis zu ATmega 328:
 Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
 mit PD5 und setze LCD_CS in config_328.h (nur für grafische LCD-Module).
@@ -240,23 +277,38 @@ zu fehlerhaften Ausgaben führen.
 
 + HD44780
 
-Der HD44780 wird im 4-Bit-Modu bestrieben. Die Pins sind:
+Der HD44780 wird im 4-Bit-Modu bestrieben. Die Pins für den Parallelbus sind:
 
-  Modul       config.h           Standard
-  DB4         LCD_PORT Bit #0    PD0
-  DB5         LCD_PORT Bit #1    PD1
-  DB6         LCD_PORT Bit #2    PD2
-  DB7         LCD_PORT Bit #3    PD3
+  Modul       config-<MCU>.h     Standard
+  DB4         LCD_DB4            PD0
+  DB5         LCD_DB5            PD1
+  DB6         LCD_DB6            PD2
+  DB7         LCD_DB7            PD3
   RS          LCD_RS             PD4
   R/W         Gnd
   E           LCD_EN1            PD5
+
+Das LCD-Modul kann auch über einen I2C-Adapter mit PCF8574 bestrieben werden.
+Dazu muss zum einen I2C aktiviert werden, und zum anderen wird auch die
+I2C-Adresse des PCF8574 benötigt. Das Pinout beschreibt wie das LCD-Modul mit
+dem PCF8574 verdrahtet ist:
+
+  Modul       config-<MCU>.h     Standard
+  DB4         LCD_DB4            PCF8574_P4
+  DB5         LCD_DB5            PCF8574_P5
+  DB6         LCD_DB6            PCF8574_P6
+  DB7         LCD_DB7            PCF8574_P7
+  RS          LCD_RS             PCF8574_P0
+  R/W         LCD_RW             PCF8574_P1
+  E           LCD_EN1            PCF8574_P2
+  LED         LCD_LED            PCF8574_P3
 
 
 + ST7565R
 
 Der ST7565R wird mittels 4/5-Line SPI gesteuert. Die Pins sind:
 
-  Modul       config.h           Standard   Hinweis
+  Modul       config-<MCU>.h     Standard   Hinweis
   /RES        LCD_RESET          PD0
   A0          LCD_A0             PD1
   SCL (DB6)   LCD_SCL            PD2
@@ -271,7 +323,7 @@ X-Offset experimentieren.
 
 Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
 
-  Modul       config.h           Standard   Hinweis
+  Modul       config-<MCU>.h     Standard   Hinweis
   /RES        LCD_RES            PD4        optional
   /CS         LCD_CS             PD5        optional
   D/C         LCD_DC             PD3
@@ -296,9 +348,9 @@ SPI genutzt wird.
 
 Der ST7735 wird mittels SPI gesteuert. Die Pins sind:
 
-  Modul       config.h           Standard   Hinweis
+  Modul       config-<MCU>.h     Standard   Hinweis
   /RESX       LCD_RES            PD4
-  /CSX        LCD_CS             PD5       optional
+  /CSX        LCD_CS             PD5        optional
   D/CX        LCD_DC             PD3
   SCL         LCD_SCL            PD2
   SDA         LCD_SDA            PD1
@@ -409,17 +461,31 @@ Punkt augewählt. Hier gibt es auch wieder einen Überlauf, d.h. vom ersten zum
 letzten Punkt. Ein kurzer Tastendruck führt den Punkt aus, im Gegensatz zu
 oben.
 
-Manche Punkte/Extras zeigen beim Start die benutzten Testpins kurz an (
-dreimaliges Blinken). Durch einen Tastendruck kann man diese Information
-überspringen.
+Manche Punkte/Extras zeigen beim Start das Pinout der benutzten Testpins kurz
+an. Die Info wird für ein paar Sekunden gezeigt, kann aber mit einem kurzen
+Tastendruck übersprungen werden.
 
 
 + PWM-Generator
 
-Macht genaus das, was du erwartest :-) Zuerst muß man aus einer vorgegeben
-Liste die Frequenz wählen. Kurzer Tastendruck für die nächste Frequenz und
-langer Tastendruck zum Starten, wie beim Menü. Mit Drehencoder ein kurzer
-Tastendruck zum Starten.
+Macht genaus das, was du erwartest :-) Vor dem Übersetzen der Firmware bitte
+entweder den PWN-Generator mit einfacher Bedienung oder den mit erweiterter
+Bedienung auswählen. Letzterer benötigt einen Drehencoder und ein größeres
+Display.
+
+Nach dem Starten des Generatore wird kurz die Beschaltung der Testpins
+angezeigt. Durch einen kurzen Tastendruck kannst du die Info überspringen. 
+
+Beschaltung der Testpins:
+  Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #1 und #3:   Masse
+
+
+- Einfache PWM
+
+Zuerst muß man aus einer vorgegeben Liste die Frequenz wählen. Kurzer Tasten-
+druck für die nächste Frequenz und langer Tastendruck zum Starten, wie beim
+Menü. Mit Drehencoder ein kurzer Tastendruck zum Starten.
 
 Das Tastverhältnis startet bei 50% und kann in 5%-Schritten geändert werden.
 Ein kurzer Tastendruck für +5% und ein langer für -5%. Zum Beenden die Test-
@@ -428,9 +494,13 @@ Taste zweimal kurz hintereinander drücken.
 Ist ein Drehencoder vorhanden, läßt sich das Tastverhältnis in 1%-Schritten
 ändern.
 
-Beschaltung der Testpins:
-  Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
-  Pin #1 und #3:   Masse
+
+- Erweiterte PWM
+
+Mit einem kurzen Tastendruck schaltest du zwischen Frequenz und Tastverhältnis
+um. Der ausgewählte Wert wird durch ein Sternchen markiert. Mit dem Dreh-
+encoder änderst du den Wert, rechts für höher, links für niedriger. Mit zwei
+kurzen Tastendrücken wird der PWM-Generator beendet.
 
 
 + Rechteck-Signalgenerator
@@ -446,7 +516,7 @@ Schrittweite recht klein, erst bei hohen Frequenzen wird sie signifikant.
 Zum Beenden die Test-Taste kurz drücken.
 
 Beschaltung der Testpins:
-  Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
 Hinweis: Drehencoder notwendig!
@@ -518,12 +588,16 @@ vorhanden, kann der Kontrastwert damit ebenfalls geändert werden.
 
 + IR-Fernbedienungsdetektor
 
-Diese Funktion benötigt ein TSOP IR-Empfängermodul (oder ähnlich), das mit
-den Testpins verbunden sein muß. Damit lassen sich die Signale von IR-
-Fernsteuerungen detektieren und dekodieren. Wenn ein bekanntes Protokoll
-erkannt wird , gibt der Tester das Protokoll, Adresse (sofern verfügbar),
-Kommando und ggf. zusätzliche Informationen hexadezimal aus.
-Das Ausgabeformat ist:
+Diese Funktion erkennt und dekodiert Signale von IR-Fernbedienungen und
+benötigt ein IR-Empfängermodul, wie z.B. aus der TSOP-Serie. Beim Übersetzen
+der Firmware kannst du zwischen zwei Anschlussvarianten wählen. Bei der ersten
+Variante wird das Moduls mit den normalen Testpins verbunden. Die zweite
+Variante ist ein festes Modul, welches mit einem bestimmten MCU-Pin verbunden
+ist.
+
+Wenn ein bekanntes Protokoll erkannt wird , gibt der Tester das Protokoll,
+Adresse (sofern verfügbar), Kommando und ggf. zusätzliche Informationen
+hexadezimal aus. Das Ausgabeformat ist:
   <Protokoll> [<Adresse>:]<Kommando>[:<Extras>]
 Bei einem defekten Datenpaket wird hinter dem Protokoll ein "?" ausgegeben.
 
@@ -552,18 +626,26 @@ Die Trägerfrequenz vom TSOP IR-Empfängermodul muß nicht genau zur Fernsteuerung
 passen. Es verringert sich eigentlich nur die Reichweite, was für unseren Zweck
 aber kein Problem darstellt.
 
+
+- IR-Empfängermodul an Testpins
+
 Das IR-Empfängermodul bitte erst im IR-Fernbedienungsdetektor anschliessen!
 
 Beschaltung für das TSOP-Modul:
   Probe #1:  Masse/Gnd
   Probe #2:  Vs (680 Ohm Widerstand zur Strombegrenzung)
-  Probe #3:  Out/Data
+  Probe #3:  Data/Out
 
 Hinweis:
   Der Widerstand zur Strombegrenzung setzt ein IR-Empfängermodul mit einem
   Versorgungsspannungsbereich von ca. 2,5 - 5V voraus. Wenn du ein 5V-Modul
   hast, kannst du in config.h den Widerstand auf eigene Gefahr abschalten.
   Ein Kurzschluss kann allerdings die MCU zerstören.
+
+
+- Festes IR-Empfängermodul
+
+Für das feste Modul bitte Port und Daten-Pin in config_<MCU>.h passend setzen.
 
 
 + Opto-Koppler-Test
@@ -602,6 +684,45 @@ der Tester den Typen und verschiedene Infos an. Wurde keiner erkannt, erfolgt
 die Anzeige von "keiner". Ein blinkender Cursor weist darauf hin, daß ein
 Tastendruck für die nächste Prüfung erwartet wird. Zwei kurze Testendrücke
 beenden, wie üblich, den Test.
+
+
++ Modellbau-Servo-Test
+
+Diese Funktion erzeugt ein PWM-Signal für Modellbau-Servos, welche mit einem
+1-2 ms PWM-Puls gesteuert werden. Die typischen PWM-Frequenzen von 50, 125,
+250 und 333Hz werden unterstützt, und die Pulselänge ist im Bereich von 0,5
+bis 2,5 ms einstellbar. Zusätzlich gibt es einen Sweep-Modus für Pulse
+von 1 - 2ms und wählbarer Geschwindigkeit. 
+
+Zunächst wird kurz die Testpin-Belegung angezeigt (mittels Tastendruck
+überspringbar). Danach stellt Du die Pulsbreite mit dem Drehencoder ein.
+Links für kürzere Pulse, und rechts für längere. Mit einem langen Tastendruck
+wird die Pulsweite auf 1,5ms zurück gesetzt (mittlere Position vom Servo).
+
+Mit einem kurzen Tastendruck wechselst du zwischen Puls- und Frequenzauswahl (
+durch ein Sternchen markiert). In der Frequenzauswahl schaltest Du mit dem
+Drehencoder zwischen den Frequenzen um. Mit einem langen Tastendruck wird der
+Sweep-Modus ein- bzw. ausgeschaltet (durch ein "<->" markiert).
+
+Solange der Sweep-Modus eingeschaltet ist, wird die Pulslänge durch die
+Sweep-Zeit ersetzt, welche mittels dem Drehencoder geändert werden kann.
+
+Wie üblich beenden zwei kurze Tastendrücke die Funktion.
+
+Beschaltung der Testpins:
+  Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #1 und #3:   Masse
+
+Hinweis: Für den Servo benötigst du eine zusätzliche Stromversorgung.
+
+Pinbelegungen für typische 3-Pin-Servo-Stecker:
+
+Hersteller     Pin 1               Pin 2               Pin 3
+---------------------------------------------------------------------- 
+Airtronics     PWM weiss/schwarz   Gnd schwarz         Vcc rot
+Futaba         PWM weiss           Vcc rot             Gnd schwarz
+hitec          PWM gelb            Vcc rot             Gnd schwarz
+JR Radios      PWM orange          Vcc rot             Gnd braun
 
 
 + Selbsttest
@@ -733,7 +854,7 @@ als 4,7µF. Der Wert gibt z.B. einen Hinweis auf den Zustand eines Elkos.
 Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:  
   - 10-220µF    1-3µA
   - 330-470µF   4-5µA
-  - 470-820µF   4-7µs
+  - 470-820µF   4-7µA
   - >1000µF     5-7µA pro 1000µF
 
 
@@ -784,7 +905,7 @@ steigt mit einem höheren Wert auch die benötigte Zeit, d.h. die Messungen
 werden langsamer.
 
 
-* Vf (V_BE) von Bipolartransistoren
+* V_BE von Bipolartransistoren
 
 Beim Test auf Dioden wird Vf zum einen mit Rl (hoher Teststrom) und zum
 anderen mit Rh (niedriger Teststrom) gemessen. Die Ausgabefunktion für
@@ -832,6 +953,9 @@ Display sein, wird die Ausgabe des Symbols übersprungen.
 
 + Spezielle Bauteile
 
+
+Spezial-Bipolar-Transistor
+
 Bei einem Bipolartransistor mit Basis-Emitter-Widerstand wird der Widerstand
 angezeigt, aber hFE ausgelassen. Wenn der Transistor zusätzlich eine
 Schutzdiode hat, kann er als Transistor oder zwei Dioden erkannt werden, je
@@ -845,6 +969,19 @@ Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
 PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
 somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
 entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
+
+
+CLD
+
+Die Diodenprüfung erkennt eine CLD (Current Limiting Diode) als normale Diode
+und gibt ihren Strom I_F als Leckstrom aus. Zu beachten ist, daß bei einer CLD
+Anode und Kathode gegenüber einer normalen Diode vertauscht sind. Eine
+gesonderte Erkennung von CLDs ist schwierig, da der Leckstrom einer Germanium
+oder Leistungs-Schottky-Diode im Bereich von I_F (ab ca. 33µA) liegt.
+
+Wenn eine Diode ein ungewöhnliches V_f hat, ein niedriges V_f beim Niedrig-
+stromtest (zweiter Wert in Klammern) und keine Kapazität gemessen werden
+konnte, dann ist es wahrscheinlich eine CLD.
 
 
 * Nicht unterstütze Bauelemente

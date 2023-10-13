@@ -3,15 +3,13 @@
 
                    ReadMe for the Component Tester firmware
 
-                                Trendy Edition
-
         for ATmega 328/324/644/1284 with character or graphic display
 
-        (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2017 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2016-12-02
+Last edit:  2017-02-22
 
 Content
   - About
@@ -19,8 +17,9 @@ Content
   - License
     - Additional Disclaimer
   - Whats different?
-  - Building the firmware
   - Source Code
+  - Building the firmware
+  - I2C/SPI
   - Displays
     - HD44780
     - ST7565R
@@ -42,6 +41,7 @@ Content
     - Contrast
     - IR RC detector
     - Opto Coupler Tool
+    - Servo Check
     - Selftest
     - Self Adjustment
     - Save/Load
@@ -52,9 +52,11 @@ Content
   - Inductors
   - Discharging Components
   - ADC Oversampling
-  - Vf (V_BE) of BJTs
+  - V_BE of BJTs
   - Displaying Results
     - Special Components
+      - Non-standard BJT
+      - CLD
   - Unsupported Components
   - Known Issues
   - Change Log
@@ -138,6 +140,13 @@ official release:
 There are more details in the sections below.
 
 
+* Source Code
+
+A lot of cleaning up was done, like more remarks, renamed variables,
+re-structured functions, large functions splitted up into several smaller
+ones and what have you. I hope the code is easy to read and maintain now.
+
+
 * Building the firmware
 
 First edit the Makefile to specify your MCU model, frequency, oscilator
@@ -156,6 +165,9 @@ Hardware options:
 - relay based cap discharger
 - Zener voltage measurement
 - frequency counter
+- IR detector/decoder for remote controls
+  (fixed IR receiver module)
+- I2C bus (bit-bang and hardware)
 
 The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
@@ -163,13 +175,15 @@ the results worse. If you're using a MCP1702 with a typical tolerance of
 0.4% as voltage regulator you really don't need a 2.5V voltage reference.
 
 And of course the software options:
-- PWM generator
+- PWM generator (2 variants)
 - inductance measurement
 - ESR measurement and in-circuit ESR measurement
 - check for rotary encoders
 - squarewave signal generator (requires rotary encoder)
-- IR remote control detection (requires TSOP IR receiver module)
+- IR detector/decoder for remote controls
+  (IR receiver module connected to probes)
 - check for opto couplers
+- servo check (requires rotary encoder, display with >2 lines)
 - detection of UJTs
 - color coding for probes (requires color graphics display)
 
@@ -181,6 +195,7 @@ Available UI languages:
 - English
 - German
 - Czech (provided by Kapa)
+- Spanish (provided by pepe10000@EEVblog)
 
 For MCU specific settings, like pin assignments and display, edit 
 config-<MCU>.h:
@@ -199,11 +214,30 @@ following additional targets:
 - upload   to upload the firmware to the ATmega
 
 
-* Source Code
+* I2C/SPI
 
-A lot of cleaning up was done, like more remarks, renamed variables,
-re-structured functions, large functions splitted up into several smaller
-ones and what have you. I hope the code is easy to read and maintain now.
+Some displays and other hardware might need I2C or SPI for connecting to the
+MCU. Therefore the firmware includes drivers for both bus systems. To cope
+with different pin assignments of the various testers the bus drivers support
+bit-bang and hardware operation modes. The bit-bang mode can use any IO pins
+on the same port, while the hardware mode uses the dedicated bus pins of the
+MCU. The drawback of the bit-bang mode is its speed, it's slow. The hardware
+mode is much faster. You can spot the difference in speeds easily for high
+resolution color LCD modules.
+
+For ATmega 328 based testers the bit-bang mode is needed in most cases due to
+the circuit. The ATmega 324/644/1284 has more I/O pins and the different pin
+assignment for the circuit allows to use the dedicated bus pins for the
+hardware mode.
+
+The SPI drivers are included in the LCD module drivers for performance
+reasons. And SPI is used just by displays at the moment. So anything SPI
+related is configured in the display section of config-<MCU>.h.
+
+The drivers for I2C are stand-alone to support the usage by different IC
+drivers in a stacked fashion. I2C is enabled in config.h and for bit-bang
+mode port and pins are defined in config-<MCU>.h. IC related things like
+the I2C address are specified in their own sections.
 
 
 * Displays
@@ -219,12 +253,6 @@ Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. If the display doesn't show anything after double checking the
 wiring, please try different contrast settings (config_<MCU>.h).
 
-LCD modules with SPI interface can be driven by bit-bang or hardware SPI. The
-tester with ATmega 328 supports only bit-bang SPI because of the circuit. The
-ATmega 324/644/1284 with more I/O pins allows to use bit-bang SPI and also the
-much faster hardware SPI. For hardware SPI the fixed SPI pins of the MCU have
-to be used, of course.
-
 Hint for ATmega 328:
 If you connect a rotary encoder to PD2/PD3, please connect the module's /CS to
 PD5 and set LCD_CS in config_328.h (applies to graphic displays). Otherwise
@@ -233,23 +261,38 @@ the rotary encoder would screw up the display by interfering with the data bus.
 
 + HD44780
 
-The HD44780 is driven in 4 bit mode. The pin assignment is:
+The HD44780 is driven in 4 bit mode. The pin assignment for the parallel
+port is:
 
-  display     config.h           default
-  DB4         LCD_PORT Bit #0    PD0
-  DB5         LCD_PORT Bit #1    PD1
-  DB6         LCD_PORT Bit #2    PD2
-  DB7         LCD_PORT Bit #3    PD3
+  display     config-<MCU>.h     default
+  DB4         LCD_DB4            PD0
+  DB5         LCD_DB5            PD1
+  DB6         LCD_DB6            PD2
+  DB7         LCD_DB7            PD3
   RS          LCD_RS             PD4
   R/W         Gnd
   E           LCD_EN1            PD5
+
+You can also drive the LCD via a PCF8574 based I2C backpack which requires
+I2C to be enabled. The I2C address has to be specified too. The pin
+assignment defines how the LCD is connected to the PCF8574:
+
+  display     config-<MCU>.h     default
+  DB4         LCD_DB4            PCF8574_P4
+  DB5         LCD_DB5            PCF8574_P5
+  DB6         LCD_DB6            PCF8574_P6
+  DB7         LCD_DB7            PCF8574_P7
+  RS          LCD_RS             PCF8574_P0
+  R/W         LCD_RW             PCF8574_P1
+  E           LCD_EN1            PCF8574_P2
+  LED         LCD_LED            PCF8574_P3
 
 
 + ST7565R
 
 The ST7565R is driven by 4/5 line SPI. The pin assignment is:
 
-  display     config.h           default   remark
+  display     config-<MCU>.h     default   remark
   /RES        LCD_RESET          PD0
   A0          LCD_A0             PD1
   SCL (DB6)   LCD_SCL            PD2
@@ -264,7 +307,7 @@ the correct orientation for your display.
 
 The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
 
-  display     config.h           default   remark
+  display     config-<MCU>.h     default   remark
   /RES        LCD_RES            PD4       optional
   /CS         LCD_CS             PD5       optional
   D/C         LCD_DC             PD3
@@ -289,7 +332,7 @@ when using the bit-bang SPI.
 
 The ST7735 is driven by SPI. The pin assignment is:
 
-  display     config.h           default   remark
+  display     config-<MCU>.h     default   remark
   /RESX       LCD_RES            PD4
   /CSX        LCD_CS             PD5       optional
   D/CX        LCD_DC             PD3
@@ -304,7 +347,7 @@ orientation for your display.
 
 The PCD8544 is driven by SPI. The pin assignment is:
 
-  display     config.h           default   remark
+  display     config-<MCU>.h     default   remark
   /RES        LCD_RES            PD4
   /SCE        LCD_SCE            PD5       optional
   D/C         LCD_DC             PD3
@@ -400,16 +443,30 @@ With a rotary encoder you can move the items up or down based on the turning
 direction and a short key press will run the displayed item, instead of moving
 to the next item. Roll over is also enabled for the first item.
 
-Some tools show you the probe pins used before doing anything. The output will
-blink up to three times if you don't press the test button to confirm the
-brief information.
+Some tools show you the pinout of the probe pins used before doing anything.
+That info will be displayed for a few seconds, but can be skipped by a short
+press of the test button.
 
 
 + PWM Tool
 
-This does what you would expect :-) First you have to select the desired PWM
-frequency in a simple menu. Short key press for the next frequency and a long
-key press starts the PWM output for the shown frequency.
+This does what you would expect :-) Before compiling the firmware please
+choose either the PWM generator with the simple user interface or the one with
+the fancy interface for testers with rotary encoder and large displays.
+
+After entering the tool the probe configuration is displayed briefly. A button
+press will skip that info.
+
+Configuration of the probes:
+  Probe #2:         output (with 680 Ohms resistor to limit current)
+  Probe #1 and #3:  Ground
+
+
+- Simple PWM
+
+First you have to select the desired PWM frequency in a simple menu. Short key
+press for the next frequency and a long key press starts the PWM output for
+the shown frequency.
 
 The duty ratio of the PWM starts at 50%. A short key press of the test button
 increases the ratio by 5%, a long key press decreases the ratio by 5%. To exit
@@ -418,9 +475,14 @@ the PWM tool press the test key twice quickly.
 If you got a rotary encoder you can use it to select the frequency in the menu
 and to change the PWM ratio in 1% steps.
 
-Configuration of the probes:
-  Probe #2:         PWM output (with 680 Ohms resistor to limit current)
-  Probe #1 and #3:  Ground
+
+- Fancy PWM
+
+Switch between frequency and ratio by pressing the test button. The selected
+value is marked by an asterisk. Turn the rotary encoder clockwise to increase
+the value or anti-clockwise to decrease it. As faster you turn the rotary
+encoder as larger the step size becomes. Two short button presses exit the
+PWM tool. 
 
 
 + Square Wave Signal Generator
@@ -506,10 +568,15 @@ can also be adjusted by turning the encoder.
 
 + IR RC detector
 
-This function requires a TSOP IR receiver module (or similar) to be connected
-to the probes and will detect and decode IR remote controls. If a known
-protocol is detected the tester displays the protocol, address (when
-available), command and in some cases optional data in hexadecimal.
+This function detects and decodes signals from IR remote controls, and
+requires an IR receiver module, for example the TSOP series. When compiling
+the firmware you can choose between two variants how the IR receiver module is
+connected to the tester. The first one is to connect the IR module to the
+standard testpins. The second one is a fixed IR module connected to a
+dedicated MCU pin.
+
+If a known protocol is detected the tester displays the protocol, address
+(when available), command and in some cases optional data in hexadecimal.
 The format is:
   <protocol> [<addr>:]<command>[:<extra data>]
 For a malformend packet the protocol and a "?" are shown.
@@ -539,18 +606,26 @@ The carrier frequency of the TSOP receiver module doesn't have to match the RC
 exactly. A mismatch reduces the possible range, but that doesn't matter much
 for this application.
 
+
+- IR receiver module connected to probes
+
 Please connect the IR receiver module after entering the IR detector function.
 
 How to connect the TSOP module:
   Probe #1:  Gnd
   Probe #2:  Vs (current limited by 680 ohms resistor)
-  Probe #3:  Out/Data
+  Probe #3:  Data/Out
 
 Hint:
-  The current limiting resistor for Vs implies a IR receiver module with a
+  The current limiting resistor for Vs implies an IR receiver module with a
   supply voltage range of about 2.5 to 5V. If you got a 5V only module you can
   disable the resistor in the config.h file on your own risk. Any short
   circuit may destroy the MCU.
+
+
+- Fixed IR receiver module
+
+For the fixed IR module please set the port and pin used in config_<MCU>.h
 
 
 + Opto Coupler Tool
@@ -587,6 +662,45 @@ the type and various details. Or it displays "none" when no opto coupler was
 detected. A blinking cursor indicates that you have to press the test key
 (or turn the rotary encoder) for a new scan. Two short key presses end the
 tool as usual.
+
+
++ Servo Check
+
+This function outputs a PWM signal for RC servos which are driven by a 1-2ms
+PWM pulse. It supports the typical PWM frequencies of 50, 125, 250 and 333 Hz
+while the pulse length can be between 0.5 and 2.5 ms. There is also a sweep
+mode for sweeping between 1 and 2 ms pulse length with an adjustable sweep
+speed.
+
+At first the probe configuration is displayed briefly (skip with button
+press). After that you can adjust the pulse width with the rotary encoder.
+Clockwise for a longer pulse, and counter-clockwise for a shorter pulse. A
+long button press resets the pulse to 1.5 ms.  
+
+You can switch between pulse and frequency selection mode with a short button
+press (mode marked by an asterisk). When in frequency selection mode use the 
+rotary encoder to choose the PWM frequency. A long button press enables or
+disables the sweep mode (marked by a "<->" after the frequency).
+
+As long as the sweep mode is enabled, the pulse selection is replaced by the
+sweep period. The rotary encoder allows you to change the period. 
+
+As usual, two short button presses exit the function.
+
+Configuration of the probes:
+  Probe #2:         PWM output (with 680 Ohms resistor to limit current)
+  Probe #1 and #3:  Ground
+
+Hint: You have to provide an additional power supply for the servo.
+
+Some pinouts of typical 3pin servo connectors:
+
+Vendor         pin 1               pin 2               pin 3
+---------------------------------------------------------------------- 
+Airtronics     PWM White/Black     Gnd Black           Vcc Red
+Futaba         PWM White           Vcc Red             Gnd Black
+hitec          PWM Yellow          Vcc Red             Gnd Black
+JR Radios      PWM Orange          Vcc Red             Gnd Brown
 
 
 + Selftest
@@ -715,7 +829,7 @@ electrolytic cap. From my tests the typical value for a good electrolytic
 cap seems to be about:
   - 10-220µF    1-3µA
   - 330-470µF   4-5µA
-  - 470-820µF   4-7µs
+  - 470-820µF   4-7µA
   - >1000µF     5-7µA per 1000µF
 
 
@@ -763,7 +877,7 @@ measurements by increasing the number of samples. Note that more samples will
 take more time resulting in slower measurements.
 
 
-* Vf (V_BE) of BJTs
+* V_BE of BJTs
 
 When checking for diodes Vf is measured with Rl (high test current) and Rh (
 low test current), and both voltages are stored. The output function for BJTs
@@ -809,6 +923,9 @@ for the symbol, the output will be skipped.
 
 + Special Components
 
+
+Non-standard BJT
+
 For a BJT with a base emitter resistor the tester displays the base emitter
 resistor and skips the hFE output. If the BJT also got a freewheeling diode the
 BJT might be detected as BJT or two diodes based on the value of the base
@@ -821,6 +938,19 @@ Another special case is a BJT with an integrated freewheeling diode on the same
 subtrate as the BJT. That integrated diode junction creates a parasitic
 transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
 is found the tester prints a '+' behind the BJT type.
+
+
+CLD
+
+The diode check identifies a CLD (Current Limiting Diode) as a standard diode
+and displays I_F as the leakage current. Note that anode and cathode of a CLD
+are reversed vs. a standard diode. A dedicated check for a CLD is hard to
+implement, since the leakage current of a Germanium or high-current Schottky
+diode is in the range of I_F (>= 33µA).
+
+If a diode has an unusual forward voltage, a quite low V_f for the low current
+check (2nd value in braces) and no capacitance could be measured then it's
+most likely a CLD.
 
 
 * Unsupported Components

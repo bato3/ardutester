@@ -2,13 +2,29 @@
 
                   Change Log for the Component Tester firmware
 
-                                Trendy Edition
-
          for ATmega 328/324/644/1284 with character or graphic display
 
-                        (c) 2012-2016 by Markus Reschke
+                        (c) 2012-2017 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.27m 2017-02
+- Added high current meassurement to GetLeakageCurrent() for CLDs.
+  Thanks to texaspyro@EEVblog for sending a few sample diodes.
+- Fixed bug in MilliSleep().
+- Fixed issue with large inductance in diode detection.
+- Compensation for inductance measurement in the mH range.
+- Support for PCF8574 based LCD backpacks in HD44780 driver.
+- Driver for bit-bang and hardware I2C.
+- Fixed bug in the handling of the variable pin assignment for HD44780
+  based displays.
+- Color support for probe pinout of several tools. 
+- Check function for RC servos.
+- Alternative PWM generator with variable frequency and ratio. Requires
+  rotary encoder and large display.
+- Output of R_DS for MOSFETs and Vf for their body diode.
+- Support for fixed IR receiver module in IR RC detector/decoder.
+- Dropped edition in name, because the Classic edition is obsolete by now.
 
 v1.26m 2016-12
 - Added compensation for inductance measurement (more work required).

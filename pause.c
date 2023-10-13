@@ -2,7 +2,7 @@
  *
  *   pause functions
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -24,24 +24,6 @@
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
-
-
-/* ************************************************************************
- *   Interrupt Service Routines
- * ************************************************************************ */
-
-
-/*
- *  ISR for a match of TCNT2 (Timer2) and OCR2A (Output Compare Register A)
- */
-
-ISR(TIMER2_COMPA_vect, ISR_BLOCK)
-{
-  /* this automatically clears the OCF2A flag in the Interrupt Flag Register */
-
-  sei();                      /* allow nested interrupts */
-  TCCR2B = 0;                 /* disable Timer2 */
-}
 
 
 
@@ -69,8 +51,8 @@ void MilliSleep(uint16_t Time)
 
   /*
       Using timer prescaler of 1024 (maximum):
-        MCU frequency  1MHz    8MHz   16MHz
-        timer cycle    1024탎  128탎  64탎
+        MCU frequency  1MHz    8MHz   16MHz  20MHz
+        timer cycle    1024탎  128탎  64탎   51.2탎
 
       We don't compensate the binary to decimal offset and also not the time
       required for the processing loop, because it would make things much more
@@ -125,12 +107,18 @@ void MilliSleep(uint16_t Time)
    */
 
   TCCR2B = 0;                      /* disable timer */
+  TCNT2 = 0;                       /* set counter to 0 */
   TCCR2A = (1 << WGM21);           /* set CTC mode */
-  TIMSK2 = (1 << OCIE2A);          /* enable interrupt for OCR0A match */
+  TIMSK2 = (1 << OCIE2A);          /* enable interrupt for OCR2A match */
 
   set_sleep_mode(Mode);            /* set sleep mode */
-  if (SREG & SREG_I) Flag = 1;     /* check if interrupts are enabled already */
-  sei();                           /* enable interrupts */
+
+  if (SREG & (1 << SREG_I))        /* interrupts are enabled already */
+  {
+    Flag = 1;                      /* keep that in mind */
+  }
+
+  sei();                           /* enable interrupts anyway */
 
 
   /*
@@ -142,27 +130,63 @@ void MilliSleep(uint16_t Time)
   {
     wdt_reset();              /* reset watchdog */
 
-    /* get timeout */
-    if (Cycles > 255) Timeout = 255;
-    else Timeout = Cycles;
-    Cycles -= Timeout;
-    Timeout--;                     /* interrupt is triggered by cycle after match */
+    /*
+     *  manage timeout
+     */
+
+    if (Cycles > 255)         /* prevent 8 bit overflow */
+    {
+      Timeout = 255;          /* use maximum */
+    }
+    else                      /* within 8 bit range */
+    {
+      Timeout = (uint8_t)Cycles;
+    }
+
+    Cycles -= Timeout;        /* update counter */
+    Timeout--;                /* interrupt is triggered by cycle after match */
     /* todo: what happens if Timeout is 0? */
 
     /* update timer */
-    TCNT2 = 0;                     /* set counter to 0 */
-    OCR2A = Timeout;               /* set value to compare with (timeout) */
+    OCR2A = Timeout;               /* set compare value (timeout) */
 
-    /* sleep */
+    /*
+     *  sleep
+     *  - since any interrupt would wake up the MCU we have to make sure
+     *    that we track the right interrupt
+     */
+
     /* enable timer by setting clock prescaler to 1024 */
     TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
 
-    sleep_mode();                            /* and sleep */    
-
-    /* after wakeup */
+    while (TCCR2B != 0)       /* as long as Timer2 is running */
+    {
+      sleep_mode();                     /* sleep (again) */    
+      /* woken up */
+    }
   }
 
-  if (Flag == 0) cli();            /* disable interrupts */
+  if (Flag == 0)              /* we should disable interrupts */
+  {
+    cli();                    /* disable interrupts */
+  }
+}
+
+
+
+/*
+ *  ISR for match of Timer2's OCR2A (Output Compare Register A)
+ */
+
+ISR(TIMER2_COMPA_vect, ISR_BLOCK)
+{
+  /*
+   *  hints:
+   *  - the OCF2A interrupt flag is cleared automatically
+   *  - interrupt processing is disabled while this ISR runs
+   */
+
+  TCCR2B = 0;                 /* disable Timer2 */
 }
 
 

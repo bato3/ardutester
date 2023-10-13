@@ -2,7 +2,7 @@
  *
  *   HD44780 compatible character display
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -103,6 +103,7 @@
 /*
  *  function set
  */
+
 #define CMD_FUNCTION_SET      0x20    /* function set */
 
 #define FLAG_INTERFACE_4BIT   0b00000000     /* enable 4 bit data interface */

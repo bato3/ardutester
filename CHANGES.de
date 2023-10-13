@@ -2,13 +2,29 @@
 
                    Änderungen der Component Tester Firmware
 
-                                Trendy Edition
-
            für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
 
-                        (c) 2012-2016 by Markus Reschke
+                        (c) 2012-2017 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.27m 2017-02
+- GetLeakageCurrent() um Hochstrommessung für CLDs erweitert. Dank an
+  texaspyro@EEVblog für ein paar Testdioden.
+- Fehler in MilliSleep() beseitigt.
+- Problem mit großer Induktivität in Diodenerkennung beseitigt.
+- Kompensation für Induktivitätsmessung im mH-Bereich.
+- Unterstützung für PCF8574 basierte LCD-Adapter in Treiber für HD44780.
+- Treiber für bit-bang und Hardware I2C.
+- Fehler in der Handhabung der variablen Pinbelegung für HD44780 basierte
+  LCD-Module beseitigt.
+- Farbiges Pinout für mehrere Menüfunktionen.
+- Prüffunktion für Modellbau-Servos.
+- Alternativer PWM-Generator mit variabler Frequenz und Pulsweite. Benötigt
+  Drehencoder und größeres Display. 
+- Ausgabe von R_DS für MOSFETs und Vf der intrinsischen Diode.
+- Unterstützung für festes IR-Empfängermodul in IR-Detektor/Dekoder.
+- Edition im Namen entfernt, da die Classic Edition inzwischen veraltet ist.
 
 v1.26m 2016-12
 - Kompensation für Induktivitätsmessung eingebaut (benötigt weitere Arbeit).

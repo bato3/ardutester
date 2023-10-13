@@ -66,7 +66,7 @@
     const unsigned char Contrast_str[] EEMEM = "Contraste";
   #endif
 
-  #ifdef SW_IR_RECEIVER
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_Detector_str[] EEMEM = "Detector IR";
   #endif
 
@@ -78,6 +78,11 @@
 
   #ifdef SW_UJT
     const unsigned char UJT_str[] EEMEM = "Trans. UJT";
+  #endif
+
+  #ifdef SW_SERVO
+    const unsigned char Servo_str[] EEMEM = "Servo";
+    const unsigned char Sweep_str[] EEMEM = "<->";
   #endif
 
 #endif

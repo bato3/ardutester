@@ -479,17 +479,53 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
       R_total += (R_LOW * 10);
       Factor += (R_LOW * 10);
 
-      /* compensation offset for U_ref */
-      #if CPU_FREQ >= 16000000
-        Offset = 35;
-      #else
-        Offset = -5;
+      /*
+       *  compensation offset for U_ref
+       *  - positive/larger offset -> lower L
+       *  - negative/lower offset -> higher L
+       */
+
+      #if CPU_FREQ == 8000000
+      /* 8 MHz */
+      if (Time1 < 6000)       /* < 6µs / < 18mH */
+      {
+        Offset = 38;
+      }
+      else if (Time1 < 9500) /* 6-9.5µs / 18-27mH */
+      {
+        Offset = -10;
+      }
+      else                    /* > 9.5µs / > 27mH */
+      {
+        Offset = 20;
+      }
+      #endif
+
+      #if (CPU_FREQ == 16000000) || (CPU_FREQ == 20000000)
+      /* 16 & 20 MHz */
+      if (Time1 < 6000)       /* < 6µs / < 18mH */
+      {
+        Offset = 80;
+      }
+      else if (Time1 < 12500) /* 6-12.5µs / 18-33mH */
+      {
+        Offset = 45;
+      }
+      else                    /* > 12.5µs / > 33mH */
+      {
+        Offset = 55;
+      }
       #endif
     }
     else                           /* high current measurement mode */
     {
-      /* compensation offset for U_ref */
-      Temp = (uint16_t)Time1;
+      /*
+       *  compensation offset for U_ref
+       *  - positive/larger offset -> lower L
+       *  - negative/lower offset -> higher L
+       */
+
+      Temp = (uint16_t)Time1;      /* time < 50µs expected */
 
       #if CPU_FREQ == 8000000
       /* 8 MHz */
@@ -497,7 +533,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
       {
         Offset = -10;
       }
-      else if (Temp < 5000)   /* 1.5 - 5µs / 100 - 330µH */
+      else if (Temp < 5000)   /* 1.5-5µs / 100-330µH */
       {
         Offset = -5; 
       }
@@ -513,7 +549,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
       {
         Offset = 10;
       }
-      else if (Temp < 5000)   /* 1.5 - 5µs / 100 - 330µH */
+      else if (Temp < 5000)   /* 1.5-5µs / 100-330µH */
       {
         Offset = -5; 
       }
@@ -529,7 +565,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
       {
         Offset = 10;
       }
-      else if (Temp < 5000)   /* 1.5 - 5µs / 100 - 330µH */
+      else if (Temp < 5000)   /* 1.5-5µs / 100-330µH */
       {
         Offset = -20; 
       }

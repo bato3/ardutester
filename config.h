@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -96,11 +96,21 @@
 /*
  *  frequency counter
  *  - default pin: T0 (PD4 ATmega 328)
- *  - in parallel with LCD module
+ *  - might be in parallel with LCD module
  *  - uncomment to enable
  */
 
 //#define HW_FREQ_COUNTER
+
+
+/*
+ *  fixed IR remote control detection/decoder
+ *  - requires IR receiver module, e.g. TSOP series
+ *  - module is connected to fixed I/O pin
+ *  - uncomment to enable
+ */
+
+//#define HW_IR_RECEIVER
 
 
 /*
@@ -120,17 +130,41 @@
 
 
 
+/*
+ *  I2C bus
+ *  - might be required by some hardware
+ *  - for bit-bang I2C port and pins see config_<MCU>.h
+ *  - hardware I2C (TWI) uses the proper pins automatically
+ *  - uncomment either I2C_BITBANG or I2C_HARDWARE to enable
+ */
+
+//#define I2C_BITBANG                /* bit-bang I2C */
+//#define I2C_HARDWARE               /* MCU's hardware TWI */
+#define I2C_STANDARD_MODE          /* 100kHz bus speed */
+//#define I2C_FAST_MODE              /* 400kHz bus speed */
+
+
+
 /* ************************************************************************
  *   software options
  * ************************************************************************ */
 
 
 /*
- *  PWM generator
+ *  PWM generator with simple user interface
  *  - uncomment to enable
  */
 
-#define SW_PWM
+#define SW_PWM_SIMPLE
+
+
+/*
+ *  PWM generator with fancy user interface
+ *  - requires rotary encoder and display with more than 2 text lines
+ *  - uncomment to enable
+ */
+
+//#define SW_PWM_PLUS
 
 
 /*
@@ -154,7 +188,7 @@
  *  - uncomment to enable
  */
 
-#define SW_ENCODER
+//#define SW_ENCODER
 
 
 /*
@@ -169,6 +203,7 @@
 /*
  *  IR remote control detection/decoder
  *  - requires IR receiver module, e.g. TSOP series
+ *  - module will be connected to probe leads
  *  - uncomment to enable
  */
 
@@ -203,11 +238,21 @@
 
 /*
  *  color coding for probes
+ *  - requires color graphics LCD
  *  - uncomment to enable
  *  - edit colors.h to select correct probe colors
  */
 
 #define SW_PROBE_COLORS
+
+
+/*
+ *  Servo Check
+ *  - requires rotary encoder and display with more than 2 text lines
+ *  - uncomment to enable
+ */
+
+//#define SW_SERVO
 
 
 
@@ -522,6 +567,13 @@
 #define MCU_CYCLES_PER_ADC    (CPU_FREQ / ADC_FREQ)
 
 
+/*
+ *  time of a MCU cycle (in 0.1 ns)
+ */
+
+#define MCU_CYCLE_TIME        (10000 / (CPU_FREQ / 1000000))
+
+
 
 /* ************************************************************************
  *   ressource management
@@ -532,10 +584,33 @@
  *  software options
  */
 
+/* PWM+ requires rotary encoder */
+#ifdef SW_PWM_PLUS
+  #ifndef HW_ENCODER
+    #undef SW_PWM_PLUS
+    #define SW_PWM_SIMPLE
+  #endif
+#endif
+
 /* squarewave generator requires rotary encoder */
 #ifdef SW_SQUAREWAVE
   #ifndef HW_ENCODER
     #undef SW_SQUAREWAVE
+  #endif
+#endif
+
+/* IR detector/decoder (probe lead based decoder prevails) */
+#ifdef SW_IR_RECEIVER
+  #undef HW_IR_RECEIVER
+#endif
+#ifdef HW_IR_RECEIVER
+  #undef SW_IR_RECEIVER
+#endif
+
+/* Servo Check requires rotary encoder */
+#ifdef SW_SERVO
+  #ifndef HW_ENCODER
+    #undef SW_SERVO
   #endif
 #endif
 
@@ -554,8 +629,13 @@
 #endif
 
 /* component symbols for fancy pinout */
-#if defined (SYMBOLS_24X24_VP) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_32X32_H)
+#if defined (SYMBOLS_24X24_VP) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_30X32_H) || defined (SYMBOLS_32X32_H)
   #define SW_SYMBOLS
+#endif
+
+/* I2C */
+#if defined (I2C_BITBANG) || defined (I2C_HARDWARE)
+  #define HW_I2C
 #endif
 
 /* touchscreen */

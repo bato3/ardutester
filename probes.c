@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -659,7 +659,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   /*
    *  Check for a resistor (or another one)
    *  - if no other component is found yet
-   *  - if we've got already a resistor
+   *  - if we've got a resistor already 
    */
 
   if ((Check.Found == COMP_NONE) ||
@@ -732,6 +732,11 @@ void CheckAlternatives(void)
     Check.Symbol = Check.AltSymbol;
     #endif
   }
+
+
+  /*
+   *  add other special checks here
+   */
 }
 
 

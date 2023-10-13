@@ -2,7 +2,7 @@
  *
  *   IR remote control functions
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -26,7 +26,7 @@
 #include "functions.h"        /* external functions */
 
 
-#ifdef SW_IR_RECEIVER
+#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
 
 
 /*
@@ -1271,31 +1271,49 @@ void IR_Detector(void)
   LCD_Clear();
   LCD_EEString(IR_Detector_str);        /* display: IR detector */
   LCD_NextLine_Mode(MODE_KEEP);         /* line mode: keep first line */
-  LCD_NextLine_EEString(IR_Probes_str); /* display pinout */
-
-  #ifdef SW_IR_DISABLE_RESISTOR
-  /* unsafe mode without current limiting resistor for Vs */
-  /* set probes: probe-1 -- Gnd / probe-2 -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
-  ADC_PORT = (1 << TP2);                /* pull down probe-1, pull up probe-2 */
-  ADC_DDR = (1 << TP1) | (1 << TP2);    /* enable direct pull down/up */
-  R_DDR = (1 << R_RH_3);                /* enable Rh for probe-3 */
-  R_PORT = 0;                           /* pull down probe-3 */
-  #else
-  /* safe mode with current limiting resistor for Vs */
-  /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
-  ADC_PORT = 0;                         /* pull down directly: */
-  ADC_DDR = (1 << TP1);                 /* probe-1 */
-  /* pull up probe-2 via Rl, pull down probe-3 via Rh */
-  R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
-  R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
+  #ifdef SW_IR_RECEIVER
+    /* display module pinout (1: Gnd / 2: Vcc / 3: Data) */
+    LCD_NextLine();
+    Show_SimplePinout('-', '+', 'd');
   #endif
 
+  /*
+   *  setup module
+   */
+
+  #ifdef SW_IR_RECEIVER
+    #ifdef SW_IR_DISABLE_RESISTOR
+    /* unsafe mode without current limiting resistor for Vs */
+    /* set probes: probe-1 -- Gnd / probe-2 -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
+    ADC_PORT = (1 << TP2);                /* pull down probe-1, pull up probe-2 */
+    ADC_DDR = (1 << TP1) | (1 << TP2);    /* enable direct pull down/up */
+    R_DDR = (1 << R_RH_3);                /* enable Rh for probe-3 */
+    R_PORT = 0;                           /* pull down probe-3 */
+    #else
+    /* safe mode with current limiting resistor for Vs */
+    /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
+    ADC_PORT = 0;                         /* pull down directly: */
+    ADC_DDR = (1 << TP1);                 /* probe-1 */
+    /* pull up probe-2 via Rl, pull down probe-3 via Rh */
+    R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
+    R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
+    #endif
+  #endif
+
+  #ifdef HW_IR_RECEIVER
+    /* set data pin to input mode */
+    IR_DDR &= ~(1 << IR_DATA);          /* clear bit for data pin */
+  #endif
 
   /* wait for IR receiver module or key press */
   n = 1;
   while (n)
   {
+    #ifdef SW_IR_RECEIVER
     if (ADC_PIN & (1 << TP3))           /* check for high level */
+    #else
+    if (IR_PIN & (1 << IR_DATA))        /* check for high level */
+    #endif
     {
       n = 0;                            /* end this loop */
     }
@@ -1334,7 +1352,11 @@ void IR_Detector(void)
   while (Run > 0)
   {
     /* data logic is inverted by IR receiver */
+    #ifdef SW_IR_RECEIVER
     Flag = ADC_PIN & (1 << TP3);       /* poll data pin */
+    #else
+    Flag = IR_PIN & (1 << IR_DATA);    /* poll data pin */
+    #endif
 
     if (Run == 1)             /* wait for IR */
     {

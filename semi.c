@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -36,21 +36,25 @@
 /*
  *  measure leakage current
  *  - current through a semiconducter in non-conducting mode
+ *  - result is stored in Semi.I_value & I.scale
  *
- *  returns:
- *  - leakage current in 10nA
+ *  requires:
+ *  - mode:
+ *    0 = normal
+ *    1 = high current
  */
 
-uint32_t GetLeakageCurrent(void)
+void GetLeakageCurrent(uint8_t Mode)
 {
-  uint32_t               I_leak;        /* return value */
+  int8_t                 Scale;         /* exponent of factor (value * 10^x) */
+  uint32_t               Value;         /* current */
   uint32_t               R_Shunt;       /* shunt resistor */
   uint16_t               U_Rl;          /* voltage at Rl */
+
 
   /*
    *  set up probes:
    *  - use Rl as current shunt
-   *    with 1mV ADC resolution we get down to 1.4µA
    *  - probe-1 = pos / probe-2 = neg / probe-3 = HiZ
    *    Diode:    probe-1 = cathode /  probe-2 = anode
    *    NPN BJT:  probe-1 = collector / probe-2 = emitter
@@ -67,9 +71,35 @@ uint32_t GetLeakageCurrent(void)
   if (U_Rl > 3)          /* > 5µA */
   {
     /* consider internal resistance of MCU */
-    R_Shunt = (uint32_t)NV.RiL + (R_LOW * 10);    /* (0.1 Ohms) */
-    R_Shunt += 5;                    /* for rounding */
-    R_Shunt /= 10;                   /* scale to Ohms */
+    R_Shunt = (uint32_t)NV.RiL;         /* in 0.1 Ohms */
+    Scale = -7;                         /* 100n */
+
+    if ((U_Rl > 1400) && (Mode == 1))   /* > 2mA */
+    {
+      /*
+       *  for high currents take second measurement using RiL:
+       *  - only if high current mode is enabled
+       *  - with 1mV ADC resolution we get down to 50µA
+       *  - max. current is 5V/40Ohms = 125mA
+       *  - set probes: Gnd -- probe-2 / probe-1 -- Vcc
+       */
+
+      R_DDR = 0;                        /* disable resistors */
+      /* pull down probe-2 directly */
+      ADC_DDR = Probes.Pin_1 | Probes.Pin_2;
+      U_Rl = ReadU(Probes.ADC_2);       /* get voltage at RiL */
+    }
+    else                                /* keep measurement */
+    {
+      /*
+       *  Rl:
+       *  - with 1mV ADC resolution we get down to 1.4µA
+       *  - max. current is 5V/720Ohms = 7mA
+       */
+
+      /* add Rl */
+      R_Shunt += (R_LOW * 10);          /* in 0.1 Ohms */
+    }
   }
   else                   /* < 5µA */
   {
@@ -84,12 +114,9 @@ uint32_t GetLeakageCurrent(void)
     U_Rl = ReadU_5ms(Probes.ADC_2);     /* get voltage at Rh */
 
     /* neglect MCU's internal resistance */
-    R_Shunt = R_HIGH;                   /* shunt (in Ohms) */
+    R_Shunt =  R_HIGH;
+    Scale = -8;                    /* 10n */
   }
-
-  /* calculate current */
-  I_leak = U_Rl * 100000;          /* scale voltage to 10nV */
-  I_leak /= R_Shunt;               /* I = U/R in 10nA */
 
   /* clean up */
   ADC_DDR = 0;           /* set ADC port to HiZ mode */
@@ -97,7 +124,13 @@ uint32_t GetLeakageCurrent(void)
   R_DDR = 0;             /* set resistor port to HiZ mode */
   R_PORT = 0;            /* set resistor port low */
 
-  return I_leak;
+  /* calculate current */
+  Value = U_Rl * 100000;           /* scale voltage to 10nV */
+  Value /= R_Shunt;                /* I = U/R */
+
+  /* save result */
+  Semi.I_value = Value;
+  Semi.I_scale = Scale;
 }
 
 
@@ -173,7 +206,7 @@ void CheckDiode(void)
    *  - simple diode
    *  - intrinsic diode of a MOSFET or another component
    *  - flyback diode of a BJT
-   *  - small resistor (< 3k)
+   *  - small resistor (< 3k) or inductor
    *  - capacitor (> around 22µF)
    *
    *  Solution:
@@ -253,7 +286,15 @@ void CheckDiode(void)
   R_DDR = Probes.Rh_2;                  /* enable Rh for probe-2 */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate */
   U2_Rh = ReadU_5ms(Probes.ADC_1);      /* get voltage at anode */
-  U2_Rh -= ReadU(Probes.ADC_2);         /* substract voltage at cathode */
+  U_Diff = ReadU(Probes.ADC_2);         /* get voltage at cathode */
+  if (U2_Rh >= U_Diff)                  /* prevent underrun */
+  {
+    U2_Rh -= U_Diff;                    /* V_f = U_Anode - U_Cathode */
+  }
+  else                                  /* maybe large inductance */
+  {
+    U2_Rh = 0;                          /* simply zero */
+  }
 
   /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
   R_DDR = Probes.Rl_2;                  /* pull down cathode via Rl */
@@ -276,7 +317,7 @@ void CheckDiode(void)
     U2_Rh = U1_Rh;
     U2_Zero = U1_Zero;
   }
-  else
+  else                        /* keep 2nd data set */
   {
     U_Diff = U2_Rl - U1_Rl;   /* difference of U_Rls */
   }
@@ -319,7 +360,7 @@ void CheckDiode(void)
   }
   else
   {
-    U_Diff = U2_Zero - U2_Rh;
+    U_Diff = U2_Zero - U2_Rh;      /* calculate difference */
   }
 
   if ((U2_Zero > 2) && (U_Diff < 100)) return;    /* capacitor */
@@ -373,6 +414,7 @@ void CheckDiode(void)
         (Check.Found == COMP_RESISTOR))
     {
       Check.Found = COMP_DIODE;
+      /* Check.Type = TYPE_STANDARD; */
       /* we don't set Comp.Done in case we'll find something different */
     }
 
@@ -384,8 +426,6 @@ void CheckDiode(void)
     Diode->V_f2 = U2_Rh;      /* Vf for low measurement current */
     Check.Diodes++;
   }
-
-  #undef RESISTOR_LIMIT
 }
 
 
@@ -417,7 +457,7 @@ void VerifyMOSFET(void)
     Cathode = Semi.C;    /* cathode at source */
   }
 
-  /* serach for a diode with reversed polarity */
+  /* search for a diode with reversed polarity */
   Diode = SearchDiode(Cathode, Anode);  /* search for reversed diode */
   if (Diode != NULL)                    /* got it */
   {
@@ -811,12 +851,10 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
 
     if (hFE_E > Semi.F_1)
     {
-      /* leakage current */
-      hFE_C = GetLeakageCurrent();      /* get leakage current (in 10nA) */
+      GetLeakageCurrent(0);             /* get leakage current */
 
       /* save data */
       Semi.F_1 = hFE_E;                 /* hFE */
-      Semi.F_2 = hFE_C;                 /* leakage current (in 10nA) */
       Semi.C_value = Caps[0].Value;     /* E-B capacitance */
       Semi.C_scale = Caps[0].Scale;
       Semi.A = Probes.ID_3;             /* base pin */
@@ -866,18 +904,47 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
       Check.Found = COMP_FET;
       Check.Type = FET_Type | TYPE_ENHANCEMENT | TYPE_MOSFET;
 
-      /* measuring R_DS_on makes only sense for logic-level types */
+      /* 
+       *  get R_DS_on:
+       *  - R = U / I
+       *    for n-ch:
+       *      U = U_DS = U_D - U_S = FET_Level
+       *      I = U_Rl / Rl = (5V - U_D) / Rl = U_R_c / Rl
+       *    for p-ch:
+       *      U = U_SD = U_S - U_D = FET_Level
+       *      I = U_Rl / Rl = U_D / Rl = U_R_c / Rl
+       *  -> R_DS_on = FET_Level * Rl / U_R_c
+       */
 
-      #ifdef SW_SYMBOLS
+      BJT_Level = R_LOW * 10;                /* Rl in 0.1 Ohms */
+
       if (FET_Type == TYPE_N_CHANNEL)        /* n-channel */
       {
+        BJT_Level += NV.RiH;                 /* Rl + RiH (0.1 Ohms) */
+
+        #ifdef SW_SYMBOLS
         Check.Symbol = SYMBOL_MOSFET_ENH_N;  /* set symbol ID */
+        #endif
       }
       else                                   /* p-channel */
       {
+        BJT_Level += NV.RiL;                 /* Rl + RiL (0.1 Ohms) */
+
+        #ifdef SW_SYMBOLS
         Check.Symbol = SYMBOL_MOSFET_ENH_P;  /* set symbol ID */
+        #endif
       }
-      #endif
+
+      FET_Level *= 10;                            /* scale to 0.1 mV */
+      hFE_C = (uint32_t)FET_Level * BJT_Level;    /* U_DS * Rl (0.1 Ohms * 0.1 mV) */
+      hFE_C /= U_R_c;                             /* / U_Rl (0.01 Ohms) */
+      FET_Level = (uint16_t)hFE_C;                /* todo: check for upper limit */
+
+      /* offset */
+      if (FET_Level > NV.RZero) FET_Level -= NV.RZero;
+      else FET_Level = 0;
+
+      Semi.U_1 = FET_Level;                  /* save R_DS_on (0.01 Ohms) */
     }
     else                      /* IGBT */
     {
@@ -940,7 +1007,6 @@ void CheckDepletionModeFET(uint16_t U_Rl)
   uint16_t          U_3;           /* voltage #3 */
   uint16_t          Diff_1 = 0;    /* voltage difference #1 */
   uint16_t          Diff_2 = 0;    /* voltage difference #2 */
-  uint32_t          Value;
   uint8_t           Flag = 0;      /* control and signal flag */
 
 
@@ -1263,9 +1329,9 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     }
 
     /* I = U / R_sense */
-    Value = (uint32_t)U_1 * 10000;      /* U (0.1 µV) */
-    Value /= U_2;                       /* I = U / R (µA) */
-    Semi.I_1 = (uint16_t)Value;         /* save I_DSS (µA) */
+    Semi.I_value = (uint32_t)U_1 * 10000;    /* U (0.1 µV) */
+    Semi.I_value /= U_2;                     /* I = U / R (µA) */
+    Semi.I_scale = -6;                       /* µA */
   }
 }
 
@@ -1404,9 +1470,9 @@ uint8_t CheckThyristorTriac(void)
            *  the one with the higher voltage at MT2.
            */
 
-          if (U_1 > Semi.I_1)      /* first run or higher current */
+          if (U_1 > (uint16_t)Semi.F_1)      /* first run or higher current */
           {
-            Semi.I_1 = U_1;        /* update reference value */
+            Semi.F_1 = U_1;        /* update reference value */
             Flag = 2;              /* save data and signal success */
           }
           else                     /* wrong pinout */

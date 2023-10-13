@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -170,7 +170,7 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
-#ifdef SW_SQUAREWAVE
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
 
 /*
  *  display unsigned value
@@ -555,6 +555,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
           Counter++;                        /* increase counter */
           if (Counter > 26) Run = 0;        /* end loop if 300ms are reached */
           else MilliSleep(10);              /* otherwise wait 10ms */
+
         }
         else                                      /* key released */
         {
@@ -1080,7 +1081,7 @@ void AdjustmentMenu(uint8_t Mode)
 
 uint8_t PresentMainMenu(void)
 {
-  #define MENU_ITEMS  15
+  #define MENU_ITEMS  16
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1093,7 +1094,7 @@ uint8_t PresentMainMenu(void)
    */
 
   /* extra items */
-  #ifdef SW_PWM
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
   MenuItem[Item] = (void *)PWM_str;          /* PWM tool */
   MenuID[Item] = 6;
   Item++;
@@ -1136,6 +1137,11 @@ uint8_t PresentMainMenu(void)
   #ifdef SW_OPTO_COUPLER
   MenuItem[Item] = (void *)OptoCoupler_str;  /* opto coupler tool */
   MenuID[Item] = 14;
+  Item++;
+  #endif
+  #ifdef SW_SERVO
+  MenuItem[Item] = (void *)Servo_str;        /* servo check */
+  MenuID[Item] = 15;
   Item++;
   #endif
 
@@ -1184,7 +1190,7 @@ void MainMenu(void)
 {
   uint8_t           ID;                 /* ID of selected item */
   uint8_t           Flag = 1;           /* control flag */
-  #ifdef SW_PWM
+  #ifdef SW_PWM_SIMPLE
   uint16_t          Frequency;          /* PWM frequency */  
   #endif
 
@@ -1215,8 +1221,8 @@ void MainMenu(void)
       ShowAdjust();
       break;
 
-    #ifdef SW_PWM
-    case 6:              /* PWM tool */
+    #ifdef SW_PWM_SIMPLE
+    case 6:              /* PWM tool with simple UI */
       /* run PWM menu */
       LCD_Clear();
       LCD_EEString(PWM_str);
@@ -1226,10 +1232,16 @@ void MainMenu(void)
       break;
     #endif
 
+    #ifdef SW_PWM_PLUS
+    case 6:              /* PWM tool with improved UI */
+      PWM_Tool();
+      break;
+    #endif
+
     #ifdef SW_SQUAREWAVE
     case 7:              /* square wave signal generator */
       SquareWave_SignalGenerator();
-      break;   
+      break;
     #endif
 
     #ifdef HW_ZENER
@@ -1271,6 +1283,12 @@ void MainMenu(void)
     #ifdef SW_OPTO_COUPLER
     case 14:             /* opto coupler tool */
       OptoCoupler_Tool();
+      break;
+    #endif
+
+    #ifdef SW_SERVO
+    case 15:             /* servo check */
+      Servo_Check();
       break;
     #endif
   }

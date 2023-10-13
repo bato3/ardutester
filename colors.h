@@ -25,6 +25,7 @@
   #define COLOR_MAGENTA       0xf81f
   #define COLOR_YELLOW        0xffe0
   #define COLOR_ORANGE        0xfd20
+  #define COLOR_GREY          0xc618
   #define COLOR_WHITE         0xffff
 #endif
 
@@ -39,6 +40,7 @@
   #define COLOR_MAGENTA       0xf81f
   #define COLOR_YELLOW        0xffe0
   #define COLOR_ORANGE        0xfd20
+  #define COLOR_GREY          0xc618
   #define COLOR_WHITE         0xffff
 #endif
 
@@ -56,7 +58,7 @@
 #define COLOR_PEN             COLOR_GREEN
 
 /* title color */
-#define COLOR_TITLE           COLOR_BLUE
+#define COLOR_TITLE           COLOR_CYAN
 
 /* symbol color */
 #define COLOR_SYMBOL          COLOR_YELLOW

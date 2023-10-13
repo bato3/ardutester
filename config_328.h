@@ -2,7 +2,7 @@
  *
  *   ATmega 328 specific global configuration, setup and settings
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -51,6 +51,36 @@
 #define LCD_CHAR_Y       2              /* number of lines */
 #define FONT_HD44780_INT                /* internal 5x7 font, international */
 #endif
+
+
+
+/*
+ *  HD44780, PCF8574 based I2C backpack
+ *  - if you change LCD_DB4/5/6/7 comment out LCD_DB_STD!
+ *  - don't forget to enable I2C in config.h
+ *  - for I2C port and pins see section "bit-bang I2C"
+ *  - PCF8574T is 0x27, PCF8574AT is 0x3f
+ */
+
+#if 0
+#define LCD_HD44780
+#define LCD_TEXT                        /* character display */
+#define LCD_PCF8574                     /* PCF8574 backpack */
+#define LCD_I2C_ADDR     0x3f           /* PCF8574's I2C address */
+#define LCD_DB_STD                      /* use standard pins 4-7 for DB4-7 */
+#define LCD_DB4          PCF8574_P4     /* port pin used for DB4 */
+#define LCD_DB5          PCF8574_P5     /* port pin used for DB5 */
+#define LCD_DB6          PCF8574_P6     /* port pin used for DB6 */
+#define LCD_DB7          PCF8574_P7     /* port pin used for DB7 */
+#define LCD_RS           PCF8574_P0     /* port pin used for RS */
+#define LCD_RW           PCF8574_P1     /* port pin used for RW */
+#define LCD_EN1          PCF8574_P2     /* port pin used for E */
+#define LCD_LED          PCF8574_P3     /* port pin used for backlight */
+#define LCD_CHAR_X       16             /* characters per line */
+#define LCD_CHAR_Y       2              /* number of lines */
+#define FONT_HD44780_INT                /* internal 5x7 font, international */
+#endif
+
 
 
 /*
@@ -131,7 +161,7 @@
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
 #define FONT_10X16_H                    /* 10x16 font, horizontally aligned */
-#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizontally aligned */
+#define SYMBOLS_30X32_H                 /* 30x32 symbols, horizontally aligned */
 #endif
 
 
@@ -163,7 +193,7 @@
  *  check if a LCD module is specified
  */
 
-#ifndef LCD_PORT
+#if !defined(LCD_TEXT) && !defined(LCD_GRAPHIC) && !defined(LCD_COLOR)
   #error <<< No LCD module specified! >>>
 #endif
 
@@ -235,9 +265,32 @@
  *  - must be pin PD4/T0
  */
 
-#define COUNTER_PORT     PORTD     /* port data register */ 
+#define COUNTER_PORT     PORTD     /* port data register */
 #define COUNTER_DDR      DDRD      /* port data direction register */
 #define COUNTER_IN       PD4       /* signal input T0 */
+
+
+/*
+ *  IR detector/decoder
+ *  - fixed module
+ */
+
+#define IR_PORT          PORTC     /* port data register */
+#define IR_DDR           DDRC      /* port data direction register */
+#define IR_PIN           PINC      /* port input pins register */
+#define IR_DATA          PC6       /* data signal */
+
+
+/*
+ *  bit-bang I2C
+ *  - hardware I2C (TWI) uses PC4 & PC5 automatically
+ */
+
+#define I2C_PORT         PORTD     /* port data register */
+#define I2C_DDR          DDRD      /* port data direction register */
+#define I2C_PIN          PIND      /* port input pins register */
+#define I2C_SDA          PD0       /* pin for SDA */
+#define I2C_SCL          PD1       /* pin for SCL */
 
 
 
@@ -272,10 +325,10 @@
 #if defined(__AVR_ATmega328__)
 
   /* estimated internal resistance of port to GND (in 0.1 Ohms) */
-  #define R_MCU_LOW           200  /* 209 */
+  #define R_MCU_LOW           200
 
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
-  #define R_MCU_HIGH          220  /* 235 */
+  #define R_MCU_HIGH          220
 
   /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   0

@@ -109,8 +109,14 @@ start:
     NumOfDiodes = 0;
     PartReady = 0;
     PartMode = 0;
+    WithReference = 0; // no precision reference voltage
     lcd_clear();
     ADC_DDR = TXD_MSK; // activate Software-UART
+#ifdef AUTO_CAL
+    resis680pl = eeprom_read_word(&R680pl);
+    resis680mi = eeprom_read_word(&R680mi);
+#endif
+
 #ifdef R_MESS
     ResistorsFound = 0;
 #endif
@@ -121,38 +127,43 @@ start:
 #ifdef WITH_UART
     uart_newline(); // start of new measurement
 #endif
+    ADCconfig.RefFlag = 0;
+    ADCconfig.U_AVCC = U_VCC; // set initial VCC Voltage
+    ADCconfig.Samples = 190;  // set number of ADC samples near to max
+    ADC_PORT = TXD_VAL;
+    ADC_DDR = (1 << TPREF) | TXD_MSK; // switch pin with reference to GND
+    wait1ms();
+    ADC_DDR = TXD_MSK;                 // switch pin with reference back to input
+    trans.uBE[1] = W5msReadADC(TPREF); // read voltage of precision reference
+    if ((trans.uBE[1] > 2250) && (trans.uBE[1] < 2750))
+    {
+        // precision voltage reference connected, update U_AVCC
+        WithReference = 1;
+        ADCconfig.U_AVCC = (unsigned long)((unsigned long)ADCconfig.U_AVCC * 2495) / trans.uBE[1];
+    }
+    lcd_line1(); // 1. row
+
+#ifdef WITH_AUTO_REF
     (void)ReadADC(0x0e);         // read Reference-voltage
     ref_mv = W20msReadADC(0x0e); // read Reference-voltage
-#ifdef AUTOSCALE_ADC
-    scale_intref_adc(); // scale ADC to internal Reference
+#else
+    ref_mv = DEFAULT_BAND_GAP; // set to default Reference Voltage
 #endif
+    ADCconfig.U_Bandgap = ADC_internal_reference; // set internal reference voltage for ADC
+    ADCconfig.Samples = ANZ_MESS;                 // set to configured number of ADC samples
 
 #ifdef BAT_CHECK
     // Battery check is selected
-    ReadADC(5);                    // Dummy-Readout
-    trans.hfe[0] = W5msReadADC(5); // with 5V reference
-    lcd_line1();                   // 1. row
-    lcd_fix_string(Bat);           // output: "Bat. "
+    ReadADC(TPBAT);                    // Dummy-Readout
+    trans.uBE[0] = W5msReadADC(TPBAT); // with 5V reference
+    lcd_fix_string(Bat);               // output: "Bat. "
 #ifdef BAT_OUT
     // display Battery voltage
-    // The divisor to get the voltage in 0.1V units is ((100*33)/133) witch is about 24.812
-    // The result in integer is 24, which is about 3.3% to less.
-    // A better result can be get with multiply by 5 and divide by 124 (about 0.05%).
-    utoa((trans.hfe[0] * 5) / 124 + ((BAT_OUT + 50) / 100), outval, 10); // usually output only 2 digits
-    lcd_data(outval[0]);
-    if (strlen(outval) == 3)
-    {
-        lcd_data(outval[1]); // above 9,9V, 3 digits
-        lcd_data('.');
-        lcd_data(outval[2]);
-    }
-    else
-    {
-        lcd_data('.');
-        lcd_data(outval[1]);
-    }
-    lcd_data('V');
-    lcd_data(' ');
+    // The divisor to get the voltage in 0.01V units is ((10*33)/133) witch is about 2.4812
+    // A good result can be get with multiply by 4 and divide by 10 (about 0.75%).
+    cval = (trans.uBE[0] * 4) / 10 + ((BAT_OUT + 5) / 10); // usually output only 2 digits
+    DisplayValue(cval, -2, 'V', 2);                        // Display 2 Digits of this 10mV units
+    lcd_space();
 #endif
 #if (BAT_POOR > 52) && (BAT_POOR < 190)
 #define WARN_LEVEL (((unsigned long)(BAT_POOR * 100 + 1000) * (unsigned long)33) / 133)
@@ -163,10 +174,10 @@ start:
 #define POOR_LEVEL (((unsigned long)6300 * (unsigned long)33) / 133)
 #endif
     // check the battery voltage
-    if (trans.hfe[0] < WARN_LEVEL)
+    if (trans.uBE[0] < WARN_LEVEL)
     {
         // Vcc < 7,3V; show Warning
-        if (trans.hfe[0] < POOR_LEVEL)
+        if (trans.uBE[0] < POOR_LEVEL)
         {
             // Vcc <6,3V; no proper operation is possible
             lcd_fix_string(BatEmpty); // Battery empty!
@@ -181,7 +192,7 @@ start:
         lcd_fix_string(OK); // "OK"
     }
 #else
-    lcd_fix_string(VERSION); // if no Battery check, Version .. in row 1
+    lcd_fix_string(VERSION);   // if no Battery check, Version .. in row 1
 #endif
 #ifdef WDT_enabled
     wdt_enable(WDTO_2S); // Watchdog on
@@ -189,17 +200,23 @@ start:
 
 //  wait1s();			// add mor time for reading batterie voltage
 // begin tests
-#ifdef WITH_AUTO_REF
+#ifdef AUTO_RH
     RefVoltage(); // compute RHmultip = f(reference voltage)
 #endif
-    lcd_line2();                 // LCD position row2, column 1
+
+    lcd_line2(); // LCD position row2, column 1
+    if (WithReference)
+    {
+        DisplayValue(ADCconfig.U_AVCC, -3, 'V', 3); // Display 3 Digits of this mV units
+        lcd_space();
+    }
     lcd_fix_string(TestRunning); // String: testing...
 // #ifndef __AVR_ATmega8__
 #if 0
   // does not read temperature, looks like internal reference
-  trans.hfe[0] = ReadADC((1<<REFS1)|(1<<REFS0)|8); 	//read temperature sensor
-  lcd_data(' ');
-  lcd_string(itoa((int)(trans.hfe[0] - 289), outval, 10));	//output temperature
+  trans.uBE[0] = ReadADC((1<<REFS1)|(1<<REFS0)|8); 	//read temperature sensor
+  lcd_space();
+  lcd_string(itoa((int)(trans.uBE[0] - 289), outval, 10));	//output temperature
   lcd_data(LCD_CHAR_DEGREE);
   lcd_data('C');
 #endif
@@ -213,25 +230,33 @@ start:
     {
         lcd_clear();
         //    lcd_line1();
-        lcd_data('C');
-        lcd_data('e');
-        lcd_data('l');
-        lcd_data('l');
-        lcd_data('!');
+        lcd_fix_string(Cell_str); // display "Cell!"
         goto end2;
     }
 #endif
-#ifdef WITH_SELFTEST
+
+#ifdef CHECK_CALL
     AutoCheck(); // check, if selftest should be done
 #endif
 
     // check all 6 combinations for the 3 pins
+#if 0
+  CheckPins(TP1, TP2, TP3);
+  CheckPins(TP1, TP3, TP2);
+  CheckPins(TP2, TP1, TP3);
+  CheckPins(TP2, TP3, TP1);
+  CheckPins(TP3, TP2, TP1);
+  CheckPins(TP3, TP1, TP2);
+#else
     CheckPins(TP1, TP2, TP3);
-    CheckPins(TP1, TP3, TP2);
     CheckPins(TP2, TP1, TP3);
+
+    CheckPins(TP1, TP3, TP2);
+    CheckPins(TP3, TP1, TP2);
+
     CheckPins(TP2, TP3, TP1);
     CheckPins(TP3, TP2, TP1);
-    CheckPins(TP3, TP1, TP2);
+#endif
 
 #ifdef C_MESS
     // separate check if is is a capacitor
@@ -242,6 +267,10 @@ start:
         ReadCapacity(TP3, TP1);
         ReadCapacity(TP3, TP2);
         ReadCapacity(TP2, TP1);
+
+#if FLASHEND > 0x1fff
+        ReadInductance(); // measure inductance
+#endif
     }
 #endif
     // All checks are done, output result to display
@@ -259,7 +288,7 @@ start:
 #ifdef C_MESS
             lcd_fix_string(GateCap);                          //"C="
             ReadCapacity(diodes[0].Cathode, diodes[0].Anode); // Capacity opposite flow direction
-            lcd_show_format_cap();
+            DisplayValue(cval, cpre, 'F', 3);
 #endif
             goto end;
         }
@@ -343,19 +372,19 @@ start:
             lcd_testpin(diodes[0].Anode);
             lcd_data(':');
             lcd_testpin(diodes[0].Cathode);
-            lcd_data(' ');
+            lcd_space();
             lcd_string(utoa(diodes[0].Voltage, outval, 10));
-            lcd_data(' ');
+            lcd_space();
             lcd_testpin(diodes[1].Anode);
             lcd_data(':');
             lcd_testpin(diodes[1].Cathode);
-            lcd_data(' ');
+            lcd_space();
             lcd_string(utoa(diodes[1].Voltage, outval, 10));
             lcd_line4();
             lcd_testpin(diodes[2].Anode);
             lcd_data(':');
             lcd_testpin(diodes[2].Cathode);
-            lcd_data(' ');
+            lcd_space();
             lcd_string(utoa(diodes[2].Voltage, outval, 10));
             lcd_line1();
 #endif
@@ -376,18 +405,20 @@ start:
     }
     else if (PartFound == PART_TRANSISTOR)
     {
-        if (PartReady == 0)
+        if (PartReady != 0)
         {
-            // if never a second test is done, (Transistor with protection diode)
-            trans.hfe[1] = trans.hfe[0];
-        }
-        if ((trans.hfe[0] > trans.hfe[1]))
-        {
-            // if the amplification factor was higher at first testr: swap C and E !
-            trans.hfe[1] = trans.hfe[0];
-            tmp = trans.c;
-            trans.c = trans.e;
-            trans.e = tmp;
+            if ((trans.hfe[0] > trans.hfe[1]))
+            {
+                // if the amplification factor was higher at first testr: swap C and E !
+                tmp = trans.c;
+                trans.c = trans.e;
+                trans.e = tmp;
+            }
+            else
+            {
+                trans.hfe[0] = trans.hfe[1];
+                trans.uBE[0] = trans.uBE[1];
+            }
         }
 
         if (PartMode == PART_MODE_NPN)
@@ -415,19 +446,11 @@ start:
         lcd_testpin(trans.c);
         lcd_line2();            // 2. row
         lcd_fix_string(hfestr); //"B="  (hFE)
-        lcd_string(utoa(trans.hfe[1], outval, 10));
-        lcd_data(' ');
+        DisplayValue(trans.hfe[0], 0, 0, 3);
+        lcd_space();
 
-        for (trans.c = 0; trans.c < NumOfDiodes; trans.c++)
-        {
-            if (((diodes[trans.c].Cathode == trans.e) && (diodes[trans.c].Anode == trans.b) && (PartMode == PART_MODE_NPN)) ||
-                ((diodes[trans.c].Anode == trans.e) && (diodes[trans.c].Cathode == trans.b) && (PartMode == PART_MODE_PNP)))
-            {
-                lcd_fix_string(Uf); //"Uf="
-                mVAusgabe(trans.c); // output: xxxxmV
-                goto end;
-            }
-        }
+        lcd_fix_string(Uf); //"Uf="
+        DisplayValue(trans.uBE[0], -3, 'V', 3);
         goto end;
         // end (PartFound == PART_TRANSISTOR)
     }
@@ -436,59 +459,66 @@ start:
         if (PartMode & 1)
         {
             // N-Kanal
-            lcd_data('N');
+            lcd_data('P'); // P-channel
         }
         else
         {
-            lcd_data('P'); // P-Kanal
+            lcd_data('N'); // N-channel
         }
         lcd_data('-');
-        if ((PartMode == PART_MODE_N_D_MOS) || (PartMode == PART_MODE_P_D_MOS))
+
+        tmp = PartMode / 2;
+        if (tmp == (PART_MODE_N_D_MOS / 2))
         {
-            lcd_data('D');          // N-D
-            lcd_fix_string(mosfet); //"-MOS "
+            lcd_data('D'); // N-D
+        }
+        if (tmp == (PART_MODE_N_E_MOS / 2))
+        {
+            lcd_data('E'); // N-E
+        }
+        if (tmp == (PART_MODE_N_JFET / 2))
+        {
+            lcd_fix_string(jfet); //"JFET"
         }
         else
         {
-            if ((PartMode == PART_MODE_N_JFET) || (PartMode == PART_MODE_P_JFET))
-            {
-                lcd_fix_string(jfet); //"-JFET"
-            }
-            else
-            {
-                lcd_data('E');          // -E
-                lcd_fix_string(mosfet); //"-MOS "
-            }
+            lcd_fix_string(mosfet); //"-MOS "
         }
-#ifdef C_MESS // Gate capacity
-        if (PartMode < 3)
-        {                                   // enhancement-MOSFET
-            lcd_fix_string(GateCap);        //"C="
-            ReadCapacity(trans.b, trans.e); // measure capacity
-            lcd_show_format_cap();
-        }
-#endif
-        lcd_line2();         // 2. row
         lcd_fix_string(gds); //"GDS="
         lcd_testpin(trans.b);
         lcd_testpin(trans.c);
         lcd_testpin(trans.e);
-        if ((NumOfDiodes > 0) && (PartMode < 3))
+        if ((NumOfDiodes > 0) && (PartMode < PART_MODE_N_D_MOS))
         {
             // MOSFET with protection diode; only with enhancement-FETs
-            lcd_data(LCD_CHAR_DIODE1); // show Diode symbol >|
+            if (PartMode & 1)
+            {
+                lcd_data(LCD_CHAR_DIODE1); // show Diode symbol >|
+            }
+            else
+            {
+                lcd_data(LCD_CHAR_DIODE2); // show Diode symbol |<
+            }
+        }
+        lcd_line2(); // 2. Row
+        if (PartMode < PART_MODE_N_D_MOS)
+        {                                   // enhancement-MOSFET
+#ifdef C_MESS                               // Gate capacity
+            lcd_fix_string(GateCap);        //"C="
+            ReadCapacity(trans.b, trans.e); // measure capacity
+            DisplayValue(cval, cpre, 'F', 3);
+#endif
+            lcd_fix_string(vt); // "Vt="
         }
         else
         {
-            lcd_data(' '); // ' '
+            lcd_data('I');
+            lcd_data('=');
+            DisplayValue(trans.uBE[1], -5, 'A', 2);
+            lcd_fix_string(Vgs_str); // " Vgs="
         }
-        if (PartMode < 3)
-        { // enhancement-MOSFET
-            lcd_fix_string(vt);
-            // Gate-threshold voltage
-            diodes[0].Voltage = gthvoltage;
-            mVAusgabe(0); // Output gthvoltage
-        }
+        // Gate-threshold voltage
+        DisplayValue(gthvoltage, -3, 'V', 2);
         goto end;
         // end (PartFound == PART_FET)
     }
@@ -557,6 +587,13 @@ start:
         if (ResistorsFound == 1)
         {
             RvalOut(0);
+#if FLASHEND > 0x1fff
+            if (resis[0].lx != 0)
+            {
+                // resistor have also Inductance
+                DisplayValue(resis[0].lx, -5, 'H', 3); // output inductance
+            }
+#endif
         }
         else
         {
@@ -591,7 +628,7 @@ start:
         lcd_fix_string(CapZeich); // capacitor sign
         lcd_testpin(cb);          // Pin number 2
         lcd_line2();              // 2. row
-        lcd_show_format_cap();
+        DisplayValue(cval, cpre, 'F', 4);
         goto end;
     }
 #endif
@@ -667,7 +704,7 @@ end2:
         }
     }
 #else
-    goto start;              // POWER_OFF not selected, repeat measurement
+    goto start;                // POWER_OFF not selected, repeat measurement
 #endif
     return 0;
 } // end main
@@ -690,24 +727,9 @@ void mVAusgabe(uint8_t nn)
 {
     if (nn < 3)
     {
-#ifdef UF_OUT_MV
         // Output in mV units
-        lcd_string(utoa(diodes[nn].Voltage, outval, 10));
-        lcd_data('m');
-#else
-        // Output with format x.xxV or .xxV
-        // round up last digit, first digit will never appear (10000)
-        utoa((diodes[nn].Voltage + 10005), outval, 10);
-        if (outval[1] != '0')
-        {
-            lcd_data(outval[1]);
-        }
-        lcd_data('.');
-        lcd_data(outval[2]);
-        lcd_data(outval[3]);
-#endif
-        lcd_data('V');
-        lcd_data(' ');
+        DisplayValue(diodes[nn].Voltage, -3, 'V', 3);
+        lcd_space();
     }
 }
 
@@ -716,70 +738,14 @@ void mVAusgabe(uint8_t nn)
 void RvalOut(uint8_t ii)
 {
     // output of resistor value
-    unsigned long rrx;
-    uint8_t prefix;
 
-    rrx = resis[ii].rx;
-    prefix = value_out(rrx, 2);
-
-    if (prefix == 1)
-    {
-        lcd_data('k');
-    }
-    if (prefix == 2)
-    {
-        lcd_data('M');
-    }
-    lcd_data(LCD_CHAR_OMEGA); // Omega is sign for Ohm
-    lcd_data(' ');
+    DisplayValue(resis[ii].rx, -1, LCD_CHAR_OMEGA, 4);
+    lcd_space();
 }
 #endif
 
 //******************************************************************
-// #include "ReadADC.c"
 #include "CheckPins.c"
-
-#ifdef __AVR_ATmega8__
-// 2.54V reference voltage + korrection (fix for ATmega8)
-#define WishVolt (2560 + REF_R_KORR)
-#else
-#define WishVolt (ref_mv + REF_R_KORR)
-#endif
-#ifdef AUTOSCALE_ADC
-void scale_intref_adc(void)
-{
-    unsigned int mindiff, ergeb;
-    uint8_t multip, divid;
-    unsigned int diff;
-
-    mindiff = WishVolt; // WishVolt == ref_mv  or 2560 for ATmega8
-    for (multip = 2; multip < 64; multip++)
-    {
-        // find factors for ADC-resolution in mV
-        //  ADC * multip / divid
-        for (divid = 2; divid < multip; divid++)
-        {
-            ergeb = (unsigned int)(1023 * multip) / divid;
-            diff = abs((int)(WishVolt - ergeb));
-#if ANZ_MESS == 44
-            if (!(diff > mindiff))
-            // find result where is most added, biggest minmul,mindiv
-#else
-            if (diff < mindiff)
-            // find fastest possible solution, lowest minmul,mindiv
-#endif
-            {
-                mindiff = diff;
-                minmul = multip;
-                mindiv = divid;
-            }
-            //       if (ergeb < (WishVolt - mindiff)) break;
-        } // end for divid
-    }     // end for multip
-          // with minmul and mindiv function ReadADC will change resolution of result in mV too,
-          // if it switches to internal (1.1V) Reference.
-}
-#endif
 
 void ChargePin10ms(uint8_t PinToCharge, uint8_t ChargeDirection)
 {
@@ -876,13 +842,6 @@ void EntladePins()
         {
             PartFound = PART_CELL; // mark as Battery
                                    // there is charge on capacitor, warn later!
-                                   //        lcd_line3();
-                                   //        lcd_data('E');
-                                   //        lcd_string(utoa(adcmv[0], outval, 10));
-                                   //        lcd_data(' ');
-                                   //        lcd_string(utoa(adcmv[1], outval, 10));
-                                   //        lcd_data(' ');
-                                   //        lcd_string(utoa(adcmv[2], outval, 10));
         }
         for (adcmv[0] = 0; adcmv[0] < clr_cnt; adcmv[0]++)
         {
@@ -894,15 +853,10 @@ void EntladePins()
 
 #ifdef C_MESS // measurement of capacity is wanted
 #include "ReadCapacity.c"
+#if FLASHEND > 0x1fff
+#include "ReadInductance.c"
+#endif
 
-void lcd_show_format_cap(void)
-{
-    //  ultoa(cval, outval, 10);
-    cpre += value_out(cval, 1);                   // output cval, and change prefix if nessasary
-    tmpval2 = pgm_read_byte(&C_Prefix_tab[cpre]); // get prefix from table
-    lcd_data(tmpval2);                            // p or n or � or m  prefix
-    lcd_data('F');
-}
 unsigned int getRLmultip(unsigned int cvolt)
 {
 
@@ -938,7 +892,20 @@ unsigned int getRLmultip(unsigned int cvolt)
     return (((y1 - y2) * tabres + (RL_Tab_Abstand / 2)) / RL_Tab_Abstand + y2); // interpolate table
 }
 
-#ifdef WITH_AUTO_REF
+void Scale_C_with_vcc(void)
+{
+    while (cval > 100000)
+    {
+        cval /= 10;
+        cpre++; // prevent overflow
+    }
+    cval *= ADCconfig.U_AVCC; // scale with measured voltage
+    cval /= U_VCC;            // Factors are computed for U_VCC
+}
+
+#endif
+
+#ifdef AUTO_RH
 void RefVoltage(void)
 {
     // RefVoltage interpolates table RHtab corresponding to voltage ref_mv .
@@ -957,7 +924,7 @@ void RefVoltage(void)
     uint8_t tabres;
 
 #ifdef AUTO_CAL
-    referenz = ref_mv + (int8_t)eeprom_read_word((uint16_t *)(&ref_offset));
+    referenz = ref_mv + (int16_t)eeprom_read_word((uint16_t *)(&ref_offset));
 #else
     referenz = ref_mv + REF_C_KORR;
 #endif
@@ -983,7 +950,6 @@ void RefVoltage(void)
     RHmultip = ((y1 - y2) * tabres + (Ref_Tab_Abstand / 2)) / Ref_Tab_Abstand + y2;
 }
 #endif
-#endif
 
 #ifdef LCD_CLEAR
 void lcd_clear_line(void)
@@ -992,65 +958,108 @@ void lcd_clear_line(void)
     unsigned char ll;
     for (ll = 0; ll < 20; ll++)
     {
-        lcd_data(' ');
+        lcd_space();
     }
 }
 #endif
 
-#ifdef AUSGABE_FUNKTION
-uint8_t value_out(unsigned long vval, uint8_t pp)
+/* ************************************************************************
+ *   display of values and units
+ * ************************************************************************ */
+
+/*
+ *  display value and unit
+ *  - max. 4 digits excluding "." and unit
+ *
+ *  requires:
+ *  - value
+ *  - exponent of factor related to base unit (value * 10^x)
+ *    e.g: p = 10^-12 -> -12
+ *  - unit character (0 = none)
+ *  digits = 2, 3 or 4
+ */
+void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit, unsigned char digits)
 {
-    // output of value vval with up to four significant digits.
-    // return value is the number of prefix steps to add (*1000).
-    // for capacitor:  pF nF �F mF
-    // for resistor:  Ohm  kOhm MOhm
-    // pp = 1    Point after last digit
-    // pp = 2    Point before last digit
-    uint8_t strlength;
-    uint8_t ll;
-    uint8_t rr;
-    rr = 0;
-    while (vval > 999999)
-    {
-        vval = (vval + 500) / 1000; // with round up
-        rr++;                       // increase prefix for factor 1000
-    }
-    if (vval > 99999)
-    {
-        vval = (vval + 50) / 100;
-        pp++; // 1 position more after point
-        rr++; // increase prefix (factor 1000)
-    }
-    if (vval > 9999)
-    {
-        vval = (vval + 5) / 10;
-        if (pp >= 2)
-        {
-            pp -= 1; // 1 digit less after decimal point
-        }
-        else
-        {
-            pp += 2; // 2 digits more after decimal point
-            rr++;    // increase prefix (factor 1000)
-        }
-    }
-    utoa((unsigned int)vval, outval, 10);
-    strlength = strlen(outval); // total length of string
-    if (pp > strlength)
-    {
-        lcd_data('0');
-        lcd_data('.');
-    }
-    for (ll = 0; ll < strlength; ll++)
-    {
-        lcd_data(outval[ll]);
-        if ((pp > 1) && ((ll + pp) == strlength))
-            lcd_data('.'); // fill the point at right position
-    }
-    return rr;
-}
-#endif
+    char OutBuffer[15];
+    unsigned int Limit;
+    unsigned char Prefix; /* prefix character */
+    uint8_t Offset;       /* exponent of offset to next 10^3 step */
+    uint8_t Index;        /* index ID */
+    uint8_t Length;       /* string length */
 
-#ifdef WITH_SELFTEST
+    Limit = 100; /* scale value down to 2 digits */
+    if (digits == 3)
+        Limit = 1000;
+    if (digits == 4)
+        Limit = 10000;
+    while (Value >= Limit)
+    {
+        Value += 5;         /* for automagic rounding */
+        Value = Value / 10; /* scale down by 10^1 */
+        Exponent++;         /* increase exponent by 1 */
+    }
+
+    /*
+     *  determine prefix
+     */
+    Length = Exponent + 12;
+    if (Length < 0)
+        Length = 0; /* Limit to minimum prefix */
+    if (Length > 18)
+        Length = 18; /* Limit to maximum prefix */
+    Index = Length / 3;
+    Offset = Length % 3;
+    if (Offset > 0)
+    {
+        Index++;             /* adjust index for exponent offset, take next prefix */
+        Offset = 3 - Offset; /* reverse value (1 or 2) */
+    }
+    Prefix = MEM_read_byte((uint8_t *)(&PrefixTab[Index])); /* look up prefix in table */
+    /*
+     *  display value
+     */
+
+    /* convert value into string */
+    utoa((unsigned int)Value, OutBuffer, 10);
+    Length = strlen(OutBuffer);
+
+    /* position of dot */
+    Exponent = Length - Offset; /* calculate position */
+
+    if (Exponent <= 0) /* we have to prepend "0." */
+    {
+        /* 0: factor 10 / -1: factor 100 */
+        //    lcd_data('0');
+        lcd_data('.');
+        if (Exponent < 0)
+            lcd_data('0'); /* extra 0 for factor 100 */
+    }
+
+    if (Offset == 0)
+        Exponent = -1; /* disable dot if not needed */
+
+    /* adjust position to array or disable dot if set to 0 */
+    //  Exponent--;
+
+    /* display value and add dot if requested */
+    Index = 0;
+    while (Index < Length) /* loop through string */
+    {
+        lcd_data(OutBuffer[Index]); /* display char */
+        Index++;                    /* next one */
+        if (Index == Exponent)
+        {
+            lcd_data('.'); /* display dot */
+        }
+    }
+
+    /* display prefix and unit */
+    if (Prefix != 0)
+        lcd_data(Prefix);
+    if (Unit)
+        lcd_data(Unit);
+}
+
+#ifdef CHECK_CALL
 #include "AutoCheck.c"
 #endif

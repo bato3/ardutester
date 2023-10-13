@@ -225,10 +225,15 @@ typedef struct
 /* probes */
 typedef struct
 {
-  /* probe IDs and ADC MUX input address */
+  /* probe IDs */
   uint8_t           ID_1;          /* probe-1 */
   uint8_t           ID_2;          /* probe-2 */
   uint8_t           ID_3;          /* probe-3 */
+
+  /* backup probe IDs */
+  uint8_t           ID2_1;         /* probe-1 */
+  uint8_t           ID2_2;         /* probe-2 */
+  uint8_t           ID2_3;         /* probe-3 */
 
   /* bit masks for switching probes and test resistors */
   uint8_t           Rl_1;          /* Rl mask for probe-1 */
@@ -282,6 +287,7 @@ typedef struct
   int8_t            Scale;         /* exponent of factor (value * 10^x) */
   unsigned long     Value;         /* capacitance incl. zero offset */
   unsigned long     Raw;           /* capacitance excl. zero offset */
+  unsigned long     I_leak;        /* leakage current (in 10nA) */
 } Capacitor_Type;
 
 
@@ -313,21 +319,26 @@ typedef struct
   int16_t           U_2;           /* voltage #2 */
   uint16_t          I_1;           /* current #1 */
   uint32_t          F_1;           /* factor #1 */
+  uint32_t          F_2;           /* factor #2 */
+  uint32_t          C_value;
+  int8_t            C_scale;
 } Semi_Type;
 
 /* 
   Mapping
 
-          BJT         FET         SCR         Triac       IGBT
-  ------------------------------------------------------------------
-  A       Base        Gate        Gate        Gate        Gate
-  B       Collector   Drain       Anode       MT2         Collector
-  C       Emitter     Source      Cathode     MT1         Emitter
-  U_1     U_BE (mV)               V_GT (mV)   V_GT (mV)
-  U_2                 V_th (mV)                           V_th (mV)
-  I_1     I_CEO (µA)                          Ref (mV)
-  F_1     hFE
-
+           BJT          FET          SCR          Triac        IGBT
+  ----------------------------------------------------------------------
+  A        Base         Gate         Gate         Gate         Gate
+  B        Collector    Drain        Anode        MT2          Collector
+  C        Emitter      Source       Cathode      MT1          Emitter
+  U_1      U_BE (mV)                 V_GT (mV)    V_GT (mV)
+  U_2                   V_th (mV)                              V_th (mV)
+  I_1                   I_DSS (µA)                Ref (mV)
+  F_1      hFE
+  F_2      I_CEO (10nA)
+  C_value  C_BE
+  C_scale  C_BE
 */
 
 
@@ -351,7 +362,6 @@ typedef struct
   C       Cathode     B1
   U_1     V_f
   U_2     V_T
-
 */
 
 

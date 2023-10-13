@@ -411,9 +411,12 @@ void LCD_ClearLine(uint8_t Line)
   /* manage address window */
   LCD_CharPos(Pos, Line);         /* update character position */
                                   /* also updates X_Start and Y_Start */
-  if (x > 0)                      /* got line bit */
+  if (Pos == 1)                   /* complete line */
   {
-    LineMask &= ~x;               /* clear bit */
+    if (x > 0)                    /* got line bit */
+    {
+      LineMask &= ~x;             /* clear bit */
+    }
   }
 
   X_End = LCD_PIXELS_X - 1;             /* last column */

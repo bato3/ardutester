@@ -219,15 +219,6 @@
 
 
 /*
- *  LCD module with cyrillic character set
- *  - uncomment if you are using such an LCD
- *  - obsolete
- */
-
-//#define LCD_CYRILLIC
-
-
-/*
  *  Maximum time to wait after a measurement in continous mode (in ms).
  *  - Time between printing the result and starting a new cycle.
  */
@@ -376,6 +367,10 @@
  * ************************************************************************ */
 
 
+/* MCU clock */
+#define CPU_FREQ    F_CPU
+
+
 /*
  *  ATmega328
  */
@@ -414,10 +409,16 @@
  *  - The ADC clock is 125000Hz by default.
  *  - You could also set 250000Hz, but that exceeds the max. ADC clock
  *    of 200kHz for 10 bit resolution!
- *  - Special case for MCU clock 20MHz: 156250Hz
+ *  - Special case for 20MHz MCU clock: 156250Hz
  */
 
-#define ADC_FREQ    125000
+#if CPU_FREQ == 20000000
+  /* 20MHz MCU clock */
+  #define ADC_FREQ    156250
+#else
+  /* all other MCU clocks */
+  #define ADC_FREQ    125000
+#endif
 
 
 /*
@@ -425,8 +426,6 @@
  *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clocks
  *  - we got only 7 fixed prescalers from 2 up to 128
  */
-
-#define CPU_FREQ    F_CPU
 
 /* 1MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 4

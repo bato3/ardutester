@@ -287,6 +287,8 @@
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Profile1_str[] EEMEM = "#1";
   const unsigned char Profile2_str[] EEMEM = "#2";
+  const unsigned char I_DSS_str[] EEMEM = "I_DSS";
+  const unsigned char I_leak_str[] EEMEM = "I_l";
 
   #ifdef SW_ESR
     const unsigned char Probes_str[] EEMEM = "Pins";
@@ -331,7 +333,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.23m";
+  const unsigned char Version_str[] EEMEM = "v1.24m";
 
 
   /*

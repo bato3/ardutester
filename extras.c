@@ -159,7 +159,7 @@ void PWM_Tool(uint16_t Frequency)
 
 
   /*
-   *  setup Timer1 for PWM
+   *  set up Timer1 for PWM
    *  - phase correct PWM
    *  - top value by OCR1A
    *  - OC1B non-inverted output
@@ -303,7 +303,7 @@ void SquareWave_SignalGenerator(void)
 
 
   /*
-   *  setup Timer1 for PWM with 50% duty cycle 
+   *  set up Timer1 for PWM with 50% duty cycle 
    *  - fast PWM mode 
    *  - top value by OCR1A
    *  - OC1B non-inverted output
@@ -744,12 +744,12 @@ void FrequencyCounter(void)
   GateTime = 1;                    /* gate time 1ms */
   Index = 0;                       /* prescaler table index (prescaler 1/1) */
 
-  /* setup Timer0 */
+  /* set up Timer0 */
   TCCR0A = 0;                      /* normal mode (count up) */
   TIFR0 = (1 << TOV0);             /* clear overflow flag */
   TIMSK0 = (1 << TOIE0);           /* enable overflow interrupt */
 
-  /* setup Timer1 */
+  /* set up Timer1 */
   TCCR1A = 0;                      /* normal mode (count up) */
   TIFR1 = (1 << OCF1A);            /* clear output compare A match flag */
   TIMSK1 = (1 << OCIE1A);          /* enable output compare A match interrupt */ 
@@ -758,7 +758,7 @@ void FrequencyCounter(void)
   /* measurement loop */
   while (Flag > 0)
   {
-    /* setup PD4 as input */
+    /* set up PD4 as input */
     Old_DDR = CONTROL_DDR;                /* save current settings */
     CONTROL_DDR &= ~(1 << PD4);           /* signal input */
     wait500us();                          /* settle time */
@@ -913,7 +913,7 @@ uint8_t CheckEncoder(uint8_t *History)
   uint8_t           Temp;                    /* temporary value */
 
   /* we assume: probe-1 = A / probe-2 = B / probe-3 = Common */
-  /* setup probes: probe-1 -- Rl -- Vcc / probe-2 -- Rl -- Vcc / Gnd -- probe-3 */
+  /* set up probes: probe-1 -- Rl -- Vcc / probe-2 -- Rl -- Vcc / Gnd -- probe-3 */
   R_PORT = Probes.Rl_1 | Probes.Rl_2;   /* pullup via Rl */
   R_DDR =  Probes.Rl_1 | Probes.Rl_2;   /* enable pull-up resistors */
   ADC_PORT = 0;                         /* pull down directly */

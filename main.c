@@ -297,11 +297,17 @@ void Show_Capacitor(void)
   ESR = MeasureESR(MaxCap);        /* measure ESR */
   if (ESR > 0)                     /* if successfull */
   {
-//    LCD_NextLine_EEString_Space(ESR_str);    /* display: ESR */
     LCD_Space();
     DisplayValue(ESR, -2, LCD_CHAR_OMEGA);   /* display ESR */
   }
   #endif
+
+  /* show discharge leakage current */
+  if (MaxCap->I_leak > 0)
+  {
+    LCD_NextLine_EEString_Space(I_leak_str);
+    DisplayValue(MaxCap->I_leak, -8, 'A');   /* in 10nA */
+  }
 }
 
 
@@ -340,7 +346,9 @@ void Show_Diode(void)
   uint8_t           C = 5;         /* ID of common cothode */
   uint8_t           R_Pin1 = 5;    /* B_E resistor's pin #1 */
   uint8_t           R_Pin2 = 5;    /* B_E resistor's pin #2 */
-  uint16_t          I_leak;        /* leakage current */
+  uint8_t           n;
+  uint8_t           m;
+  uint32_t          I_leak;        /* leakage current */
 
   D1 = &Diodes[0];                 /* pointer to first diode */
 
@@ -383,9 +391,6 @@ void Show_Diode(void)
   }
   else if (Check.Diodes == 3)      /* three diodes */
   {
-    uint8_t         n;
-    uint8_t         m;
-
     /*
      *  Two diodes in series are detected as a virtual third diode:
      *  - Check for any possible way the 2 diodes could be connected in series.
@@ -443,15 +448,17 @@ void Show_Diode(void)
     if (A <= 3) LCD_EEString(Diode_AC_str);  /* common anode or in series */
     else LCD_EEString(Diode_CA_str);         /* common cathode */
 
-    if (A == C) LCD_ProbeNumber(D2->A);           /* anti parallel */
-    else if (A <= 3) LCD_ProbeNumber(D2->C);      /* common anode or in series */
-    else LCD_ProbeNumber(D2->A);                  /* common cathode */
+    if (A == C) n = D2->A;              /* anti parallel */
+    else if (A <= 3) n = D2->C;         /* common anode or in series */
+    else n = D2->A;                     /* common cathode */
+    LCD_ProbeNumber(n);                 /* display pin */
   }
 
   /* check for B-E resistor for possible BJT */
   if (R_Pin1 < 5)                  /* possible BJT */
   {
-    if (CheckSingleResistor(R_Pin1, R_Pin2) == 1) /* found B-E resistor */
+    /* B-E resistor below 25kOhms */
+    if (CheckSingleResistor(R_Pin1, R_Pin2, 25) == 1)
     {
       /* show: PNP/NPN? */
       LCD_Space();
@@ -487,7 +494,7 @@ void Show_Diode(void)
   if (D2 == NULL)                       /* single diode */
   {
     /* display low current Uf if it's quite low (Ge/Schottky diode) */
-    if (D1->V_f2 < 250)
+    if (D1->V_f2 < 250)            /* < 250mV */
     {
       LCD_Char('(');
       DisplayValue(D1->V_f2, 0, 0);
@@ -496,11 +503,11 @@ void Show_Diode(void)
 
     /* reverse leakage current */
     UpdateProbes(D1->C, D1->A, 0);      /* reverse diode */
-    I_leak = GetLeakageCurrent();       /* get current (in µA) */
-    if (I_leak > 0)                     /* show if not zero */
+    I_leak = GetLeakageCurrent();       /* get current (in 10nA) */
+    if (I_leak > 5)                     /* show if >50nA */
     {
       LCD_NextLine_EEString_Space(I_R_str);  /* display: I_R */
-      DisplayValue(I_leak, -6, 'A');    /* display current */
+      DisplayValue(I_leak, -8, 'A');    /* display current */
     }
   }
   else                                  /* two diodes */
@@ -510,63 +517,12 @@ void Show_Diode(void)
   }
 
   /* display capacitance */
-  if (CapFlag == 1)                     /* if requested */ 
+  if (CapFlag == 1)                     /* if feasable */ 
   {
     LCD_NextLine_EEString_Space(DiodeCap_str);  /* display: C */
     Show_Diode_Cap(D1);                 /* first diode */
     LCD_Space();
     Show_Diode_Cap(D2);                 /* second diode (optional) */
-  }
-}
-
-
-
-/*
- *  show intrinsic/freewheeling diode of transistor
- */
-
-void Show_FlybackDiode(void)
-{
-  LCD_Space();                /* display space */
-
-  /* first pin */
-  if (Check.Found == COMP_FET)     /* FET */
-  {
-    LCD_Char('D');                 /* drain */
-  }
-  else                             /* BJT/IGBT */
-  {
-    LCD_Char('C');                 /* collector */
-  }
-
-  /* diode */
-  if (Check.Type & TYPE_N_CHANNEL)      /* n-channel/NPN */
-  {
-    /*
-     *  anode pointing to source/emitter
-     *  cathode pointing to drain/collector
-     */
-
-    LCD_Char(LCD_CHAR_DIODE_CA);        /* |<| */
-  }
-  else                                  /* p-channel/PNP */
-  {
-    /*
-     *  anode pointing to drain/collector
-     *  cathode pointing to source/emitter
-     */
-
-    LCD_Char(LCD_CHAR_DIODE_AC);        /* |>| */
-  }
-
-  /* second pin */
-  if (Check.Found == COMP_FET)     /* FET */
-  {
-    LCD_Char('S');                 /* source */
-  }
-  else                             /* BJT/IGBT */
-  {
-    LCD_Char('E');                 /* emitter */
   }
 }
 
@@ -580,9 +536,11 @@ void Show_BJT(void)
 {
   Diode_Type        *Diode;        /* pointer to diode */
   unsigned char     *String;       /* display string pointer */
-  uint8_t           Counter;       /* counter */
-  uint8_t           A_Pin;         /* pin acting as anode */
-  uint8_t           C_Pin;         /* pin acting as cathode */
+  uint8_t           Char;          /* display character */
+  uint8_t           BE_A;          /* V_BE: pin acting as anode */
+  uint8_t           BE_C;          /* V_BE: pin acting as cathode */
+  uint8_t           CE_A;          /* flyback diode: pin acting as anode */
+  uint8_t           CE_C;          /* flyback diode: pin acting as cathode */
   uint16_t          V_BE;          /* V_BE */
   int16_t           Slope;         /* slope of forward voltage */
 
@@ -593,8 +551,8 @@ void Show_BJT(void)
    *  B   - Collector pin
    *  C   - Emitter pin
    *  U_1 - U_BE (mV) (not yet)
-   *  I_1 - I_CEO (µA)
    *  F_1 - hFE
+   *  F_2 - I_CEO (10nA)
    */
 
   /* preset stuff based on BJT type */
@@ -603,16 +561,26 @@ void Show_BJT(void)
     String = (unsigned char *)NPN_str;       /* "NPN" */
 
     /* direction of B-E diode: B -> E */
-    A_Pin = Semi.A;      /* anode at base */
-    C_Pin = Semi.C;      /* cathode at emitter */
+    BE_A = Semi.A;       /* anode at base */
+    BE_C = Semi.C;       /* cathode at emitter */
+
+    /* direction of optional flyback diode */
+    CE_A = Semi.C;       /* anode at emitter */
+    CE_C = Semi.B;       /* cathode at collector */
+    Char = LCD_CHAR_DIODE_CA;      /* |<| */
   }
   else                             /* PNP */
   {
     String = (unsigned char *)PNP_str;       /* "PNP" */
 
     /* direction of B-E diode: E -> B */
-    A_Pin = Semi.C;      /* anode at emitter */
-    C_Pin = Semi.A;      /* cathode at base */
+    BE_A = Semi.C;       /* anode at emitter */
+    BE_C = Semi.A;       /* cathode at base */
+
+    /* direction of optional flyback diode */
+    CE_A = Semi.B;       /* anode at collector */
+    CE_C = Semi.C;       /* cathode at emitter */
+    Char = LCD_CHAR_DIODE_AC;      /* |>| */
   }
 
   /* display type */
@@ -631,15 +599,23 @@ void Show_BJT(void)
   Show_SemiPinout('B', 'C', 'E');
 
   /* optional freewheeling diode */
-  if (Check.Diodes > 2)       /* transistor is a set of two diodes :-) */
+  Diode = SearchDiode(CE_A, CE_C);    /* search for matching diode */
+  if (Diode != NULL)                  /* got it */
   {
-    Show_FlybackDiode();           /* show diode */
+    LCD_Space();              /* display space */
+    LCD_Char('C');            /* collector */
+    LCD_Char(Char);           /* display diode symbol */
+    LCD_Char('E');            /* emitter */
   }
 
   LCD_NextLine();                  /* next line */
 
-  /* display either optional B-E resistor or hFE & V_BE */
-  if (CheckSingleResistor(C_Pin, A_Pin) == 1)     /* found B-E resistor */
+  /*
+   *  display either optional B-E resistor or hFE & V_BE
+   */
+
+  /* check for B-E resistor below 25kOhms */
+  if (CheckSingleResistor(BE_C, BE_A, 25) == 1)   /* found B-E resistor */
   {
     Show_SingleResistor('B', 'E');
   }
@@ -652,77 +628,64 @@ void Show_BJT(void)
     DisplayValue(Semi.F_1, 0, 0);
 
     /* display V_BE (taken from diode forward voltage) */
-    Diode = &Diodes[0];                 /* get pointer of first diode */  
-    Counter = 0;
-
-    while (Counter < Check.Diodes)      /* check all diodes */
+    Diode = SearchDiode(BE_A, BE_C);    /* search for matching B-E diode */
+    if (Diode != NULL)                  /* got it */
     {
-      /* if the diode matches the transistor's B-E diode */
-      if ((Diode->A == A_Pin) && (Diode->C == C_Pin))
-      {
-        LCD_NextLine_EEString_Space(V_BE_str);   /* display: V_BE */
+      LCD_NextLine_EEString_Space(V_BE_str);   /* display: V_BE */
 
+      /*
+       *  Vf is quite linear for a logarithmicly scaled I_b.
+       *  So we may interpolate the Vf values of low and high test current
+       *  measurements for a virtual test current. Low test current is 10µA
+       *  and high test current is 7mA. That's a logarithmic scale of
+       *  3 decades.
+       */
+
+      /* calculate slope for one decade */
+      Slope = Diode->V_f - Diode->V_f2;
+      Slope /= 3;
+
+      /* select V_BE based on hFE */
+      if (Semi.F_1 < 100)               /* low hFE */
+      {
         /*
-         *  Vf is quite linear for a logarithmicly scaled I_b.
-         *  So we may interpolate the Vf values of low and high test current
-         *  measurements for a virtual test current. Low test current is 10µA
-         *  and high test current is 7mA. That's a logarithmic scale of
-         *  3 decades.
+         *  BJTs with low hFE are power transistors and need a large I_b
+         *  to drive the load. So we simply take Vf of the high test current
+         *  measurement (7mA). 
          */
 
-        /* calculate slope for one decade */
-        Slope = Diode->V_f - Diode->V_f2;
-        Slope /= 3;
-
-        /* select V_BE based on hFE */
-        if (Semi.F_1 < 100)             /* low hFE */
-        {
-          /*
-           *  BJTs with low hFE are power transistors and need a large I_b
-           *  to drive the load. So we simply take Vf of the high test current
-           *  measurement (7mA). 
-           */
-
-          V_BE = Diode->V_f;
-        }
-        else if (Semi.F_1 < 250)        /* mid-range hFE */
-        {
-          /*
-           *  BJTs with a mid-range hFE are signal transistors and need
-           *  a small I_b to drive the load. So we interpolate Vf for
-           *  a virtual test current of about 1mA.
-           */
-
-          V_BE = Diode->V_f - Slope;
-        }
-        else                            /* high hFE */
-        {
-          /*
-           *  BJTs with a high hFE are small signal transistors and need
-           *  only a very small I_b to drive the load. So we interpolate Vf
-           *  for a virtual test current of about 0.1mA.
-           */
-
-          V_BE = Diode->V_f2 + Slope;
-        }
-
-        DisplayValue(V_BE, -3, 'V');
-
-        Counter = 10;              /* end loop */
+        V_BE = Diode->V_f;
       }
-      else                         /* diode doesn't match */
+      else if (Semi.F_1 < 250)          /* mid-range hFE */
       {
-        Counter++;                      /* increase counter */
-        Diode++;                        /* next one */
+        /*
+         *  BJTs with a mid-range hFE are signal transistors and need
+         *  a small I_b to drive the load. So we interpolate Vf for
+         *  a virtual test current of about 1mA.
+         */
+
+        V_BE = Diode->V_f - Slope;
       }
+      else                              /* high hFE */
+      {
+        /*
+         *  BJTs with a high hFE are small signal transistors and need
+         *  only a very small I_b to drive the load. So we interpolate Vf
+         *  for a virtual test current of about 0.1mA.
+         */
+
+        V_BE = Diode->V_f2 + Slope;
+      }
+
+      DisplayValue(V_BE, -3, 'V');
     }
   }
 
-  /* I_CEO: collector emitter cutoff current (leakage) */
-  if (Semi.I_1 > 0)                     /* show if not zero */
+  /* I_CEO: collector emitter open current (leakage) */
+  if (Semi.F_2 > 5)                     /* show if >50nA */
   {
     LCD_NextLine_EEString_Space(I_CEO_str);  /* display: I_CEO */
-    DisplayValue(Semi.I_1, -6, 'A');         /* display current */
+    DisplayValue(Semi.F_2, -8, 'A');         /* display current */
   }
 
   #ifdef SW_SYMBOLS
@@ -741,10 +704,50 @@ void Show_BJT(void)
 
 void Show_FET_Extras(void)
 {
-  /* show instrinsic/freewheeling diode */
-  if (Check.Diodes > 0)            /* diode found */
+  Diode_Type        *Diode;        /* pointer to diode */  
+  uint8_t           Anode;         /* anode of diode */
+  uint8_t           Cathode;       /* cathode of diode */
+  uint8_t           Char_1;        /* pin name */
+  uint8_t           Char_2;        /* pin name */
+  uint8_t           Symbol;        /* diode symbol */
+
+  /*
+   *  show instrinsic/freewheeling diode
+   */
+
+  if (Check.Type & TYPE_N_CHANNEL)      /* n-channel/NPN */
   {
-    Show_FlybackDiode();           /* show diode */
+    Anode = Semi.C;                /* source/emitter */
+    Cathode = Semi.B;              /* drain/collector */
+    Symbol = LCD_CHAR_DIODE_CA;    /* |<| */
+  }
+  else                                  /* p-channel/PNP */
+  {
+    Anode = Semi.B;                /* drain/collector */
+    Cathode = Semi.C;              /* source/emitter */
+    Symbol = LCD_CHAR_DIODE_AC;    /* |>| */
+  }
+
+  if (Check.Found == COMP_FET)     /* FET */
+  {
+    Char_1 = 'D';
+    Char_2 = 'S';
+  }
+  else                             /* IGBT */
+  {
+    Char_1 = 'C';
+    Char_2 = 'E';
+  }
+
+  /* search for matching diode */
+  Diode = SearchDiode(Anode, Cathode);
+  if (Diode != NULL)          /* got it */
+  {
+    /* show diode */
+    LCD_Space();              /* space */
+    LCD_Char(Char_1);         /* left pin name */
+    LCD_Char(Symbol);         /* diode symbol */
+    LCD_Char(Char_2);         /* right pin name */
   }
 
   /* skip remaining stuff for depletion-mode FETs/IGBTs */
@@ -759,9 +762,7 @@ void Show_FET_Extras(void)
 
   /* display gate-source capacitance */
   LCD_NextLine_EEString_Space(GateCap_str);  /* display: Cgs */
-  MeasureCap(Semi.A, Semi.C, 0);             /* measure capacitance */
-  /* display value and unit */
-  DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
+  DisplayValue(Semi.C_value, Semi.C_scale, 'F');  /* display value and unit */
 }
 
 
@@ -855,6 +856,13 @@ void Show_FET(void)
 
   /* show diode, V_th and Cgs for MOSFETs */
   if (Check.Type & TYPE_MOSFET) Show_FET_Extras();
+
+  /* show I_DSS for depletion mode FET */
+  if (Check.Type & TYPE_DEPLETION)
+  {
+    LCD_NextLine_EEString_Space(I_DSS_str);  /* display: I_DSS */
+    DisplaySignedValue(Semi.I_1, -6, 'A');   /* display I_DSS in µA */
+  }
 
   #ifdef SW_SYMBOLS
   LCD_FancySemiPinout();           /* display fancy pinout */
@@ -1025,7 +1033,7 @@ int main(void)
   CONTROL_DDR = (1 << POWER_CTRL);      /* set pin as output */
   CONTROL_PORT = (1 << POWER_CTRL);     /* set pin to drive power management transistor */
 
-  /* setup MCU */
+  /* set up MCU */
   MCUCR = (1 << PUD);                        /* disable pull-up resistors globally */
   ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV;      /* enable ADC and set clock divider */
 
@@ -1041,7 +1049,7 @@ int main(void)
   wdt_disable();                        /* disable watchdog */
 
   /* LCD module */
-  LCD_BusSetup();                       /* setup bus */
+  LCD_BusSetup();                       /* set up bus */
 
 
   /*
@@ -1168,6 +1176,7 @@ start:
   Semi.U_2 = 0;
   Semi.I_1 = 0;
   Semi.F_1 = 0;
+  Semi.F_2 = 0;
   AltSemi.U_1 = 0;
   AltSemi.U_2 = 0;
 

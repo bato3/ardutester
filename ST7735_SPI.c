@@ -351,10 +351,10 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
 
-  y--;                        /* start at zero */
+  y--;                        /* rows start at zero */
 
   /* mark text line as used */
-  if (y <= 16)                /* prevent overflow */
+  if (y < 16)                 /* prevent overflow */
   {
     Mask <<= y;               /* shift to bit position for line */
     LineMask |= Mask;         /* set bit for line */
@@ -412,9 +412,12 @@ void LCD_ClearLine(uint8_t Line)
   /* manage address window */
   LCD_CharPos(Pos, Line);         /* update character position */
                                   /* also updates X_Start and Y_Start */
-  if (x > 0)                      /* got line bit */
+  if (Pos == 1)                   /* complete line */
   {
-    LineMask &= ~x;               /* clear bit */
+    if (x > 0)                    /* got line bit */
+    {
+      LineMask &= ~x;             /* clear bit */
+    }
   }
 
   X_End = LCD_PIXELS_X - 1;             /* last column */

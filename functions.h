@@ -119,10 +119,8 @@
 
   extern int8_t CmpValue(uint32_t Value1, int8_t Scale1,
     uint32_t Value2, int8_t Scale2);
+  extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
 
-  #ifdef SW_INDUCTOR
-    extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
-  #endif
 
   #ifdef SW_SQUAREWAVE
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
@@ -190,13 +188,14 @@
 
   extern void GetGateThreshold(uint8_t Type);
   extern uint32_t Get_hfe_c(uint8_t Type);
-  extern uint16_t GetLeakageCurrent(void);
+  extern uint32_t GetLeakageCurrent(void);
 
+  extern Diode_Type *SearchDiode(uint8_t A, uint8_t C);
   extern void CheckDiode(void);
 
   extern void VerifyMOSFET(void);
   extern void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl);
-  extern void CheckDepletionModeFET(void);
+  extern void CheckDepletionModeFET(uint16_t U_Rl);
 
   extern uint8_t CheckThyristorTriac(void);
   extern void CheckPUT(void);
@@ -216,7 +215,7 @@
 
   extern uint16_t SmallResistor(uint8_t ZeroFlag);
   extern void CheckResistor(void);
-  extern uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin);
+  extern uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin, uint8_t Max);
 
 #endif
 
@@ -256,6 +255,8 @@
 #ifndef PROBES_C
 
   extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern void RestoreProbes(void);
+  extern void BackupProbes(void);
   extern uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t AllProbesShorted(void);

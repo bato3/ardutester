@@ -17,7 +17,8 @@
  *    RS     LCD_RS
  *    R/W    Gnd
  *    E      LCD_EN1
- *  - write only
+ *  - write only since R/W  is hardwired to Gnd
+ *  - max. clock for interface: 2 MHz
  */
 
 
@@ -259,7 +260,7 @@ void LCD_CustomChar(uint8_t ID)
   /*
    *  set CG RAM start address (for a 5x8 character)
    *  - lower 3 bits determine the row in a character
-   *  - higher 3 bits determine the start of the character
+   *  - higher 3 bits determine the start (ID) of the character
    *  - so we have to shift the ID to the higher part
    *  - LCD module supports up to 8 custom characters (5x8 font)
    */

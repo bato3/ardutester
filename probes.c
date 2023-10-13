@@ -34,7 +34,7 @@
 
 
 /*
- *  setup probes, bitmasks for probes and test resistors
+ *  set up probes, bitmasks for probes and test resistors
  *
  *  requires:
  *  - Probe1: pin ID [0-2], mostly high level pin
@@ -64,6 +64,32 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   Probes.ADC_1 = eeprom_read_byte(&ADC_table[Probe1]);
   Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
   Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
+}
+
+
+
+/*
+ *  restore original probe IDs
+ */
+
+void RestoreProbes(void)
+{
+  /* call probe update for saved IDs */
+  UpdateProbes(Probes.ID2_1, Probes.ID2_2, Probes.ID2_3);
+}
+
+
+
+/*
+ *  backup current probe IDs
+ */
+
+void BackupProbes(void)
+{
+  /* copy probe IDs */
+  Probes.ID2_1 = Probes.ID_1;
+  Probes.ID2_2 = Probes.ID_2;
+  Probes.ID2_3 = Probes.ID_3;
 }
 
 
@@ -351,7 +377,7 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
   uint8_t           Diff;               /* difference to next entry */
 
   /*
-   *  setup table specific stuff
+   *  set up table specific stuff
    */
 
   if (ID == TABLE_SMALL_CAP)
@@ -486,18 +512,17 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
   /*
    *  If there's some current we could have a depletion-mode FET
-   *  (self-conducting). To skip germanium BJTs with a high leakage current
-   *  we check for a current larger then their usual I_CEO (I_CES).
+   *  (self-conducting).
    *
    *  Other possibilities:
    *  - diode or resistor
    */
 
-  if (U_Rl > 490)         /* > 700µA (was 92mV/130µA) */
+  if (U_Rl > 15)         /* > 21µA */
   {
     if (Check.Done == DONE_NONE)        /* not sure yet */
     {
-      CheckDepletionModeFET();
+      CheckDepletionModeFET(U_Rl);
     }
   }
 

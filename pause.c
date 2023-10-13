@@ -121,7 +121,7 @@ void MilliSleep(uint16_t Time)
 
 
   /*
-   *  setup timer
+   *  set up timer
    */
 
   TCCR2B = 0;                      /* disable timer */

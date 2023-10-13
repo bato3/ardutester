@@ -10,12 +10,31 @@
 
 ------------------------------------------------------------------------------
 
+v1.24m 2016-08
+- Messung vom Selbstentladungsleckstrom von Kondensatoren größer 4,7µF.
+- Typenerkennung von Bipolar-Transistoren mit Diode auf dem gleichen Substrat.
+- Messung von Leckstrom für Ströme bis in den nA-Bereich erweitert. Für Dioden
+  und Bipolar-Transistoren werden Leckströme über 50nA angezeigt. 
+- Die Anzeige von Freilaufdioden bei Transistoren prüft nun auf eine korrekte
+  Diode (Pins und Polarität).
+- Fehler in der Anzeige von Freilaufdioden bei Bipolar-Transistoren beseitigt.
+- Funktion zum Suchen einer bestimmten Diode geschrieben und mehrere andere
+  Funktionen entsprechend angepaßt.
+- Erkennung von Dioden verbessert, um auch Germanium-Dioden mit sehr
+  niedrigem Vf bei kleinen Strömen zu finden.
+- Problem mit LCD_ClearLine(0) für ILI9341 und ST7735 gelöst.
+- Verbesserung der Erkennung von Verarmungs-FETs. Germanium-Transistoren mit
+  hohem Leckstrom werden ausgefiltert. Auch werden nun FETs mit niedrigem
+  I_DSS erkannt. Messung von I_DSS.
+
 v1.23m 2016-07
-- Unterstützung von PCD8544 und ST7735 kompatiblen LCD-Modulen.
+- Unterstützung von PCD8544 und ST7735 kompatiblen LCD-Modulen. Dank an
+  hansibull@EEVblog für ein PCD8544-Display.
 - wait.s für 20MHz MCU-Takt ergänzt.
 - MeasureESR() unstützt nun auch andere ADC-Taktraten als 125kHz.
 - Erkennung von PUTs (Programmable Unijunction Transistor) und
-  UJTs (Unijunction Transistor) eingebaut.
+  UJTs (Unijunction Transistor) eingebaut. Dank an edavid@EEVblog für
+  das Zusenden von ein paar UJTs zum Testen.
 - Kleinere Optimierungen für ILI9341 and ST7565R. 
 - Erneut Problem mit Zeichen größer 8x8 für den ST7565R beseitigt.
 - Der /RES Port-Pin für ILI9341 wurde ignoriert. Fehler beseitigt und

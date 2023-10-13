@@ -86,7 +86,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
   while (Mode > 0)
   {
-    /* setup measurement */
+    /* set up measurement */
     if (Mode & MODE_HIGH) Probe = Probes.ID_1;
     else Probe = Probes.ID_2;
 
@@ -561,9 +561,11 @@ void CheckResistor(void)
  *  requires:
  *  - HighPin = pin facing Vcc
  *  - LowPin = pin facing Gnd
+ *  - maximum resistance in kOhms
+ *    0: don't check limit
  */
 
-uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin)
+uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin, uint8_t Max)
 {
   uint8_t                Flag = 0;      /* return value */
 
@@ -575,6 +577,15 @@ uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin)
   if (Check.Resistors == 1)             /* found resistor */
   {
     Flag = 1;            /* signal detected resistor */
+
+    if (Max > 0)         /* check upper limit */
+    {
+      /* measured value isn't below maximum */
+      if (CmpValue((uint32_t)Max, 3, Resistors[0].Value, Resistors[0].Scale) != 1) 
+      {
+        Flag = 0;        /* reset flag */
+      }
+    }
   }
 
   return Flag;

@@ -10,12 +10,31 @@
 
 ------------------------------------------------------------------------------
 
+v1.24m 2016-08
+- Measurement of self-discharge leakage current for caps > 4.7µF.
+- Added type detection logic for BJTs with diode on the same substrate.
+- Improved leakage current measurement to support currents in the nA range.
+  The leakage will be shown for diodes and BJTs, when it's larger than 50nA.
+- Improved the display of instrinsic/flyback diodes for transistors to check
+  for the proper diode (pins and polarity). 
+- Fixed an error in the display of a BJT's flyback diode.
+- Added a function for searching a specific diode and adapted several
+  functions to use the new diode search instead of the old local search.
+- Improved detection of diodes to support also Germanium types with very low
+  Vf at low currents.
+- Fixed problem with LCD_ClearLine(0) for ILI9341 and ST7735.
+- Improved detection of depletion mode FETs to exclude Germanium BJTs with
+  high leakage current. Added detection of FETs with low I_DSS. Added
+  measurement of I_DSS. 
+
 v1.23m 2016-07
-- Added support for PCD8544 and ST7735 based LCD modules.
+- Added support for PCD8544 and ST7735 based LCD modules. Thanks to
+  hansibull@EEVblog for sponsering a PCD8544 display.
 - Extended wait.S for 20MHz MCU clock.
 - Changed MeasureESR() to support also non 125KHz ADC clocks.
 - Added detection of PUTs (Programmable Unijunction Transistor) and
-  UJTs (Unijunction Transistor).
+  UJTs (Unijunction Transistor). Thanks to edavid@EEVblog for sending
+  some UJTs for testing.
 - Minor code optimization for ILI9341 and ST7565R.
 - Fixed multi-page font problem for ST7565R, again.
 - /RES port pin assigned for ILI9341 was ignored. Fixed that and also

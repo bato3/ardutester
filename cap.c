@@ -35,7 +35,7 @@
 #ifdef SW_ESR
 
 /*
- *  setup timer0 as MCU cycle timer
+ *  set up timer0 as MCU cycle timer
  *
  *  requires:
  *  - number of MCU cycles
@@ -68,7 +68,7 @@ uint8_t SetupDelayTimer(uint8_t Cycles)
 
 
   /*
-   *  setup timer0:
+   *  set up timer0:
    *  - CTC mode (count up to OCR0A) 
    *  - prescaler 1 to match MCU cycles
    */
@@ -76,7 +76,7 @@ uint8_t SetupDelayTimer(uint8_t Cycles)
   TCCR0B = 0;                      /* disable timer */
   TCCR0A = (1 << WGM01);           /* set CTC mode, disable output compare pins */
   OCR0A = Cycles;                  /* set number of MCU cycles */
-  /* todo: check if we have to substract one cycle for setting the flag*/
+  /* todo: check if we have to substract one cycle for setting the flag */
 
   Flag = 1;              /* signal success */
   return Flag;
@@ -173,7 +173,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   U_1 = ((MCU_CYCLES_PER_ADC * 25) / 10) - (MCU_CYCLES_PER_US * 5) - 10;
   n = (uint8_t)U_1;
 
-  /* setup delay timer */
+  /* set up delay timer */
   if (SetupDelayTimer(n) == 0) return ESR;   /* skip on error */
 
 
@@ -460,7 +460,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   uint32_t          Raw;           /* raw capacitance value */
   uint32_t          Value;         /* corrected capacitance value */
 
-  /* setup mode */
+  /* set up mode */
   Mode = FLAG_10MS | FLAG_PULLUP;       /* start with large caps */
 
 
@@ -530,7 +530,7 @@ large_cap:
     Flag = 1;
   }
 
-  /* if 1300mV are reached with one pulse we got a small cap */
+  /* if 1300mV are reached with one pulse, we got a small cap */
   if ((Pulses == 1) && (U_Cap > 1300))
   {
     if (Mode & FLAG_10MS)                    /* 10ms pulses (>47µF) */
@@ -546,14 +546,16 @@ large_cap:
 
 
   /*
-   *  check if DUT sustains the charge and get the voltage drop
-   *  - run the same time as before minus the 10ms charging time
-   *  - this gives us the approximation of the self-discharging
+   *  Check if DUT sustains the charge and get the voltage drop.
+   *  - Run for the same time as before (minus the 10ms charging time).
+   *  - This gives us the approximation of the leakage.
+   *  - The charge required for the ADC conversion can be neglected because
+   *    C_S/H is just 14pF (very small vs. DUT).
    */
 
   if (Flag == 3)
   {
-    /* check self-discharging */
+    /* check self-discharging for measuring period */
     TempInt = Pulses;
     while (TempInt > 0)
     {
@@ -567,8 +569,31 @@ large_cap:
     if (U_Cap > U_Drop) U_Drop = U_Cap - U_Drop;
     else U_Drop = 0;
 
-    /* if voltage drop is too large consider DUT not to be a cap */
+    /* if voltage drop is too large, consider DUT not to be a cap */
     if (U_Drop > 100) Flag = 0;
+
+
+    /*
+     *  Take a second measurement with a specific delay to 
+     *  determine the self-discharge leakage current.
+     */
+
+    U_Zero = ReadU(Probes.ADC_1);       /* get start voltage */
+
+    if (Mode & FLAG_10MS)     /* > 47µF */
+    {
+      wait1000ms();
+    }
+    else                      /* < 47µF */
+    {
+      wait100ms();
+    }
+
+    TempInt = ReadU(Probes.ADC_1);      /* get voltage after delay */
+
+    /* calculate voltage drop */
+    if (U_Zero > TempInt) U_Zero -= TempInt;
+    else U_Zero = 0;
   }
 
 
@@ -576,6 +601,7 @@ large_cap:
    *  calculate capacitance
    *  - use factor from pre-calculated LargeCap_table
    *  - ignore NV.CapZero since it's in the pF range
+   *  - consider voltage drop by ADC and leakage
    */
 
   if (Flag == 3)
@@ -595,9 +621,7 @@ large_cap:
     Value = Raw;                          /* copy raw value */
 
     /*
-     *  We got a systematic error caused by the ADC, since it requires some
-     *  charge for doing its job. So the ADC increases the time for charging
-     *  the cap.
+     *  We got a systematic error which needs to be compensated.
      */
  
     Value *= 100;
@@ -610,6 +634,31 @@ large_cap:
     Cap->Scale = Scale;       /* -9 or -6 */
     Cap->Raw = Raw;
     Cap->Value = Value;       /* max. 4.3*10^6nF or 100*10^3µF */ 
+
+
+    /*
+     *  Calculate the self-discharge leakage current
+     *  - with Q = C * U and I = Q / t
+     *    we get I = C * U_diff / t
+     */
+    
+    while (Value > 800000)    /* rescale if necessary */
+    {
+      Value /= 10;
+      Scale++;
+    }
+
+    /* I = C * U_diff / t */
+    Value *= U_Zero;          /* * U_diff (mV) */
+    Value /= 1000;            /* scale to V */
+    if (Mode & FLAG_1MS)      /* short pulses */
+    {
+      Scale++;                /* / 0.1s */    
+    }
+    /* long pulses: / 1s */
+
+    Raw = RescaleValue(Value, Scale, -8);    /* rescale to 10nA */
+    Cap->I_leak = Raw;                       /* leakage current (in 10nA) */
   }
 
   return Flag;
@@ -672,7 +721,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   ADC_PORT = 0;                         /* set ADC port to low */
   R_DDR = Probes.Rh_1;                  /* pull-down probe-1 via Rh */
 
-  /* setup analog comparator */
+  /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
   ADMUX = (1 << REFS0) | Probes.ID_1;   /* switch ADC multiplexer to probe 1 */
@@ -680,7 +729,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   wait200us();
 
-  /* setup timer */
+  /* set up timer */
   TCCR1A = 0;                           /* set default mode */
   TCCR1B = 0;                           /* set more timer modes */
   /* timer stopped, falling edge detection, noise canceler disabled */
@@ -911,6 +960,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   Cap->Scale = -12;           /* pF by default */
   Cap->Raw = 0;
   Cap->Value = 0;
+  Cap->I_leak = 0;
 
   if (Check.Found == COMP_ERROR) return;    /* skip check on any error */
 
@@ -950,19 +1000,13 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    *  - when Vf collides with the voltage of the capacitance measurement
    */
 
-  Diode = &Diodes[0];         /* pointer to first diode */
-
-  for (TempByte = 0; TempByte < Check.Diodes; TempByte++)
+  Diode = SearchDiode(Probe1, Probe2);  /* search for matching diode */
+  if (Diode != NULL)                    /* got it */
   {
-    /* got matching pins and low threshold voltage */
-    if ((Diode->C == Probe2) &&
-        (Diode->A == Probe1) &&
-        (Diode->V_f < 1500))
+    if (Diode->V_f < 1500)              /* Vf too low */
     {
-      return;
+      return;                           /* skip this one */
     }
-
-    Diode++;                  /* next one */
   }
 
 
@@ -984,11 +1028,11 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
 
   /*
    *  check for plausibility
+   *  - skip diodes which could be detected as capacitors
+   *  - skip any transistor
    */
 
-  /* if there aren't any diodes in reverse direction which could be
-     detected as capacitors by mistake */
-  if (Check.Diodes == 0)
+  if (Check.Found < COMP_DIODE)
   {
     /* low resistance might be a large cap */
     if (Check.Found == COMP_RESISTOR)

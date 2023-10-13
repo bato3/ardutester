@@ -9,23 +9,63 @@
 
 
 /* ************************************************************************
- *   constants
+ *   addresses
  * ************************************************************************ */
 
 
 /*
- *  LCD commands
+ *  CGROM
+ *  - 1240 bytes
+ *  - 208 characters 5x8 and 32 characters 5x10
  */
 
-/* clear display */
+
+/*
+ *  CGRAM
+ *  - 64 bytes
+ *  - used-defined characters
+ *  - 8 characters 5x8 or 4 characters 5x10
+ */
+
+
+/*
+ *  DDRAM
+ *  - 80 bytes
+ */
+
+/* start adddresses of lines */
+#define ADDR_LINE_1           0x00    /* line #1 */
+#define ADDR_LINE_2           0x40    /* line #2 */
+#define ADDR_LINE_3           0x14    /* line #3 */
+#define ADDR_LINE_4           0x54    /* line #4 */
+
+
+
+/* ************************************************************************
+ *   LCD commands
+ * ************************************************************************ */
+
+
+/*
+ *  clear display
+ */
+
 #define CMD_CLEAR_DISPLAY     0x01    /* clear display */
 
 
-/* return home */
+/*
+ *  return home
+ *  - exec time: 1.52ms
+ */
+
 #define CMD_RETURN_HOME       0x02    /* return home */
 
 
-/* entry mode set */
+/*
+ *  entry mode set
+ *  - exec time: 37µs
+ */
+
 #define CMD_ENTRY_MODE_SET    0x04    /* entry mode set */
 
 #define FLAG_CURSOR_DECREASE  0b00000000     /* auto-decrease cursor position */
@@ -34,7 +74,10 @@
 #define FLAG_DISPLAY_SHIFT    0b00000001     /* disable display auto-shift */
 
 
-/* display control */
+/*
+ *  display control
+ */
+
 #define CMD_DISPLAY_CONTROL   0x08    /* display control */
 
 #define FLAG_DISPLAY_OFF      0b00000000     /* display off */
@@ -45,7 +88,10 @@
 #define FLAG_BLINK_ON         0b00000001     /* blinking on */
 
 
-/* shift */
+/*
+ *  shift
+ */
+
 #define CMD_SHIFT             0x10    /* shift */
 
 #define FLAG_SHIFT_CURSOR     0b00000000     /* shift cursor */
@@ -54,7 +100,9 @@
 #define FLAG_SHIFT_RIGHT      0b00000100     /* shift right */
 
 
-/* function set */
+/*
+ *  function set
+ */
 #define CMD_FUNCTION_SET      0x20    /* function set */
 
 #define FLAG_INTERFACE_4BIT   0b00000000     /* enable 4 bit data interface */
@@ -65,11 +113,17 @@
 #define FLAG_FONT_5X10        0b00000100     /* select 5x10 font */
 
 
-/* set CG RAM address */
+/*
+ *  set CG RAM address
+ */
+
 #define CMD_SET_CG_RAM_ADDR   0x40    /* set CG RAM address (custom character) */
 
 
-/* set DD RAM address */
+/*
+ *  set DD RAM address
+ */
+
 #define CMD_SET_DD_RAM_ADDR   0x80    /* set DD RAM address (cursor position) */
 
 

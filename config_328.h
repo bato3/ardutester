@@ -34,7 +34,7 @@
  *  - if you change LCD_DB4/5/6/7 comment out LCD_DB_STD!
  */
 
-//#if 0
+#if 0
 #define LCD_HD44780_PAR4
 #define LCD_TEXT                        /* character display */
 #define LCD_PORT         PORTD          /* port data register */
@@ -49,7 +49,7 @@
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
 #define FONT_HD44780_INT                /* internal 5x7 font, international */
-//#endif
+#endif
 
 
 /*
@@ -58,7 +58,7 @@
  *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
  */
 
-#if 0
+//#if 0
 #define LCD_ST7565R_SPI
 #define LCD_GRAPHIC                     /* monochrome graphic display */
 #define LCD_PORT         PORTD          /* port data register */
@@ -77,7 +77,7 @@
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
 #define FONT_8X8_V                      /* 8x8 font, vertically aligned */
 #define SYMBOLS_24X24_VP                /* 24x24 symbols, vertically aligned */
-#endif
+//#endif
 
 
 

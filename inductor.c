@@ -179,7 +179,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
     ADC_DDR = Probes.Pin_1 | Probes.Pin_2;
   }
 
-  /* setup analog comparator */
+  /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
   ADMUX = (1 << REFS0) | Probes.ID_2;   /* switch ADC multiplexer to probe-2 */
@@ -189,7 +189,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
 
 
   /*
-   *  setup timer
+   *  set up timer
    */
 
   Ticks_H = 0;                          /* reset timer overflow counter */

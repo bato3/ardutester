@@ -11,7 +11,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2016-07-08
+Last edit:  2016-08-03
 
 Content
   - About
@@ -112,17 +112,21 @@ official release:
 
 - user interface
   No worries! ;)
-- adaptive component discharge function
+- adaptive component discharging function
 - resistance measurement
   + dedicated method for resistances <10 Ohms (instead of using ESR check)
 - capacitance measurement
   + starts at 5pF
   + additional method for caps from 4.7µF up to 47µF
   + correction/compensation method
+- no SamplingADC() for very low capacitance or inductance
 - diodes
   + detection logic
 - BJTs
   + V_f is interpolated for a more suitable (virtual) I_b based on hFE
+  + detection of Germanium BJTs with high leakage current
+- JFETs
+  + detection of JFETs with very low I_DSS
 - TRIACs
   + detection of MT1 and MT2
 - IR RC detector and decoding
@@ -203,14 +207,17 @@ ones and what have you. I hope the code is easy to read and maintain now.
 At the moment following LCD controllers are supported:
 - HD44780 (character display)
 - ST7565R (graphic display 128x64)
-- ILI9341/ILI9342 (graphic display 240x320 or 320x240)
+- ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
+- ST7735 (color graphic display 128x160)
+- PCD8544 (graphic display 84x48)
 
 If you connect a rotary encoder to PD2/PD3, please connect the module's /CS
 to PD5 and set LCD_CS in config.h (applies to graphic displays). Otherwise the
 rotary encoder would screw up the display by interfering with the data bus.
 
-Hint: Take care about the LCD's supply voltage and logic levels! Use a level
-      shifter if required.
+Take care about the LCD's supply voltage and logic levels! Use a level shifter
+if required. If the display doesn't show anything after double checking the
+wiring, please try different contrast settings (config.h).
 
 
 + HD44780
@@ -681,7 +688,16 @@ Resistors < 10 Ohms are checked for being large caps.
 
 A measured capacitance value more than 5pF (incl. the zero offset) is
 considered valid. Lower values are too uncertain and could be caused by
-placing the probe leads a little bit different and things like that.
+placing the probe leads a little bit differently and things like that.
+
+Another measurement taken is the self-discharge leakage current for
+capacitors larger than 4.7µF. It gives a hint about the state of an 
+electrolytic cap. From my tests the typical value for a good electrolytic
+cap seems to be about:
+  - 10-220µF    1-3µA
+  - 330-470µF   4-5µA
+  - 470-820µF   4-7µs
+  - >1000µF     5-7µA per 1000µF
 
 
 * Discharging Components
@@ -723,9 +739,9 @@ diodes. Most datasheets of germanium diodes specify Vf at 0.1mA which the
 tester doesn't support. At a higher current Vf is expected to be around 0.7V
 which makes it hard to distinguish germanium from silicon diodes.
 
-The leakage current I_R for a single diode or I_CEO for a BJT will be displayed
-if it exeeds 1µA. Germanium BJTs got a leakage current of a few µA up to around
-500µA. Germanium diodes are around a few µA usually.
+The leakage current I_R for a single diode or I_CEO for a BJT will be
+displayed if it exeeds 50nA. Germanium BJTs got a leakage current of a few µA
+up to around 500µA. Germanium diodes are around a few µA usually.
 
 For some components the capacitance is shown also. In case the capacitance is
 below 5pF or the measurement failed for some reason the value displayed
@@ -759,9 +775,7 @@ identification of the BJT.
 Another special case is a BJT with an integrated freewheeling diode on the same
 subtrate as the BJT. That integrated diode junction creates a parasitic
 transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
-is found the tester prints a '+' behind the BJT type. But beware, such a NPN
-could be detected as PNP+ or a PNP as NPN+.
-
+is found the tester prints a '+' behind the BJT type.
 
 
 * Unsupported Components
@@ -770,9 +784,6 @@ Any semiconductor which requires a high current to trigger conduction can't
 be supported, since the tester only provides about 7mA at maximum. Also the
 tester provides just a voltage of 5V, which isn't sufficient for DIACs with
 a V_BO of 20-200V.
-
-Germanium power BJTs with a very high leakage current (> 700µA) can't be
-checked either, because the check would collide with depletion mode FETs. 
 
 
 * Known Issues

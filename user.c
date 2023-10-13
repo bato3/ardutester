@@ -130,8 +130,6 @@ int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
 
 
 
-#ifdef SW_INDUCTOR
-
 /*
  *  rescale value
  *
@@ -162,8 +160,6 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
 
   return NewValue;
 }
-
-#endif
 
 
 
@@ -992,7 +988,7 @@ void AdjustmentMenu(uint8_t Mode)
   uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
   uint8_t           ID;            /* profile ID */
 
-  /* setup menu */
+  /* set up menu */
   MenuItem[Item] = (void *)Profile1_str;     /* profile #1 */
   MenuID[Item] = 1;
   Item++;  
@@ -1042,7 +1038,7 @@ uint8_t PresentMainMenu(void)
 
 
   /*
-   *  setup menu
+   *  set up menu
    */
 
   /* extra items */

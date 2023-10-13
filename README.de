@@ -11,7 +11,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2016-07-08
+Letzte Änderung:  2016-08-03
 
 Inhaltsübersicht:
   - Über den Tester
@@ -122,10 +122,14 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
   + ab 5pF
   + zusätzliche Methode für Kondensatoren zwischen 4,7µF und 47µF
   + anderes Verfahren zur Korrektur/Kompensation
+- kein SamplingADC() für sehr niedrige Kapazitäten oder Induktivitäten
 - Dioden
   + Erkennungslogik
 - Bipolartransistoren
   + V_f wird für praxisnahe Testströme interpoliert
+  + Erkennung von Germanium-Transistoren mit höherem Leckstrom
+- JFETs
+  + Erkennung von JFETs mit sehr niedrigem I_DSS
 - TRIACs
   + Erkennung von MT1 und MT2
 - Detektor/Dekoder für IR-Fernsteuerungen
@@ -208,15 +212,18 @@ hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
 Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
 - HD44780 (textbasiertes Display)
 - ST7565R (grafisches Display 128x64)
-- ILI9341/ILI9342 (grafisches Display 240x320 or 320x240)
+- ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
+- ST7735 (grafisches Farb-Display 128x160)
+- PCD8544 (grafisches Display 84x48)
 
 Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
 mit PD5 und setze LCD_CS in config.h (nur für grafische LCD-Module).
 Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
 zu fehlerhaften Ausgaben führen.
 
-Hinweis: Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls!
-         Benutze Pegelumsetzer, sofern notwendig.
+Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
+Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
+nichts anzeigt, versuche den Kontrast zu ändern (config.h).
 
 
 + HD44780
@@ -700,6 +707,14 @@ Ein gemessener Kapazitätswert von mehr als 5pF (incl. Nulloffset) wird
 als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch
 Verschiedenes, wie z.B. anderes Platzieren der Messkabel, verursacht werden.
 
+Eine weitere Messung ist der Selbstentladungsleckstrom für Kodensatoren größer
+als 4,7µF. Der Wert gibt z.B. einen Hinweis auf den Zustand eines Elkos.
+Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:  
+  - 10-220µF    1-3µA
+  - 330-470µF   4-5µA
+  - 470-820µF   4-7µs
+  - >1000µF     5-7µA pro 1000µF
+
 
 * Bauteile entladen
 
@@ -744,10 +759,10 @@ dioden geben einen Messtrom von 0,1mA für Vf an. Leider unterstützt der Tester
 nicht diesen Messstrom. Und für höhere Ströme liegt Vf bei etwa 0,7V, was eine
 Unterscheidung zu Siliziumdioden schwierig macht. 
 
-Der Leckstrom I_R für eine einzelne Diode bzw. I_CEO für einen Transistor wird
-ausgegeben, sofern er höher als 1µA ist. Germaniumtransistoren haben einen
-Leckstrom im Bereich von wenigen µA bis etwa 500µA. Germaniumdioden liegen
-üblicherweise bei ein paar µA.
+Der Leckstrom I_R für eine einzelne Diode bzw. I_CEO für einen Bipolar-
+Transistor wird ausgegeben, sofern er höher als 50nA ist. Germanium-
+transistoren haben einen Leckstrom im Bereich von wenigen µA bis etwa 500µA.
+Germaniumdioden liegen üblicherweise bei ein paar µA.
 
 Für manche Bauteile wird ein Kapazitätswert angezeigt. Liegt die Kapazität
 unterhalb von 5pF oder die Messung schlug fehl, wird 0pF ausgegeben.
@@ -781,9 +796,7 @@ Ein weiterer Spezialfall ist ein Bipolartransistor mit integrierter
 Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
 PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
 somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
-entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet. Man
-muß damit rechnen, daß ein solcher NPN als PNP+ bzw. PNP als NPN+ erkannt
-wird. 
+entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
 
 
 * Nicht unterstütze Bauelemente
@@ -792,9 +805,6 @@ Alle Halbleiter, welche einen hohen Steuerstrom benötigen, können nicht
 erkannt werden, da der Tester max. ca. 7mA Strom zum Schalten hat. Auch
 liefert der Tester nur 5V, was z.B. nicht ausreichend für DIACs mit einem
 V_BO von 20-200V ist.
-
-Germanium-Leistungstransistoren mit recht hohem Leckstrom (> 700µA) können
-nicht geprüft werden, da sie mit dem Test auf Verarmungs-FETs kollidieren.
 
 
 * Bekannte Probleme

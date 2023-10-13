@@ -20,6 +20,7 @@ MCU = atmega328
 # - 1MHz  : 1
 # - 8MHz  : 8
 # - 16MHz : 16
+# - 20MHz : 20
 FREQ = 8
 
 # oscillator type
@@ -202,6 +203,14 @@ ifeq (${MCU},atmega328)
     # external 16MHz full swing crystal and /1 clock divider
     LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
     # external 16MHz low power crystal and /1 clock divider
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
+  endif
+  ifeq (${FREQ},20)
+    # internal RC oscillator (8MHz) not possible
+    LFUSE_RC =
+    # external 20MHz full swing crystal and /1 clock divider
+    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
+    # external 20MHz low power crystal and /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
 endif

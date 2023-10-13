@@ -1,0 +1,670 @@
+
+------------------------------------------------------------------------------
+
+                   ReadMe für die Component Tester Firmware
+
+                                Trendy Edition
+
+                  für ATmega328 mit Text- oder Grafikdisplay
+
+        (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
+
+------------------------------------------------------------------------------
+
+Letzte Änderung:  2015-11-04
+
+Inhaltsübersicht:
+  - Über den Tester
+  - Sicherheitshinweise
+  - Lizenz
+  - Unterschiede
+  - Firmware übersetzen
+  - Quellcode
+  - LCD-Module
+    - HD44780
+    - ST7565R
+    - ILI9341/ILI9342
+  - Test-Taste
+    - Drehencoder
+  - Einschalten
+  - Bauteilesuche
+  - Ausschalten
+  - Menü
+    - PWM-Generator
+    - Rechteck-Signalgenerator
+    - Zenertest
+    - ESR-Messung
+    - Frequenzzähler
+    - Drehencoder
+    - Kontrast
+    - Selbsttest
+    - Selbstabgleich
+    - Speichern
+    - Werte anzeigen
+    - Exit
+  - Widerstände
+  - Kondensatoren
+  - Bauteile entladen
+  - ADC Oversampling
+  - Vf (V_BE) von Bipolartransistoren
+  - Ergebnisanzeige
+    - Spezielle Bauteile
+  - Nicht unterstütze Bauelemente
+  - Bekannte Probleme
+  - Firmware-Änderungen
+  - Quellenverzeichnis
+
+
+* Über den Tester
+
+Der Component Tester basiert auf dem Projekt von Markus Frejek [1&2] und der
+Weiterführung von Karl-Heinz Kübbeler [3&4]. Es ist eine alternative
+Firmware für die aktuelle Testerschaltung von Karl-Heinz und bietet einige
+Änderungen der Benutzerschnittstelle und Mess- und Testverfahren. Während
+die Firmware von Karl-Heinz die offizielle Version ist und auch ältere
+ATmega MCUs unterstützt, ist diese Version zum Ausprobieren und Testen neuer
+Ideen. Außerdem ist sie auf den ATmega328/P beschränkt, da er ausreichend
+Speicherresourcen bietet. Die primären Sprachen für die Bedienung sind
+Englisch und Deutsch, können aber leicht um weitere Sprachen ergänzt werden
+
+Hinweis: Bitte den Selbstabgleich bei brandneuen Testern oder nach Firmware-
+aktualisierung laufen lassen. Oder auch bei Benutzung anderer Messkabel.
+
+
+* Sicherheitshinweise
+
+Der Component Tester ist kein Multimeter! Es ist ein einfacher Tester für
+Bauteile, der Verschiedenes messen kann. Die Eingänge sind nicht geschützt
+und werden durch Spannungen über 5V beschädigt. Den Tester nicht für
+Schaltungen in Betrieb nutzen, sondern nur für einzelne Bauteile! Bei
+Kondensatoren darauf achten, daß sie entladen sind, bevor der Tester
+angeklemmt wird. Benutzung auf eigene Gefahr!
+
+
+* Lizenz
+
+Der Autor der Ursprungsversion hat bzgl. der Lizenzbedingungen nur zwei
+Vorgaben gemacht. Zum einen ist das Projekt Open Source, und zum anderen
+sollen sich kommerzielle Benutzer beim Autor melden. Unglücklicherweise
+haben wir, Karl-Heinz und ich, den Autor bisher nicht erreichen können.
+Um das Problem des Fehlens einer vernünftigen Open-Source-Lizenz zu lösen,
+werde ich am 1.1.2016 eine Standard-Open-Source-Lizenz auswählen, wenn
+sich der ursprüngliche Autor nicht bis dahin meldet und seinen Wunsch äußert.
+Da diese Firmwareversion eine komplett neue Version ist, die lediglich ein
+paar Ideen der ursprünglich aufgreift, aber keine Code teilt, sollte dieses
+Vorgehen gerechtfertigt sein. 
+
+
+* Unterschiede
+
+Karl-Heinz hat eine richtig gute Doumentation für den Tester geschrieben.
+Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
+
+- Benutzerschnittstelle
+  Keine Panik! ;)
+- Adaptive Entladefunktion
+- Widerstandsmessung
+  + zusätliche Methode für Widerstände <10 Ohm (anstatt ESR-Messung)
+- Kapazitätsmessung
+  + ab 5pF
+  + zusätzliche Methode für Kondensatoren zwischen 4,7µF und 47µF
+  + anderes Verfahren zur Korrektur/Kompensation
+- Dioden
+  + Erkennungslogik
+- Bipolartransistoren
+  + V_f wird für praxisnahe Testströme interpoliert
+- TRIACs
+  + Erkennung von MT1 und MT2
+- Strukturierter Quellcode
+- Und Manches mehr, was mir gerade nicht einfällt.
+
+Mehr Details dazu findest du in den nachfolgenden Abschnitten.
+
+
+* Firmware übersetzen
+
+Als erstes solltest du das Makefile editieren und MCU-Modell, Frequenz,
+Oszillator-Typ und die Programmieradaptereinstellungen anpassen. Alle anderen
+Einstellungen stehen config.h.
+
+In config.h wähle das LCD-Modul und die Sprache für die Bedienung. Ändere
+die Standardwerte, wenn notwendig. Alle Einstellungen und Werte sind in der
+Datei selber erklärt. Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen
+haben. Für Grafikmodule einen Zeichensatz wählen, der die obige Bedingung
+erfüllt.
+
+Hardware-Optionen werden ebenfalls in config.h aktiviert:
+- Drehencoder
+- externe 2,5V Spannungsreferenz
+- Schutz-Relais zur Kondensatorentladung
+- Messung von Zenerdioden (DC-DC-Konverter)
+- Frequenzzähler
+
+Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
+um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
+sie die Messergebnisse eher verschlechtern als verbessern. Wenn du einen
+MCP1702 mit einer typischen Genauigkeit von 0,4% als Spannungsregler
+hast, brauchst du eigentlich keine zusätzliche Spannungsreferenz mehr.
+
+Verfügbare Sprachen:
+- Englisch
+- Deutsch
+- Tschechisch (von Kapa)
+
+Nach dem Editieren vom Makefile und config.h bitte "make" ausführen oder
+was-auch-immer dein IDE will, um die Firmware zu übersetzen. Das Makefile
+bietet folgende zusätzliche Targets: 
+- clean    alle Objektdateien löschen
+- fuses    Fuse Bits setzen
+- upload   Firmware brennen
+
+
+* Quellcode
+
+Eine Menge wurde aufgeräumt, Kommentare, Variablen umbenannt, Funktionen
+umstrukturiert, große Funktionen in mehrere kleine aufgeteilt und mehr. Ich
+hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
+
+
+* LCD-Module
+
+Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
+- HD44780 (textbasiertes Display)
+- ST7565R (grafisches Display 128x64)
+- ILI9341/ILI9342 (grafisches Display 240x320 or 320x240)
+
+Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
+mit PD5 und setze LCD_CS in config.h (nur für grafische LCD-Module).
+Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
+zu fehlerhaften Ausgaben führen.
+
+
++ HD44780
+
+Der HD44780 wird im 4-Bit-Modu bestrieben. Die Pins sind:
+
+  Modul       config.h           Standard
+  DB4         LCD_PORT Bit #0    PD0
+  DB5         LCD_PORT Bit #1    PD1
+  DB6         LCD_PORT Bit #2    PD2
+  DB7         LCD_PORT Bit #3    PD3
+  RS          LCD_RS             PD4
+  R/W         Gnd
+  E           LCD_EN1            PD5
+
+
++ ST7565R
+
+Der ST7565R wird mittels 4/5-Line SPI im Bit-Bang-Modus gesteuert. Die Pins
+sind:
+
+  Modul       config.h           Standard   Hinweis
+  /RES        LCD_RESET          PD0
+  A0          LCD_A0             PD1
+  SCL (DB6)   LCD_SCL            PD2
+  SI (DB7)    LCD_SI             PD3
+  /CS1        LCD_CS             PD5        optional
+
+Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip und
+X-Offset experimentieren.
+
+
++ ILI9341/ILI9342
+
+Der ILI9341/ILI9342 wird mittel SPI im Bit-Bang-Modus gesteuert. Die Pins
+sind:
+
+  Modul       config.h           Standard   Hinweis
+  /RES        LCD_RES            PD4        optional
+  /CS         LCD_CS             PD5        optional
+  D/C         LCD_DC             PD3
+  SCK         LCD_SCK            PD2
+  SDI         LCD_SDI            PD1
+  SDO         LCD_SDO            PD0        not used yet
+
+Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip und
+Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
+zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240).
+
+The ILI9341/ILI9342 is a color display controller and you can select whether
+you like single color (default) or multi color support by the "LCD_COLOR"
+definition in the display section of config.h.
+
+Der ILI9341/ILI9342 ist ein Farbdisplay-Controller, und du kannst zwischen
+Einfarben oder Mehrfarben-Modus über die LCD_COLOR Definition im LCD-Bereich
+in config.h wählen (Standard: Einfarben-Modus).
+
+Aufgrund der hohen Pixelzahl ist die Ausgabe etwas langsam. Das Löschen der
+kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt.
+
+
+* Test-Taste
+
+Die Test-Taste schaltet den Tester ein und dient zur Bedienung. Dazu
+unterscheidet der Tester zwischen einem kurzen Tastendruck und einem langen (
+0,3s). Der kurze Tastendruck wird üblicherweise zum Fortfahren einer Funktion
+oder zur Auswahl des nächsten Menüpunktes benutzt. Der lange Tastendruck führt
+eine kontextabhängige Aktion aus.
+
+Wenn der Tester einen Tastendruck zum Fortfahren der aktuellen Aktion erwartet,
+zeigt es dies durch einen Cursor rechts unten auf dem LCD-Modul an. Ein
+statischer Cursor signalisiert, daß weitere Informationen folgen, und ein
+blinkender Cursor bedeutet, daß mit der Bauteilesuche weiter gemacht wird.
+Für Menüs und einige Extrafunktionen wird der Cursor nicht angezeigt, da die
+erwartete Eingabe hier klar sein sollte. 
+
+
++ Drehencoder (Hardware-Option)
+
+Mit einem Drehencoder erhält die Bedienung zusätzliche Funktionalität, die
+kontextabhängig ist. Die Details werden in den weiteren Abschnitten erklärt. 
+
+Der Algorithmus zum Lesen des Drehencoders wurde bisher nur mit Encodern
+der EC11 Serie von ALPS getestet, da ich keine anderen Typen habe. Eine
+Rückmeldung über andere Typen würde mich sehr interessieren. 
+
+
+* Einschalten
+
+Ein langer Tastendruck beim Einschalten aktiviert den Auto-Hold-Modus. In
+diesem Modus wartet der Tester nach einer Ausgabe auf einen kurzen Tastendruck,
+um mit der Bauteilesuche weiter zu machen. Ansonsten läuft der Tester im
+kontinuierlichen Modus. Nach dem Einschalten wird kurz die Firmwareversion
+angezeigt.
+
+Mit einem sehr langen Tastendruck (2s) beim Einschalten kannst du die
+Abgleichwerte auf ihre Standards zurück setzen. Das kann praktisch sein, wenn
+z.B. der Kontrast vom LCD-Modul so verstellt ist, daß man nichts mehr sieht. 
+
+Wenn der Tester ein Problem mit den gespeicherten Abgleichwerten entdeckt (
+Problem mit dem EEPROM), zeigt er einen Prüfsummenfehler an und benutzt die
+Standardwerte stattdessen.
+
+
+* Bauteilesuche
+
+Nach dem Einschalten sucht Tester automatisch nach Bauteilen. Im
+kontinuierlichen Modus wiederholt der Tester die Suche nach einer kurzen
+Wartepause. Wenn mehrfach hintereinander kein Bauteil gefunden wurde, schaltet
+sich der Tester von selbst aus. Im Auto-Hold-Modus (durch Cursor signalisiert)
+führt der Tester einen Suchvorgang aus und wartet dann auf Tastendruck bzw.
+Rechtsdrehung vom Drehencoder. 
+
+In beiden Modi kannst du das Hauptmenü aufrufen (siehe weiter unten).
+
+
+* Ausschalten
+
+Während das Ergebnis der letzten Bauteilesuche angezeigt wird, schaltet ein
+langer Tastendruck den Tester aus. Dabei zeigt der Tester ein kurzes "Auf
+Wiedersehen" und schaltet sich dann selbst ab. Allerdings bleibt der Tester
+solange noch eingeschaltet, wie die Taste gedrückt gehalten wird. Das liegt
+am Design des Schaltungsteils der Stromversorgung. 
+
+
+* Menü
+
+Durch Kurzschliessen aller drei Testpins gelangt man in das Hauptmenü. Auch
+durch das zweimalige kurze Drücken der Test-Taste nach der Ausgabe des letztes
+Ergebnisses kommt man in das Menü. Einfach zweimal kurz hintereinander drücken.
+Kann vielleicht etwas Übung am Anfang benötigen ;-) Wenn ein Drehencoder
+vorhanden ist, startet zusätzlich eine Linksdrehung das Menü. 
+
+Im Menü wählt ein kurzer Tastendruck den nächsten Punkt aus und ein langer
+Tastendruck führt den ausgewählten Punkt aus. Bei einem LCD-Modul mit 2 Zeilen
+wird unten rechts eine Navigationshilfe angezeigt. Ein ">", wenn weitere
+Punkte folgen, oder ein "<" beim letzten Punkt. Geht man weiter als der letzte
+Punkt, gelangt man wieder zum ersten. Bei einem LCD-Modul mit mehr als 2
+Zeilen wird der ausgewählte Punkt mit einem "*" davor gekennzeichnet.
+
+Ist ein Drehencoder vorhanden, wird mit dem Drehen der vorherige bzw. nächste
+Punkt augewählt. Hier gibt es auch wieder einen Überlauf, d.h. vom ersten zum
+letzten Punkt. Ein kurzer Tastendruck führt den Punkt aus, im Gegensatz zu
+oben.
+
+Manche Punkte/Extras zeigen beim Start die benutzten Testpins kurz an (
+dreimaliges Blinken). Durch einen Tastendruck kann man diese Information
+überspringen.
+
+
++ PWM-Generator
+
+Macht genaus das, was du erwartest :-) Zuerst muß man aus einer vorgegeben
+Liste die Frequenz wählen. Kurzer Tastendruck für die nächste Frequenz und
+langer Tastendruck zum Starten, wie beim Menü. Mit Drehencoder ein kurzer
+Tastendruck zum Starten.
+
+Das Tastverhältnis startet bei 50% und kann in 5%-Schritten geändert werden.
+Ein kurzer Tastendruck für +5% und ein langer für -5%. Zum Beenden die Test-
+Taste zweimal kurz hintereinander drücken.
+
+Ist ein Drehencoder vorhanden, läßt sich das Tastverhältnis in 1%-Schritten
+ändern.
+
+Beschaltung der Testpins:
+  Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #1 und #3:   Masse
+
+
++ Rechteck-Signalgenerator
+
+Der Signalgenerator gibt ein Rechtecksignal mit variabler Frequenz bis zu
+einem 1/4 des MCU-Taktes aus (2MHz bei 8MHz Takt). Die Startfrequenz liegt
+bei 1000Hz und kann mit dem Drehencoder geändert werden. Die Dreh-
+geschwindigkeit bestimmt den Grad der Änderung, d.h. langsames Drehen ergibt
+kleine Änderungen und schnelles Drehen große. Da die Signalerzeugung auf
+der internen PWM-Funktion der MCU basiert, können nicht beliebige Frequenzen
+generiert werden, sondern nur in Schritten. Für niedrige Frequenzen ist die
+Schrittweite recht klein, erst bei hohen Frequenzen wird sie signifikant.
+Zum Beenden die Test-Taste kurz drücken.
+
+Beschaltung der Testpins:
+  Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #1 und #3:   Masse
+
+Hinweis: Drehencoder notwendig!
+
+
++ Zenertest (Hardware-Option)
+
+Mit Hilfe eines DC-DC-Konverters wird eine Testspannung von bis zu 50V zum
+Testen von Zenerdioden generiert. Der Anschluß erfolgt über zusätzliche
+Testpins. Solange die Test-Taste gedrückt wird, erzeugt der Konverter die
+Testspannung und die aktuelle Spannung wird angezeigt. Nach dem Loslassen
+der Taste wird die kleinste gemessene Spannung angezeigt, sofern der Test
+ausreichend lange für eine stabile Testspannung lief. Dieser Vorgang kann
+beliebig oft wiedrholt werden. Zum Beenden die Test-Taste zweimal kurz
+hintereinander drücken.
+
+Beschaltung für Zenerdiode:
+   Pin +: Kathode
+   Pin -: Anode
+
+
++ ESR-Messung
+
+Die ESR-Messung kann den Kondensator in der Schaltung messen und zeigt
+neben der Kapazität den ESR an, wenn ein Kondensator tatsächlich entdeckt
+wird. Stelle sicher, daß der Kondenstor vor dem Anschließen entladen wurde!
+Die gemessenen Werte können von einer Messung außerhalb der Schaltung wegen
+parallel geschalteter Bauteile abweichen.
+
+Um die Messung zu starten, kurz die Test-Taste drücken. Zum Beenden die
+Test-Taste zweimal kurz hintereinander drücken.
+
+Beschaltung für Kondensator:
+   Pin #1:  Plus
+   Pin #2:  Minus
+
+
++ Frequenzzähler (Hardware-Option)
+
+Ist die Zusatzschaltung für den Frequenzzähler eingebaut, kannst du damit
+Frequenzen von ca. 10Hz bis zu 1/4 der MCU-Taktfrequenz mit einer Auflösung
+von 1Hz bei Frequenzen unterhalb von 10kHz messen. Die Frequenz wird ständig
+gemessen und angezeigt. Ein Tastendruck beendet die Messung. Die automatische
+Bereichswahl setzt die Torzeit auf Werte zwischen 1ms und 1000ms, je nach
+Frequenz.
+
+
++ Drehencoder
+
+Diese Funktion testet Drehencoder und bestimmt das Pinout. Deine Aufgabe ist
+es, die Testpins an den Drehencoder (A, B, Common) anzuschließen und den
+Encoder nach rechts (also Uhrzeigersinn) zu drehen. Der Algorithmus benötigt
+4 Grey-Code-Schritte zur Erkennung. Die Drehrichtung ist wichtig zur Erkennung
+von A und B, da eine falsche Richtung zur Verdrehung der Pins führen würde. 
+
+Wenn ein Drehencoder entdeckt wird, gibt der Tester die Pinbelegung aus und
+wartet auf einen Tastendruck beim Auto-Hold-Modus oder wartet kurz beim
+kontinuierlichen Modus. Zum Beenden die Test-Taste kurz während eines
+Suchlaufs drücken.
+
+
++ Kontrast
+
+Für manche grafische LCD-Module kannst du den Kontrast einstellen. Ein kurzer
+Tastendruck erhöht den Wert, ein langer verkleinert ihn. Zum Beenden die
+Test-Taste zweimal kurz hintereinander drücken. Ist ein Drehencoder
+vorhanden, kann der Kontrastwert damit ebenfalls geändert werden. 
+
+
++ Selbsttest
+
+Wenn du den Selbsttest über das Menü gestartet hast, bittet dich der Tester
+die drei Testpins kurz zu schließen und wartet solange, bis er dies erkennt.
+Bei Problemen kannst du das Warten mit einem Tastendruck abbrechen.
+
+Der Selbsttest führt jeden Test 5-mal aus. Mit einem kurzen Tastendruck wird
+der aktuelle Test übersprungen, mit einem langen Tastendruck der komplette
+Test.
+
+In Test #4 ist der Kurzschluß wieder zu entfernen. Der Tester wartet dann
+so lange.
+
+
++ Selbstabgleich
+
+Der Selbstabgleich misst den Widerstand und die Kapazität der Messkabel, d.h.
+von Platine, interner Verkabelung und dem Messkabel als Summe, um einen
+Nulloffset zu bestimmen. Auch wird der interne Widerstand der MCU-Portpins
+im Pull-Up und Pull-Down Modus bestimmt. Wenn der Abgleich übersprungen wird 
+oder unplausible Werte gemessen werden, werden die Standardwerte der Firmware
+angenommen. Wenn alles sauber durch läuft, werden die neuen Werte angezeigt,
+aber nicht im EEPRON gespeichert (siehe Speichern).
+
+Der Spannungsoffset des Analogkomparators wird automatisch bei der Messung
+eines Kondensators bestimmt (bei der normalen Bauteilesuche), wenn der
+Kondensator einen Wert zwischen 100nF und 3,3µF hat. Außerdem wird
+gleichzeitig der Offset der internen Spannungsreferenz gemessen.
+
+Bevor der Selbstabgleich ausgeführt wird, solltest du einen Folienkondensator
+mit einer Kapazität zwischen 100nF und 3,3µF min. 3-mal messen, damit die oben
+erwähnten Offsets gemessen werden können. Typischerweise liefert die erste
+Messung einen zu niedrigen Wert, die zweite einen zu hohen und erst die dritte
+eine korrekten Wert. Das wird durch die sich selbst abgleichenden Offsets
+verursacht.
+
+Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
+ähnlich.
+
+Erlaubte Maximalwerte:
+- Widerstand Testpin/Kabel < 1,00 Ohm (zwei in Reihe)
+- Kapazität Testpin/Kabel < 100pF
+
+Merke: Abgleich ist nicht Kalibrierung! Kalibrierung ist die Prozedur, 
+Messergebnisse mit verfolgbaren Standards zu vergleichen und die Abweichungen
+zu notieren. Der Zweck ist die Überwachung der Abweichungen über die Zeit. Der
+Abgleich ist die Prozedur, ein Messgerät so einzustellen, daß es seine
+Vorgaben bzgl. Genauigkeit und anderer Parameter einhält.
+
+
++ Speichern
+
+Beim Brennen der Firmware wird ein Satz vordefinierter Standardardwerte in das
+EEPROM geschrieben. Nach dem Selbstabgleich kannst du hiermit die
+Standardwerte durch die korrekten Werte überschreiben. Beim nächsten Neustart
+vom Tester werden dann diese Werte geladen und benutzt. 
+
+Die Idee hinter der manuellen Speichern-Funktion ist, daß man z.B. beim
+temporären Wechsel der Messkabel nur einen Selbstabgleich macht und nach
+dem Neustart wieder die Werte für die alten Messkabel hat. Ansonsten müsste
+man für die alten Kabel wieder einen neuen Selbstabgleich machen.
+
+
++ Werte anzeigen
+
+Diese Funktion zeigt die aktuellen Abgleichwerte an. 
+
+
++ Exit
+
+Damit kannst du das Menü verlassen, wenn du z.B. aus Versehen reingegangen
+bist.
+
+
+* Widerstände
+
+Widerstände werden zweimal gemessen. d.h. in beide Richtungen, und die Werte
+dann verglichen. Wenn die Werte zu unterschiedlich sind, nimmt der Tester an,
+daß es zwei Widerstände sind und nicht nur einer. In dem Fall zeigt die
+Ausgabe zwei Widerstände mit gleichen Pins in der Form "1 -- 2 -- 1" mit den
+beiden Werten an. Für Widerstände kleiner als 10 Ohm wird eine zusätzliche
+Messung mit höherer Auflösung durchgeführt. 
+
+In seltenen Fällen kann der Tester sehr kleine Widerstände nicht erkennen. Am
+besten dann die Messung einfach wiederholen. 
+
+
+* Kondensatoren
+
+Die Messung von Kondensatoren ist in drei Methoden aufgeteilt. Große
+Kondensatoren >47µF werden mittels Ladezyklenmethode mit Impulsen von 10ms
+gemessen. Mittelgroße zwischen 4,7µF and 47µF werden ebenfalls mit der
+Ladezyklenmethode gemessen, aber mit Impulsen von 1ms. Kleine Kondensatoren
+laufen über den analogen Komparator. Auf dies Weise wird die Genauigkeit der
+Kapazitätsmessung optimiert. 
+
+Für die  Korrektur der Messwerte großer Kondensatoren habe ich eine einfache
+Methode gefunden. Ohne Korrektur wären die Werte zu hoch. Ich denke, daß dies
+durch die Messmethode verursacht wird, da die Analog-Digital-Wandlung nach
+dem Ladepuls etwas Zeit benötigt und der Kondensator in dieser Zeit etwas
+Ladung durch Leckströme verliert. So dauert es dann länger bis der Kondensator
+geladen ist, und die Kapazität erscheint höher. Eine spätere Selbstentlade-
+prüfung versucht dies zu kompensieren, kann es aber nur teilweise.
+
+Eine Logik zum Verhindern, daß große Kondensatoren als Widerstände erkannt
+werden, wurde hinzugefügt. Widerstände kleiner als 10 Ohm werden zusätzlich
+auf Kapazität geprüft.
+
+Ein gemessener Kapazitätswert von mehr als 5pF (incl. Nulloffset) wird
+als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch
+Verschiedenes, wie z.B. anderes Platzieren der Messkabel, verursacht werden.
+
+
+* Bauteile entladen
+
+Die Entladefunktion basiert nicht auf einem festen Timeout, sondern paßt
+sich automatisch dem Entladefortschritt an. Auf diese Weise wird eine
+Batterie schneller erkannt und große Kondensatoren erhalten mehr Zeit zum
+Entladen. Sollte ein großer Elko als Batterie erkannt werden, bitte nochmal
+versuchen. In einer Umgebung mit vielen elektrischen Störungen könnte auch
+der Nullwert CAP_DISCHARGED mit 3mV zu niedrig sein (ggf. anpassen). Die
+Anzeige der Restspannung hilft beim Finden des optimalen Nullwertes.
+
+
+* ADC Oversampling
+
+Die ADC-Funktion unterstützt ein variables Oversampling (1 - 255). Der
+Standardwert ist 25 Samples. Du kannst versuchen, durch Erhöhen des
+Oversamplingwerts die Genauigkeit des Testers zu erhöhen. Allerdings
+steigt mit einem höheren Wert auch die benötigte Zeit, d.h. die Messungen
+werden langsamer.
+
+
+* Vf (V_BE) von Bipolartransistoren
+
+Beim Test auf Dioden wird Vf zum einen mit Rl (hoher Teststrom) und zum
+anderen mit Rh (niedriger Teststrom) gemessen. Die Ausgabefunktion für
+Bipolartransistoren interpoliert aus den beiden Vf-Werten V_BE abhängig vom
+hFE für einen virtuellen Teststrom. Somit erhält man praxisnahe Werte, da V_BE
+eines Kleinsignaltransistors mit einem anderen Strom gemessen wird als bei
+einem Leistungstransistor.
+
+
+* Ergebnisanzeige
+
+Einige Namen und Abkürzungen wurden geändert. Die Ausgabe mancher Bauteile
+wird auf mehrere Seiten aufgeteilt, wenn das LCD-Modul nicht ausreichend viele
+Zeilen hat.
+
+Bei einer einzelnen Diode wird das Vf der Messung mit niedrigem Teststrom (
+10µA) in Klammern angezeigt, wenn der Wert unter 250mV liegt. Damit erhält man
+einen Hinweis auf eine Germaniumdiode. Die meisten Datenblätter von Germanium-
+dioden geben einen Messtrom von 0,1mA für Vf an. Leider unterstützt der Tester
+nicht diesen Messstrom. Und für höhere Ströme liegt Vf bei etwa 0,7V, was eine
+Unterscheidung zu Siliziumdioden schwierig macht. 
+
+Der Leckstrom I_R für eine einzelne Diode bzw. I_CEO für einen Transistor wird
+ausgegeben, sofern er höher als 1µA ist. Germaniumtransistoren haben einen
+Leckstrom im Bereich von wenigen µA bis etwa 500µA. Germaniumdioden liegen
+üblicherweise bei ein paar µA.
+
+Für manche Bauteile wird ein Kapazitätswert angezeigt. Liegt die Kapazität
+unterhalb von 5pF oder die Messung schlug fehl, wird 0pF ausgegeben.
+
+Wenn ein Verarmungs-FET mit symmetrischem Drain und Source gefunden wird,
+zeigt die Pinbelegung ein 'x' statt 'D' oder 'S', da beide vom Tester nicht
+unterschieden werden können, sie sind funktional identisch. In diesem Fall
+bitte im Datenblatt nach Details der Pinbelegung schauen.
+
+Die Pinbelegung eines Triac wird mit den Pins 'G', '1' and '2'. angezeigt.
+'1' ist MT1 und '2' ist MT2.
+
+Wenn die "Fancy Pinout" Funktion aktiviert wurde (über das Setzen einer
+Symboldatei in config.h), wird das Bauteilesymbol mit den entsprechenden
+Testpins für 3-Pin-Halbleiter angezeigt. Sollte nicht genügend Platz auf dem
+Display sein, wird die Ausgabe des Symbols übersprungen.
+
+
++ Spezielle Bauteile
+
+Bei einem Bipolartransistor mit Basis-Emitter-Widerstand wird der Widerstand
+angezeigt, aber hFE ausgelassen. Wenn der Transistor zusätzlich eine
+Schutzdiode hat, kann er als Transistor oder zwei Dioden erkannt werden, je
+nach Wert des Basis-Emitter-Widerstands. Im letzteren Fall werden zwei Dioden
+plus Widerstand mit dem Hinweis auf einen möglichen Transistor angezeigt. Ein
+niedriger Basis-Emitter-Widerstand verhindert leider die eindeutige Erkennung
+des Transistors.
+
+Ein weiterer Spezialfall ist ein Bipolartransistor mit integrierter
+Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
+PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
+somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
+entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
+
+
+* Nicht unterstütze Bauelemente
+
+Alle Halbleiter, welche einen hohen Steuerstrom benötigen, können nicht
+erkannt werden, da der Tester max. ca. 7mA Strom zum Schalten hat. Auch
+liefert der Tester nur 5V, was z.B. nicht ausreichend für DIACs mit einem
+V_BO von 20-200V ist.
+
+Germanium-Leistungstransistoren mit recht hohem Leckstrom (> 700µA) können
+nicht geprüft werden, da sie mit dem Test auf Verarmungs-FETs kollidieren.
+
+
+* Bekannte Probleme
+
+- Ein Speicher- bzw. Superkondensator, wie z.B. Panasonic NF Serie, wird als
+  Diode oder zwei anti-parallele Dioden erkannt. Die Kapazitätsmessung
+  kann keinen brauchbaren Wert bestimmen.
+- Bei Verwendung eines Schaltnetzteiles oder DC-DC-Konverters zur Strom-
+  versorgung gibt der Tester manchmal fälschlicherweise einen Elko um
+  die 50µF aus, obwohl kein Bauteil angeschlossen ist.
+
+
+* Firmware-Änderungen
+
+Bitte die Datei CHANGES.de lesen!
+
+
+* Quellenverzeichnis
+
+[1] AVR-Transistortester, Markus Frejek,
+    Embedded Projects Journal, 2011-11
+
+[2] http://www.mikrocontroller.net/topic/131804
+    Forum von Markus Frejek, Forum, 2009
+
+[3] http://www.mikrocontroller.net/articles/AVR-Transistortester
+    Online-Dokumentation des Transistortesters, Online-Artikel, 2009-2011
+
+[4] http://www.mikrocontroller.net/articles/AVR_Transistortester
+    Kurze Beschreibung des TransistorTesters, Karl-Heinz Kübbeler,
+    Online-Artikel, 2012
+
+
+
+------------------------------------ EOF -------------------------------------

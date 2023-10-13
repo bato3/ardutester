@@ -42,6 +42,22 @@
     extern void LCD_Contrast(uint8_t Contrast);
   #endif
 
+  #ifdef SW_SYMBOLS
+    extern void LCD_FancySemiPinout(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from touchscreen specific driver
+ * ************************************************************************ */
+
+#ifndef TOUCH_DRIVER_C
+  #ifdef HW_TOUCH
+
+
+  #endif
 #endif
 
 

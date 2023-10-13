@@ -67,11 +67,12 @@ DIST = $(notdir ${CURDIR})
 # compiler flags
 CC = avr-gcc
 CPP = avr-g++
-CFLAGS = -mmcu=${MCU} -Wall -mcall-prologues -I.
+CFLAGS = -mmcu=${MCU} -Wall -mcall-prologues -I. -Ibitmaps
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
 CFLAGS += -gdwarf-2 -std=gnu99 -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
+#CFLAGS += -flto
 
 # linker flags
 LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
@@ -89,6 +90,7 @@ HEADERS = config.h common.h variables.h HD44780.h functions.h
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o
 OBJECTS_C += display.o HD44780_Par4.o ST7565R_SPI.o
+OBJECTS_C += ILI9341_SPI.o ADS7843.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -110,7 +112,7 @@ $(NAME): ${OBJECTS}
 
 # create hex file of firmware
 %.hex: ${NAME}
-	avr-objcopy -O ihex ${HEX_FLASH_FLAGS}  $< $@
+	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
 
 # create image for EEPROM
 %.eep: ${NAME}
@@ -155,8 +157,9 @@ upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 dist:
 	rm -f *.tgz
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
-	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S \
-	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES
+	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/ \
+	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
+	  ${DIST}/README.de ${DIST}/CHANGES.de
 
 # clean up
 clean:

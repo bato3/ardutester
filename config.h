@@ -33,8 +33,9 @@
  *  HD44780, 4 bit parallel
  */
 
-#if 0
+//#if 0
 #define LCD_HD44780_PAR4
+#define LCD_TEXT                        /* character display */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
                                         /* - lower 4 bits for LCD data interface */
@@ -44,7 +45,7 @@
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
 #define FONT_HD44780_INT                /* internal 5x7 font, international */
-#endif
+//#endif
 
 
 /*
@@ -53,14 +54,15 @@
  *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
  */
 
-//#if 0
+#if 0
 #define LCD_ST7565R_SPI
+#define LCD_GRAPHIC                     /* monochrome graphic display */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
 #define LCD_RESET        PD0            /* port pin used for /RES */
 #define LCD_A0           PD1            /* port pin used for A0 */
 #define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD3            /* port pin used for SI */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
 #define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
@@ -69,8 +71,60 @@
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
-#define FONT_FIXED_8X8                  /* fixed 8x8 font */
-//#endif
+#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
+#define SYMBOLS_24X24_V                 /* 24x24 symbols, vertically aligned */
+#endif
+
+
+/*
+ * Chinese clone T3/T4 with ST7585 display
+ * - thanks to tom666 @ EEVblog forum 
+ */
+
+#if 0
+#define LCD_ST7565R_SPI
+#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD4            /* port pin used for /RES */
+#define LCD_A0           PD3            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
+#define SYMBOLS_24X24_V                 /* 24x24 symbols, vertically aligned */
+#endif
+
+
+
+/*
+ *  ILI8342, SPI interface
+ */
+
+#if 0
+#define LCD_ILI9341_SPI
+#define LCD_COLOR                       /* color graphic display */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RES          PD4            /* port pin used for /RES */
+#define LCD_CS           PD5            /* port pin used for /CS */
+#define LCD_DC           PD3            /* port pin used for D/C */
+#define LCD_SCK          PD2            /* port pin used for SCK */
+#define LCD_SDI          PD1            /* port pin used for SDI (LCD's data input) */
+#define LCD_SDO          PD0            /* port pin used for SDO (LCD's data output) */
+#define LCD_DOTS_X       320            /* number of horizontal dots */
+#define LCD_DOTS_Y       240            /* number of vertical dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+//#define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+#define LCD_SLOW                        /* slow interaction */
+#define FONT_16X26_H                    /* 16x26 font, horizontally aligned */
+#define SYMBOLS_32X32_H                 /* 32x32 symbols, horizontally aligned */
+#endif
 
 
 /*
@@ -79,6 +133,39 @@
 
 #ifndef LCD_PORT
   #error <<< No LCD module specified! >>>
+#endif
+
+
+
+/* ************************************************************************
+ *   touchscreen (optional)
+ * ************************************************************************ */
+
+
+/*
+ *  touchscreen / controller
+ *
+ *  Please uncomment the package matching your touchscreen
+ *  and adjust settings.
+ *
+ *  To uncomment, remove the enclosing "#if 0" and "#endif" or
+ *  put a "//" in front of both.
+ */
+
+
+/*
+ *  ADS7843 / XPT2046 (SPI interface)
+ */
+
+#if 0
+#define TOUCH_ADS7843
+#define TOUCH_PORT       PORTD     /* port data register */
+#define TOUCH_DDR        DDRD      /* port data direction register */
+#define TOUCH_CS                   /* port pin used for /CS */
+#define TOUCH_D_CLK                /* port pin used for DCLK */
+#define TOUCH_D_OUT                /* port pin used for DOUT */
+#define TOUCH_D_IN                 /* port pin used for DIN */
+#define TOUCH_PEN                  /* port pin used for /PENIRQ */
 #endif
 
 
@@ -121,7 +208,7 @@
 /*
  *  Typical voltage of 2.5V voltage reference (in mV)
  *  - see datasheet of the voltage reference
- *  - or use >= 5.5 digit DMM to measure voltage
+ *  - or use >= 5.5 digit DMM to measure the voltage
  */
 
 #define UREF_25           2495
@@ -155,7 +242,7 @@
  *  - uncomment to enable
  */
 
-#define HW_FREQ_COUNTER
+//#define HW_FREQ_COUNTER
 
 
 
@@ -242,10 +329,12 @@
  *  Languange of user interface. Available languages:
  *  - English (default)
  *  - German
+ *  - Czech
  */
 
 #define UI_ENGLISH
 //#define UI_GERMAN
+//#define UI_CZECH
 
 
 /*
@@ -431,7 +520,7 @@
  */
 
 #else
-  #error <<< No or wrong MCU type selected! >>> 
+  #error <<< No or wrong MCU type selected! >>>
 #endif
 
 
@@ -496,12 +585,14 @@
 /* auto-enable extra features for >=32kB Flash */
 #if RES_FLASH >= 32
   #define SW_PWM
-  #ifdef HW_ENCODER
-    #define SW_SQUAREWAVE
-  #endif
   #define SW_INDUCTOR
   #define SW_ESR
   #define SW_ENCODER
+
+  /* requires rotary encoder */
+  #ifdef HW_ENCODER
+    #define SW_SQUAREWAVE
+  #endif
 #endif
 
 /* LCD module */
@@ -509,6 +600,16 @@
   #define SW_CONTRAST
 #else
   #define LCD_CONTRAST        0
+#endif
+
+/* component symbols for fancy pinout */
+#if defined (SYMBOLS_24X24_V) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_32X32_H)
+  #define SW_SYMBOLS
+#endif
+
+/* touchscreen */
+#ifdef TOUCH_PORT
+  #define HW_TOUCH
 #endif
 
 

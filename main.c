@@ -24,8 +24,8 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "HD44780.h"          /* HD44780 LCD module */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 /*
@@ -44,7 +44,7 @@ uint8_t        RunsMissed;              /* counter for failed/missed measurement
 
 
 /*
- *  show pinout for semiconductor
+ *  show pinout for semiconductors
  *
  *  required:
  *  - character for pin A
@@ -101,15 +101,6 @@ void Show_Fail(void)
   /* display info */
   LCD_EEString(Failed1_str);            /* display: No component */
   LCD_NextLine_EEString(Failed2_str);   /* display: found!*/  
-
-  /* display numbers of diodes found */
-  if (Check.Diodes > 0)                 /* diodes found */
-  {
-    LCD_Space();                        /* display space */
-    LCD_Char(Check.Diodes + '0');       /* display number of diodes found */
-    LCD_Space();                        /* display space */
-    LCD_EEString(Diode_AC_str);         /* display: -|>|- */    
-  }
 
   RunsMissed++;               /* increase counter */
   RunsPassed = 0;             /* reset counter */
@@ -396,8 +387,8 @@ void Show_Diode(void)
     uint8_t         m;
 
     /*
-     *  Two diodes in series are additionally detected as third big diode:
-     *  - Check for any possible way of 2 diodes be connected in series.
+     *  Two diodes in series are detected as a virtual third diode:
+     *  - Check for any possible way the 2 diodes could be connected in series.
      *  - Only once the cathode of diode #1 matches the anode of diode #2.
      */
 
@@ -424,10 +415,11 @@ void Show_Diode(void)
     C = D1->C;                     /* cathode of first diode */
     A = 3;                         /* in series mode */
   }
-  else                             /* to much diodes */
+  else                             /* too much diodes */
   {
-    D1 = NULL;                     /* don't display any diode */
-    Show_Fail();                   /* and tell user */
+    LCD_EEString(Diode_AC_str);         /* display: -|>|- */
+    LCD_Space();                        /* display space */
+    LCD_Char(Check.Diodes + '0');       /* display number of diodes found */
     return;
   }
 
@@ -594,6 +586,7 @@ void Show_BJT(void)
   uint16_t          V_BE;          /* V_BE */
   int16_t           Slope;         /* slope of forward voltage */
 
+
   /*
    *  Mapping for Semi structure:
    *  A   - Base pin
@@ -731,6 +724,10 @@ void Show_BJT(void)
     LCD_NextLine_EEString_Space(I_CEO_str);  /* display: I_CE0 */
     DisplayValue(Semi.I_1, -6, 'A');         /* display current */
   }
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
 }
 
 
@@ -858,6 +855,10 @@ void Show_FET(void)
 
   /* show diode, V_th and Cgs for MOSFETs */
   if (Check.Type & TYPE_MOSFET) Show_FET_Extras();
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
 }
 
 
@@ -883,6 +884,10 @@ void Show_IGBT(void)
   LCD_NextLine();                  /* move to line #2 */
   Show_SemiPinout('G', 'C', 'E');  /* show pinout */
   Show_FET_Extras();               /* show diode, V_th and C_GE */
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
 }
 
 
@@ -921,6 +926,10 @@ void Show_Special(void)
     LCD_NextLine_EEString_Space(V_GT_str);   /* display: V_GT */
     DisplayValue(Semi.U_1, -3, 'V');         /* display V_GT in mV */
   }
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
 }
 
 
@@ -962,10 +971,8 @@ int main(void)
   MCUSR &= ~(1 << WDRF);                /* reset watchdog flag */
   wdt_disable();                        /* disable watchdog */
 
-  /* init LCD module */
+  /* LCD module */
   LCD_BusSetup();                       /* setup bus */
-  LCD_Init();                           /* initialize LCD */
-  LCD_NextLine_Mode(MODE_NONE);         /* reset line mode */
 
 
   /*
@@ -1019,6 +1026,13 @@ int main(void)
   /* key press >300ms sets autohold mode */
   if (Test > 1) UI.TesterMode = MODE_AUTOHOLD;
 
+  /* init LCD module */
+  LCD_Init();                           /* initialize LCD */
+  LCD_NextLine_Mode(MODE_NONE);         /* reset line mode */
+  #ifdef LCD_COLOR
+    UI.PenColor = COLOR_BLUE;           /* set pen color */
+  #endif
+
 
   /*
    *  load saved offsets and values
@@ -1046,6 +1060,9 @@ int main(void)
   LCD_EEString(Tester_str);             /* display: Component Tester */
   LCD_NextLine_EEString_Space(Edition_str);   /* display firmware edition */
   LCD_EEString(Version_str);            /* display firmware version */
+  #ifdef LCD_COLOR
+    UI.PenColor = COLOR_GREEN;          /* set pen color */
+  #endif
   MilliSleep(1500);                     /* let the user read the display */
 
 
@@ -1315,6 +1332,9 @@ power_off:
 
   /* display feedback (otherwise the user will wait :-) */
   LCD_Clear();
+  #ifdef LCD_COLOR
+    UI.PenColor = COLOR_BLUE;           /* set pen color */
+  #endif
   LCD_EEString(Bye_str);
 
   wdt_disable();                        /* disable watchdog */

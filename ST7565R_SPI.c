@@ -21,8 +21,6 @@
  *    (132 RAM dots - 128 real dots = 4)
  */
 
-/* http://edeca.net/wp/electronics/the-st7565-display-controller/ */
-
 
 /* local includes */
 #include "config.h"           /* global configuration */
@@ -48,8 +46,9 @@
 #include "functions.h"        /* external functions */
 #include "ST7565R.h"          /* ST7565R specifics */
 
-/* fonts */
-#include "font_fixed_8x8.h"
+/* fonts and symbols, vertically aligned */
+#include "font_8x8_v.h"
+#include "symbols_24x24_v.h"
 
 
 
@@ -64,6 +63,21 @@
 #define LCD_CHAR_X       (LCD_DOTS_X / FONT_SIZE_X)
 #define LCD_CHAR_Y       ((LCD_DOTS_Y / 8) / CHAR_PAGES)
 
+/* component symbols */
+#ifdef SW_SYMBOLS
+  /* pages/bytes required for symbol's height */
+  #define SYMBOL_PAGES        ((SYMBOL_SIZE_Y + 7) / 8)
+
+  /* size in relation to a character */
+  #define LCD_SYMBOL_CHAR_X   ((SYMBOL_SIZE_X + FONT_SIZE_X - 1) / FONT_SIZE_X)
+  #define LCD_SYMBOL_CHAR_Y   ((SYMBOL_SIZE_Y + CHAR_PAGES * 8 - 1) / (CHAR_PAGES * 8))
+
+  /* check y size: we need at least 2 lines */
+  #if LCD_SYMBOL_CHAR_Y < 2
+    #error <<< Symbols too small! >>>
+  #endif
+#endif
+
 /* segment driver (ADC) direction */
 #ifdef LCD_FLIP_X
   #define ADC_MODE       FLAG_ADC_REVERSE
@@ -76,6 +90,23 @@
   #define COMMON_MODE    FLAG_COM_REVERSE
 #else
   #define COMMON_MODE    FLAG_COM_NORMAL
+#endif
+
+
+
+/*
+ *  local variables
+ */
+
+/* position management */
+uint8_t             X_Start;       /* start position X/column */
+
+#ifdef SW_SYMBOLS
+/* symbol positions */
+uint8_t             SymbolTop;     /* top line */
+uint8_t             SymbolBottom;  /* bottom line */
+uint8_t             SymbolLeft;    /* left of symbol */
+uint8_t             SymbolRight;   /* right of symbol */
 #endif
 
 
@@ -128,9 +159,9 @@ void LCD_BusSetup(void)
  *  - byte value to send
  */
 
-void LCD_Send(unsigned char Byte)
+void LCD_Send(uint8_t Byte)
 {
-  uint8_t           n = 0;         /* counter */
+  uint8_t           n = 8;         /* counter */
 
   /* select chip, if pin available */
   #ifdef LCD_CS
@@ -138,7 +169,7 @@ void LCD_Send(unsigned char Byte)
   #endif
 
   /* bit-bang 8 bits */
-  while (n < 8)               /* 8 bits */
+  while (n > 0)               /* 8 bits */
   {
     /* get current MSB and set SI */
     if (Byte & 0b10000000)    /* 1 */
@@ -160,7 +191,7 @@ void LCD_Send(unsigned char Byte)
 
     Byte <<= 1;               /* shift bits one step left */
 
-    n++;                      /* next bit */
+    n--;                      /* next bit */
   }
 
   /* deselect chip, if pin available */
@@ -178,7 +209,7 @@ void LCD_Send(unsigned char Byte)
  *  - byte value to send
  */
  
-void LCD_Cmd(unsigned char Cmd)
+void LCD_Cmd(uint8_t Cmd)
 {
   /* indicate command mode */
   LCD_PORT = LCD_PORT & ~(1 << LCD_A0);      /* set A0 low */
@@ -195,7 +226,7 @@ void LCD_Cmd(unsigned char Cmd)
  *  - byte value to send
  */
 
-void LCD_Data(unsigned char Data)
+void LCD_Data(uint8_t Data)
 {
   /* indicate data mode */
   LCD_PORT = LCD_PORT | (1 << LCD_A0);       /* set A0 high */
@@ -214,7 +245,7 @@ void LCD_Data(unsigned char Data)
  *  set LCD character position
  *  - since we can't read the LCD and don't use a RAM buffer
  *    we have to move page-wise in y direction
- *  - top left: 0/0
+ *  - top left: 1/1
  *
  *  requires:
  *  - x:  horizontal position (1-)
@@ -223,7 +254,7 @@ void LCD_Data(unsigned char Data)
 
 void LCD_Pos(uint8_t x, uint8_t y)
 {
-  uint8_t           Temp;
+  uint8_t           Temp;     /* temp. value */
 
   /* update UI */
   UI.CharPos_X = x;
@@ -240,6 +271,7 @@ void LCD_Pos(uint8_t x, uint8_t y)
   #ifdef LCD_OFFSET_X
   x += 4;                            /* offset of 4 dots */
   #endif
+  X_Start = x;                       /* update start position */
   Temp = x;
   Temp &= 0b00001111;                /* filter lower nibble */
   LCD_Cmd(CMD_COLUMN_L | Temp);      /* set lower nibble */
@@ -256,28 +288,36 @@ void LCD_Pos(uint8_t x, uint8_t y)
  *
  *  requires:
  *  - Line: line number (1-)
+ *    special case line 0: clear remaining space in current line
  */ 
 
 void LCD_ClearLine(uint8_t Line)
 {
-  uint8_t           MaxPage;       /* page limit */
-  uint8_t           n;
+  uint8_t           MaxPage;            /* page limit */
+  uint8_t           Pos = 1;            /* character position */
+  uint8_t           n;                  /* counter */
 
+  if (Line == 0)         /* special case: rest of current line */
+  {
+    Line = UI.CharPos_Y;                /* current line */
+    Pos = UI.CharPos_X;                 /* current character position */
+  }
+
+  /* convert line to page */
   Line--;                               /* pages start at 0 */
   Line *= CHAR_PAGES;                   /* offset for char */
   MaxPage = Line + CHAR_PAGES;          /* end page + 1 */
 
   /* clear line */
-  while (Line < MaxPage)
+  while (Line < MaxPage)           /* loop through pages */
   {
-    /* move to start of current page */
-    LCD_Cmd(CMD_PAGE | Line);           /* set page */
-    LCD_Cmd(CMD_COLUMN_L);              /* reset column */
-    LCD_Cmd(CMD_COLUMN_H);
+    LCD_Pos(Pos, 1);               /* set start position */
+                                   /* updates also X_Start */
+    LCD_Cmd(CMD_PAGE | Line);      /* set page directly */
 
     /* clear page */
-    n = 0;
-    while (n <= 132)          /* internal RAM size */
+    n = X_Start;              /* reset counter */
+    while (n < 132)           /* up to internal RAM size */
     {
       LCD_Data(0);            /* send empty byte */
       n++;                    /* next byte */
@@ -297,7 +337,7 @@ void LCD_Clear(void)
 {
   uint8_t           n = 1;         /* counter */
 
-  /* since there's no clear command we have to clear all dots manually */
+  /* we have to clear all dots manually :-( */
   while (n <= LCD_CHAR_Y)          /* for all lines */
   {
     LCD_ClearLine(n);              /* clear line */
@@ -397,7 +437,8 @@ void LCD_Char(unsigned char Char)
   uint8_t           *Table;        /* pointer to table */
   uint8_t           Index;         /* font index */
   uint16_t          Offset;        /* address offset */
-  uint8_t           x = 1;         /* bitmap x byte counter */
+  uint8_t           Page;          /* page number */
+  uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
 
   /* get font index number from lookup table */
@@ -412,20 +453,21 @@ void LCD_Char(unsigned char Char)
   Table += Offset;                     /* address of character data */
 
   /* calculate vertical start position */
-  Index = CHAR_PAGES;                  /* pages/bytes per character */
-  Index *= (UI.CharPos_Y - 1);         /* offset for character */
+  Page = CHAR_PAGES;                  /* pages/bytes per character */
+  Page *= (UI.CharPos_Y - 1);         /* offset for character */
 
-  /* read data and send it to display */
+  /* read character bitmap and send it to display */
   while (y <= FONT_BYTES_Y)
   {
     if (y > 1)                /* multi-page bitmap */
     {
       /* set byte position */
-      LCD_Pos(UI.CharPos_X, 0);         /* set x pos */
-      LCD_Cmd(CMD_PAGE | Index);        /* set y pos (page) */
+      LCD_Pos(UI.CharPos_X, UI.CharPos_Y);   /* set x pos, keep y pos */
+      LCD_Cmd(CMD_PAGE | Page);              /* set new y pos (page) directly */
     }
 
-    /* read and send all bytes for this row */
+    /* read and send all column bytes for this row */
+    x = 1;
     while (x <= FONT_BYTES_X)
     {
       Index = pgm_read_byte(Table);     /* read byte */
@@ -434,7 +476,7 @@ void LCD_Char(unsigned char Char)
       x++;                              /* next byte */
     }
 
-    Index++;                            /* next page */
+    Page++;                             /* next page */
     y++;                                /* next row */
   }
 
@@ -465,6 +507,148 @@ void LCD_Cursor(uint8_t Mode)
     LCD_Char(' ');
   }
 }
+
+
+
+/* ************************************************************************
+ *   special stuff
+ * ************************************************************************ */
+
+
+#ifdef SW_SYMBOLS
+
+/*
+ *  display a component symbol
+ *
+ *  requires:
+ *  - ID: symbol to display
+ */
+
+void LCD_Symbol(uint8_t ID)
+{
+  uint8_t           *Table;        /* pointer to symbol table */
+  uint8_t           Data;          /* symbol data */
+  uint16_t          Offset;        /* address offset */
+  uint8_t           Page;          /* page number */
+  uint8_t           x;             /* bitmap x byte counter */
+  uint8_t           y = 1;         /* bitmap y byte counter */
+
+  /* calculate start address of character bitmap */
+  Table = (uint8_t *)&SymbolData;       /* start address of symbol data */
+  Offset = SYMBOL_BYTES_N * ID;         /* offset for symbol */
+  Table += Offset;                      /* address of symbol data */
+
+  /* calculate vertical start position */
+  Page = CHAR_PAGES;                  /* pages/bytes per character */
+  Page *= (UI.CharPos_Y - 1);         /* offset for character */
+
+  /* read character bitmap and send it to display */
+  while (y <= SYMBOL_BYTES_Y)
+  {
+    if (y > 1)                /* multi-page bitmap */
+    {
+      /* set byte position */
+      LCD_Pos(UI.CharPos_X, UI.CharPos_Y);   /* set x pos, keep y pos */
+      LCD_Cmd(CMD_PAGE | Page);              /* set new y pos (page) directly */
+    }
+
+    /* read and send all column bytes for this row */
+    x = 1;
+    while (x <= SYMBOL_BYTES_X)
+    {
+      Data = pgm_read_byte(Table);      /* read byte */
+      LCD_Data(Data);                   /* send byte */
+      Table++;                          /* address for next byte */
+      x++;                              /* next byte */
+    }
+
+    Page++;                             /* next page */
+    y++;                                /* next row */
+  }
+}
+
+
+
+/*
+ *  display fancy probe number
+ *
+ *  requires:
+ *  - Probe: probe number
+ *  - Table: pointer to pinout details
+ */
+
+void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
+{
+  uint8_t           Data;          /* pinout data */
+  uint8_t           x;             /* x position */
+  uint8_t           y;             /* y position */
+
+  Data = pgm_read_byte(Table);     /* read pinout details */
+
+  if (Data != PIN_NONE)            /* show pin */
+  {
+    /* determine position based on pinout data */
+    x = SymbolLeft;         /* set default positions */
+    y = SymbolTop;
+    if (Data & PIN_RIGHT) x = SymbolRight;
+    if (Data & PIN_BOTTOM) y = SymbolBottom;
+
+    /* show probe number */
+    LCD_Pos(x, y);               /* set position */
+    LCD_ProbeNumber(Probe);      /* display probe number */
+  }
+}
+
+
+
+/*
+ *  show fancy pinout for semiconductors
+ *  - display a nice symbol in the middle of the bottom text lines
+ *  - display pin numbers left and right of symbol
+ *  - symbol ID (0-) in Check.Symbol
+ */
+
+void LCD_FancySemiPinout(void)
+{
+  uint8_t           n;             /* temp. value */
+  uint8_t           Line;          /* line number */
+  uint8_t           *Table;        /* pointer to pin table */
+  uint16_t          Offset;        /* address offset */
+
+  /* check if we got enough unused lines left on the display */
+  Line = UI.CharPos_Y;        /* current text line */
+  n = LCD_CHAR_Y;             /* number of text lines */
+  n = n - Line;               /* free lines left */
+  if (n < LCD_SYMBOL_CHAR_Y) return;    /* too few lines */
+  if (n > LCD_SYMBOL_CHAR_Y) Line++;    /* add a spacer line */
+
+  /* determine positions */
+  Line++;                               /* next line */
+  SymbolTop = Line;
+  SymbolBottom = Line;
+  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* add offset for symbol */
+  SymbolLeft = (LCD_CHAR_X - LCD_SYMBOL_CHAR_X) / 2;
+  SymbolRight = SymbolLeft;
+  SymbolRight += LCD_SYMBOL_CHAR_X + 1;      /* add offset for symbol */
+
+  /* calculate start address of pinout details */
+  Table = (uint8_t *)&PinTable;         /* start address of pin table */
+  Offset = Check.Symbol * 3;            /* offset for pin details */
+  Table += Offset;                      /* address of pin details */
+
+  /* display pin numbers */
+  LCD_FancyProbeNumber(Semi.A, Table);       /* A pin */
+  Table++;                                   /* details for next pin */
+  LCD_FancyProbeNumber(Semi.B, Table);       /* B pin */
+  Table++;                                   /* details for next pin */
+  LCD_FancyProbeNumber(Semi.C, Table);       /* C pin */
+
+  /* display symbol */
+  LCD_Pos(SymbolLeft + 1, SymbolTop);   /* set top left position  */
+  LCD_Symbol(Check.Symbol);             /* display symbol */
+}
+
+#endif
 
 
 

@@ -10,6 +10,25 @@
 
 ------------------------------------------------------------------------------
 
+v1.19m 2015-11
+- Implemented a fancy pinout displaying symbols and probe numbers for 3 pin
+  semiconductors. 
+- Added color support.
+- Changed ShowDiode() to output the number of diodes directy (not via 
+  Show_Fail() anymore) when more than 3 diodes are found (hint by
+  hapless@eevblog).
+- Extended LCD_ClearLine() in all display drivers to clear the remaining
+  space of the current line to speed up things, especially for graphic
+  displays The idea is to display the text first and then to clear the
+  remaining space, instead of clearing the complete line and then printing the
+  text.
+- Added display driver for ILI9341/ILI9342 based modules.
+- Fixed problem with µ/micro character in font files.
+- Fixed character issue (when larger than 8x8) in LCD_Char() for ST7565R.
+- Updated Czech texts, thanks to Kapa.
+- Fixed a minor issue in MenuTool(), when rolling over from last to first
+  item.
+
 v1.18m 2015-07
 - Improved MenuTool() to update items only when the list has changed.
   Otherwise just the selection indicator is updated.
@@ -58,7 +77,7 @@ v1.14m 2014-08
 - Added frequency counter (hardware option).
 
 v1.13m 2014-07
-- Added Czech texts, thanks to Kapax.
+- Added Czech texts, thanks to Kapa.
 - ESR and PWM tools display the probes pins used.
 - Improved handling of pre-compiler directives for extra features.
 - Added support for rotary encoders for the user interface.

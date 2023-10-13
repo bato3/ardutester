@@ -11,16 +11,19 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-07-15
+Last edit:  2015-11-04
 
 Content
   - About
   - Safety Advice
   - License
   - Whats different?
-  - Displays
   - Building the firmware
   - Source Code
+  - Displays
+    - HD44780
+    - ST7565R
+    - ILI9341/ILI9342
   - Test Key
     - Rotary Encoder
   - Startup
@@ -60,8 +63,8 @@ current circuit by Karl-Heinz and offers some changes in the user interface
 and the methods used for probing and measuring. While Karl-Heinz provides an
 official release supporting most ATmega MCUs, this is a playground version
 with all features enabled and limited to ATmega328/P due to memory and flash
-size constraints. The UI languages currently supported are just English and
-German, but can be changed or extended easily.
+size constraints. The primary UI languages are English and German, but can be
+extended easily.
 
 Hint: Run the self adjustment for a new tester or if you've done any
 modifications, like a firmware update or changing probe leads.
@@ -117,17 +120,6 @@ official release:
 There are more details in the sections below.
 
 
-* Displays
-
-At the moment following LCD controllers are supported:
-- HD44780 (character display)
-- ST7565R (graphic display 128x64)
-
-If you connect a rotary encoder to PD2/PD3, please connect the module's /CS
-to PD5 and set LCD_CS in config.h (applies to graphic displays). Otherwise the
-rotary encoder would screw up the display by interfering with the data bus.
-
-
 * Building the firmware
 
 First edit the Makefile to specify your MCU model, frequency, oscilator
@@ -151,6 +143,11 @@ The external 2.5V voltage reference should be only enabled if it's at least
 the results worse. If you're using a MCP1702 with a typical tolerance of
 0.4% as voltage regulator you really don't need a 2.5V voltage reference.
 
+Available UI languages:
+- English
+- German
+- Czech (provided by Kapa)
+
 After editing the Makefile and config.h please run 'make' or whatever
 toolchain you got to compile the firmware. The Makefiles provides following
 additional targets:
@@ -164,6 +161,73 @@ additional targets:
 A lot of cleaning up was done, like more remarks, renamed variables,
 re-structured functions, large functions splitted up into several smaller
 ones and what have you. I hope the code is easy to read and maintain now.
+
+
+* Displays
+
+At the moment following LCD controllers are supported:
+- HD44780 (character display)
+- ST7565R (graphic display 128x64)
+- ILI9341/ILI9342 (graphic display 240x320 or 320x240)
+
+If you connect a rotary encoder to PD2/PD3, please connect the module's /CS
+to PD5 and set LCD_CS in config.h (applies to graphic displays). Otherwise the
+rotary encoder would screw up the display by interfering with the data bus.
+
+
++ HD44780
+
+The HD44780 is driven in 4 bit mode. The pin assignment is:
+
+  display     config.h           default
+  DB4         LCD_PORT Bit #0    PD0
+  DB5         LCD_PORT Bit #1    PD1
+  DB6         LCD_PORT Bit #2    PD2
+  DB7         LCD_PORT Bit #3    PD3
+  RS          LCD_RS             PD4
+  R/W         Gnd
+  E           LCD_EN1            PD5
+
+
++ ST7565R
+
+The ST7565R is driven by 4/5 line SPI in bit-bang mode. The pin assignment
+is:
+
+  display     config.h           default   remark
+  /RES        LCD_RESET          PD0
+  A0          LCD_A0             PD1
+  SCL (DB6)   LCD_SCL            PD2
+  SI (DB7)    LCD_SI             PD3
+  /CS1        LCD_CS             PD5       optional
+
+You might need to play with the x/y flip and x-offset settings to get
+the correct orientation for your display. 
+
+
++ ILI9341/ILI9342
+
+The ILI9341/ILI9342 is driven by a SPI in bit-bang mode. The pin assignment
+is:
+
+  display     config.h           default   remark
+  /RES        LCD_RES            PD4       optional
+  /CS         LCD_CS             PD5       optional
+  D/C         LCD_DC             PD3
+  SCK         LCD_SCK            PD2
+  SDI         LCD_SDI            PD1
+  SDO         LCD_SDO            PD0       not used yet
+
+You might need to play with the x/y flip and rotate settings to get the
+correct orientation for your display. And don't forget to set x and y dots
+based on the controller (ILI9341 is 240x320 and ILI9342 is 320x240).
+
+The ILI9341/ILI9342 is a color display controller and you can select whether
+you like single color (default) or multi color support by the "LCD_COLOR"
+definition in the display section of config.h.
+
+Based on the relative high number of pixels the display output is somewhat
+slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock.
 
 
 * Test Key
@@ -287,6 +351,8 @@ Configuration of the probes:
   Probe #2:         output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 
+Hint: Rotary encoder required!
+
 
 + Zener Tool (hardware option)
 
@@ -344,9 +410,10 @@ testing.
 
 + Contrast
 
-You can adjust the contrast for graphic LCD modules. A short key press
+You can adjust the contrast for some graphic LCD modules. A short key press
 increases the value and and a long key press decreases it. Two short key
-presses will exit the tool. 
+presses will exit the tool. With a rotary encoder installed the value
+can also be adjusted by turning the encoder. 
 
 
 + Selftest
@@ -432,18 +499,16 @@ resistance values. For resistors lower than 10 Ohms an extra measurement with
 a higher resolution is performed.
 
 In some rare cases the tester might not be able to detect a very low
-resistance, since the primary measurements indicate a problem with the
-validity of the results. In that case simply re-run the test.
+resistance. In that case simply re-run the test.
 
 
 * Measuring Capacitance
 
 The measurement of capacitance is split into three methods. Large caps >47µF
-are still measured by the charging cycle method with 10ms impulses. Mid-sized
+are measured by the charging cycle method with 10ms impulses. Mid-sized
 caps between 4.7µF and 47µF are processed the same way but with 1ms charging
-impulses. And small caps are still done by the analog comparator method. That
-way the accuracy of the measurement of caps between 4.7µF and 47µF is
-increased.
+impulses. And small caps are done by the analog comparator method. That
+way the accuracy of the measurement of caps is optimized.
 
 Also I found a simple correction solution for large caps. Without correction
 the measured values are too large. IMHO that is caused by the measurement
@@ -515,6 +580,11 @@ if you need more details about the pinout.
 
 The pinout for a Triac is shown with the pin IDs 'G', '1' and '2'. '1' is MT1
 and '2' is MT2.
+
+When the fancy pinout option is enabled (by selecting a symbols file in
+config.h) a component symbol with the corresponding probe pin numbers will be
+shown for 3-pin semiconductors. If there's not enough space left on the display
+for the symbol, the output will be skipped. 
 
 
 + Special Components

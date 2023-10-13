@@ -83,7 +83,7 @@ void LCD_BusSetup(void)
   /* set port pins to output mode */
   LCD_DDR = LCD_DDR | 0x0F | (1 << LCD_RS) | (1 << LCD_EN1);
 
-  /* LCD_EN1 should be low by default*/
+  /* LCD_EN1 should be low by default */
 }
 
 
@@ -96,7 +96,7 @@ void LCD_BusSetup(void)
  *  - byte value to send
  */
 
-void LCD_Send(unsigned char Byte)
+void LCD_Send(uint8_t Byte)
 {
   /*
    *  send upper nibble (bits 4-7)
@@ -143,7 +143,7 @@ void LCD_Send(unsigned char Byte)
  *  - byte value to send
  */
  
-void LCD_Cmd(unsigned char Cmd)
+void LCD_Cmd(uint8_t Cmd)
 {
   /* indicate command mode */
   LCD_PORT &= ~(1 << LCD_RS);    /* set RS to 0 */
@@ -299,6 +299,8 @@ void LCD_Init(void)
    *  load custom characters
    */
 
+  /* todo: why not a simple loop? */
+
   /* custom symbols for components */
   LCD_CustomChar(LCD_CHAR_DIODE_AC);    /* diode symbol '|>|' */
   LCD_CustomChar(LCD_CHAR_DIODE_CA);    /* diode symbol '|<|' */
@@ -378,20 +380,28 @@ void LCD_Pos(uint8_t x, uint8_t y)
  *
  *  requires:
  *  - Line: line number (1-4)
+ *    special case line 0: clear remaining space in current line
  */ 
 
 void LCD_ClearLine(uint8_t Line)
 {
-  uint8_t           n;             /* counter */
+  uint8_t           n = 0;         /* counter */
 
-  LCD_Pos(1, Line);                /* go to beginning of line */
-
-  for (n = 0; n < 20; n++)         /* 20 bytes */
+  if (Line == 0)         /* special case: rest of current line */
   {
-    LCD_Char(' ');                   /* send space */
+    n = UI.CharPos_X;         /* current character position */
+    n--;                      /* starts at 0 */
+  }
+  else                   /* standard case: some line */
+  {
+    LCD_Pos(1, Line);              /* go to beginning of line */
   }
 
-  LCD_Pos(1, Line);                /* go back to beginning of line */
+  while (n < 20)              /* up to 20 bytes */
+  {
+    LCD_Char(' ');            /* send space */
+    n++;                      /* next one */
+  }
 }
 
 

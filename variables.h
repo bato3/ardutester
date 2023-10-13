@@ -138,27 +138,27 @@
     const unsigned char ShortCircuit_str[] EEMEM = "zkrat!";
     const unsigned char DischargeFailed_str[] EEMEM = "Baterie?";
     const unsigned char Error_str[] EEMEM = "Chyba!";
-    const unsigned char Exit_str[] EEMEM = "Prerusit";
+    const unsigned char Exit_str[] EEMEM = "Exit";
     const unsigned char BJT_str[] EEMEM = "Tranzistor";
-    const unsigned char Thyristor_str[] EEMEM = "Tyrystor";
+    const unsigned char Thyristor_str[] EEMEM = "Tyristor";
     const unsigned char Triac_str[] EEMEM = "Triak";
     const unsigned char Bye_str[] EEMEM = "Nashledanou...";
     #ifdef SW_SQUAREWAVE
-      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
+      const unsigned char SquareWave_str[] EEMEM = "Gen. obdelniku";
     #endif
     #ifdef HW_ZENER
-      const unsigned char Zener_str[] EEMEM = "Zener";
+      const unsigned char Zener_str[] EEMEM = "Zenerka";
       const unsigned char Min_str[] EEMEM = "Min";
     #endif
     #ifdef HW_FREQ_COUNTER
-      const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
+      const unsigned char FreqCounter_str[] EEMEM = "Citac";
     #endif
     #ifdef SW_ENCODER
-      const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
-      const unsigned char TurnRight_str[] EEMEM = "Turn right!";
+      const unsigned char Encoder_str[] EEMEM = "IRC snimac";
+      const unsigned char TurnRight_str[] EEMEM = "Otoc vpravo!";
     #endif
     #ifdef SW_CONTRAST
-      const unsigned char Contrast_str[] EEMEM = "Contrast";
+      const unsigned char Contrast_str[] EEMEM = "Kontrast";
     #endif
 
 
@@ -260,7 +260,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.18m";
+  const unsigned char Version_str[] EEMEM = "v1.19m";
 
 
   /*

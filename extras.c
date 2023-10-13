@@ -24,6 +24,7 @@
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 

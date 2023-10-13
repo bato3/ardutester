@@ -755,11 +755,19 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
       {
         Semi.B = Probes.Pin_1;     /* collector pin */
         Semi.C = Probes.Pin_2;     /* emitter pin */
+
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_BJT_NPN;  /* set symbol ID */
+        #endif
       }
       else                         /* PNP */
       {
         Semi.B = Probes.Pin_2;     /* collector pin */
         Semi.C = Probes.Pin_1;     /* emitter pin */
+
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_BJT_PNP;  /* set symbol ID */
+        #endif
       }
     }
   }
@@ -786,11 +794,33 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
     {
       Check.Found = COMP_FET;
       Check.Type = FET_Type | TYPE_ENHANCEMENT | TYPE_MOSFET;
+
+      #ifdef SW_SYMBOLS
+      if (FET_Type == TYPE_N_CHANNEL)        /* n-channel */
+      {
+        Check.Symbol = SYMBOL_MOSFET_ENH_N;  /* set symbol ID */
+      }
+      else                                   /* p-channel */
+      {
+        Check.Symbol = SYMBOL_MOSFET_ENH_P;  /* set symbol ID */
+      }
+      #endif
     }
     else                      /* IGBT */
     {
       Check.Found = COMP_IGBT;
       Check.Type = FET_Type | TYPE_ENHANCEMENT;
+
+      #ifdef SW_SYMBOLS
+      if (FET_Type == TYPE_N_CHANNEL)        /* n-channel */
+      {
+        Check.Symbol = SYMBOL_IGBT_ENH_N;    /* set symbol ID */
+      }
+      else                                   /* p-channel */
+      {
+        Check.Symbol = SYMBOL_IGBT_ENH_P;    /* set symbol ID */
+      }
+      #endif
     }
 
     Check.Done = 1;           /* transistor found */
@@ -898,11 +928,17 @@ void CheckDepletionModeFET(void)
       {
         /* n channel depletion-mode MOSFET */ 
         Check.Type = TYPE_N_CHANNEL | TYPE_DEPLETION | TYPE_MOSFET;
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_MOSFET_DEP_N;  /* set symbol ID */
+        #endif
       }
       else                         /* JFET */
       {
         /* n channel JFET (depletion-mode only) */
         Check.Type = TYPE_N_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_JFET_N;        /* set symbol ID */
+        #endif
       }
 
       Flag = 1;                    /* signal match */
@@ -971,11 +1007,17 @@ void CheckDepletionModeFET(void)
       {
         /* p-channel depletion-mode MOSFET */ 
         Check.Type =  TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_MOSFET;
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_MOSFET_DEP_P;  /* set symbol ID */
+        #endif
       }
       else                         /* JFET */
       {
         /* p-channel JFET (depletion-mode only) */
         Check.Type = TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_JFET_P;        /* set symbol ID */
+        #endif
       }
 
       Flag = 1;                    /* signal match */
@@ -1117,6 +1159,10 @@ uint8_t CheckThyristorTriac(void)
       {
         Check.Found = COMP_THYRISTOR;   /* we found a Thyristor */
         Check.Done = 1;                 /* detected component */
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_SCR;      /* set symbol ID */
+        #endif
+
         Flag = 2;                       /* save data and signal success */
       }
       else                   /* got current -> Triac */
@@ -1142,6 +1188,9 @@ uint8_t CheckThyristorTriac(void)
           }
 
           Check.Found = COMP_TRIAC;     /* found Triac */
+          #ifdef SW_SYMBOLS
+          Check.Symbol = SYMBOL_TRIAC;  /* set symbol ID */
+          #endif
 
           /*
            *  Triac could be in Q3 or Q4 operation mode. If G and MT1 are swapped

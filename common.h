@@ -110,6 +110,28 @@
 #define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
 
 
+/* component symbols */
+#define SYMBOL_BJT_NPN        0    /* BJT npn */
+#define SYMBOL_BJT_PNP        1    /* BJT pnp */
+#define SYMBOL_MOSFET_ENH_N   2    /* MOSFET enhancement mode, n-channel */
+#define SYMBOL_MOSFET_ENH_P   3    /* MOSFET enhancement mode, p-channel */
+#define SYMBOL_MOSFET_DEP_N   4    /* MOSFET depletion mode, n-channel */
+#define SYMBOL_MOSFET_DEP_P   5    /* MOSFET depletion mode, p-channel */
+#define SYMBOL_JFET_N         6    /* JFET n-channel */
+#define SYMBOL_JFET_P         7    /* JFET p-channel */
+#define SYMBOL_IGBT_ENH_N     8    /* IGBT enhancement mode, n-channel */
+#define SYMBOL_IGBT_ENH_P     9    /* IGBT enhancement mode, p-channel */
+#define SYMBOL_SCR           10    /* SCR / thyristor */
+#define SYMBOL_TRIAC         11    /* TRIAC */
+
+/* pinout positions (bit mask) */
+#define PIN_NONE              0b00000000     /* no output */
+#define PIN_LEFT              0b00000001     /* left of symbol */
+#define PIN_RIGHT             0b00000010     /* right of symbol */
+#define PIN_BOTTOM            0b00000100     /* bottom */
+#define PIN_TOP               0b00001000     /* top */
+
+
 
 /* ************************************************************************
  *   structures
@@ -127,6 +149,7 @@ typedef struct
   uint8_t           CharMax_X;     /* max. characters per line */
   uint8_t           CharMax_Y;     /* max. number of lines */
   uint8_t           MaxContrast;   /* maximum contrast */
+  uint16_t          PenColor;      /* pen color */ 
 } UI_Type;
 
 
@@ -197,6 +220,9 @@ typedef struct
   uint8_t           Diodes;        /* number of diodes found */
   uint8_t           Probe;         /* error: probe pin */ 
   uint16_t          U;             /* error: voltage left in mV */
+  #ifdef SW_SYMBOLS
+  uint8_t           Symbol;        /* symbol ID */
+  #endif
 } Check_Type;
 
 

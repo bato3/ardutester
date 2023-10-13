@@ -24,8 +24,8 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "HD44780.h"          /* HD44780 LCD module */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 

@@ -23,8 +23,8 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "HD44780.h"          /* HD44780 module */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 /*
@@ -769,7 +769,7 @@ void ChangeContrast(void)
     #endif
     else                                /* long key press / left turn */
     {
-      if (Contrast > 0) Contrast--;;      /* decrease */
+      if (Contrast > 0) Contrast--;       /* decrease */
     }
 
     LCD_Contrast(Contrast);        /* change contrast */
@@ -815,6 +815,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
   Lines--;                    /* adjust to match item counter */
   LCD_Char(':');              /* whatever: */
 
+
   while (Run)
   {
     if (Lines == 1)           /* 2 line display */
@@ -833,11 +834,6 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     while (n < Lines)
     {
-      if (Run > 1)            /* list changed */
-      {
-        LCD_ClearLine(n + 2);      /* clear line */
-      }
-
       LCD_Pos(1, n + 2);           /* move to start of line */
 
       /* display indicator for multiline displays */
@@ -871,8 +867,9 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
         {
           LCD_EEString(Unit);
         }  
-      }
 
+        LCD_ClearLine(0);     /* clear rest of this line */
+      }
 
       Address += 2;                /* next address (2 byte steps) */
       n++;                         /* next item */
@@ -891,7 +888,9 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       LCD_Char(n);
     }
 
-    MilliSleep(100);          /* smooth UI */
+    #ifndef HW_ENCODER
+      MilliSleep(100);        /* smooth UI */
+    #endif
 
 
     /*
@@ -945,7 +944,11 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       {
         Selected = 0;              /* roll over to first one */
         First = 0;                 /* also reset first item listed */
-        Run++;                     /* set flag for changed list */
+
+        if (Items >= Lines)        /* large list */
+        {
+          Run++;                   /* set flag for changed list */
+        }
       }
       else                         /* more items follow */
       {

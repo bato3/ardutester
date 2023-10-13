@@ -31,7 +31,12 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     uint8_t HiADCm;   // mask to switch the ADC DDR port High-Pin
     uint8_t LoADCm;   // mask to switch the ADC DDR port Low-Pin
     uint8_t PinMSK;
-    uint8_t ii; // Hilfsvariable
+    uint8_t ii; // temporary variable
+#ifdef COMMON_EMITTER
+    unsigned int tmp16; // temporary variable
+#else
+#warning "without common emitter hFE"
+#endif
 #if FLASHEND > 0x1fff
     int udiff;
 #endif
@@ -61,15 +66,15 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     //   #define RR680PL (R_L_VAL + PIN_RP)
     //   #define RR680MI (R_L_VAL + PIN_RM)
     // #endif
-    LoPinRL = pgm_read_byte(&PinRLtab[LowPin]);       // intruction for LowPin R_L
-    LoPinRH = LoPinRL + LoPinRL;                      // intruction for LowPin R_H
-    TriPinRL = pgm_read_byte(&PinRLtab[TristatePin]); // intruction for TristatePin R_L
-    TriPinRH = TriPinRL + TriPinRL;                   // intruction for TristatePin R_H
-    HiPinRL = pgm_read_byte(&PinRLtab[HighPin]);      // intruction for HighPin R_L
-    HiPinRH = HiPinRL + HiPinRL;                      // intruction for HighPin R_H
+    LoPinRL = pgm_read_byte(&PinRLtab[LowPin]);       // instruction for LowPin R_L
+    LoPinRH = LoPinRL + LoPinRL;                      // instruction for LowPin R_H
+    TriPinRL = pgm_read_byte(&PinRLtab[TristatePin]); // instruction for TristatePin R_L
+    TriPinRH = TriPinRL + TriPinRL;                   // instruction for TristatePin R_H
+    HiPinRL = pgm_read_byte(&PinRLtab[HighPin]);      // instruction for HighPin R_L
+    HiPinRH = HiPinRL + HiPinRL;                      // instruction for HighPin R_H
 
-    HiADCp = pgm_read_byte(&PinADCtab[HighPin]); // intruction for ADC High-Pin
-    LoADCp = pgm_read_byte(&PinADCtab[LowPin]);  // intruction for ADC Low-Pin
+    HiADCp = pgm_read_byte(&PinADCtab[HighPin]); // instruction for ADC High-Pin
+    LoADCp = pgm_read_byte(&PinADCtab[LowPin]);  // instruction for ADC Low-Pin
     HiADCm = HiADCp | TXD_MSK;
     HiADCp |= TXD_VAL;
     LoADCm = LoADCp | TXD_MSK;
@@ -95,8 +100,9 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     lcd_line2();
 #endif
 
-    if (adc.lp_otr > 92)
-    { // there is some current without TristatePin current
+    //  if(adc.lp_otr > 92) {  //there is some current without TristatePin current
+    if (adc.lp_otr > 455)
+    { // there is more than 650uA current without TristatePin current
 #if DebugOut == 5
         lcd_testpin(LowPin);
         lcd_data('F');
@@ -113,30 +119,37 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         // If it is a self-conducting MOSFET or JFET, then must be: adc.lp2 > adc.lp1
         if (adc.lp2 > (adc.lp1 + 488))
         {
-            // measure voltage at the  Gate, differ between MOSFET and JFET
-            ADC_PORT = TXD_VAL;
-            ADC_DDR = LoADCm;                    // Low-Pin fix to GND
-            R_DDR = TriPinRH | HiPinRL;          // High-Pin to output
-            R_PORT = TriPinRH | HiPinRL;         // switch R_L for High-Pin to VCC
-            adc.lp2 = W20msReadADC(TristatePin); // read voltage of assumed Gate
-            if (adc.lp2 > 3911)
-            {                                 // MOSFET
-                PartFound = PART_FET;         // N-Kanal-MOSFET
-                PartMode = PART_MODE_N_D_MOS; // Depletion-MOSFET
+            if (PartFound != PART_FET)
+            {
+                // measure voltage at the  Gate, differ between MOSFET and JFET
+                ADC_PORT = TXD_VAL;
+                ADC_DDR = LoADCm;                    // Low-Pin fix to GND
+                R_DDR = TriPinRH | HiPinRL;          // High-Pin to output
+                R_PORT = TriPinRH | HiPinRL;         // switch R_L for High-Pin to VCC
+                adc.lp2 = W20msReadADC(TristatePin); // read voltage of assumed Gate
+                if (adc.lp2 > 3911)
+                {                                 // MOSFET
+                    PartFound = PART_FET;         // N-Kanal-MOSFET
+                    PartMode = PART_MODE_N_D_MOS; // Depletion-MOSFET
+                }
+                else
+                {                         // JFET (pn-passage between Gate and Source is conducting )
+                    PartFound = PART_FET; // N-Kanal-JFET
+                    PartMode = PART_MODE_N_JFET;
+                }
+#if DebugOut == 5
+                lcd_data('N');
+                lcd_data('J');
+#endif
+                //         if ((PartReady == 0) || (adc.lp1 > trans.uBE[0]))
+                //         there is no way to find out the right Source / Drain
+                trans.uBE[0] = adc.lp1;
+                gthvoltage = adc.lp1 - adc.tp1;                                           // voltage GS (Source - Gate)
+                trans.uBE[1] = (unsigned int)(((unsigned long)adc.lp1 * 1000) / RR680MI); // Id 0.01mA
+                trans.b = TristatePin;                                                    // save Pin numbers found for this FET
+                trans.c = HighPin;
+                trans.e = LowPin;
             }
-            else
-            {                         // JFET (pn-passage between Gate and Source is conducting )
-                PartFound = PART_FET; // N-Kanal-JFET
-                PartMode = PART_MODE_N_JFET;
-            }
-            //      if ((PartReady == 0) || (adc.lp1 > trans.uBE[0]))
-            //      there is no way to find out the right Source / Drain
-            trans.uBE[0] = adc.lp1;
-            gthvoltage = adc.lp1 - adc.tp1;                                           // voltage GS (Source - Gate)
-            trans.uBE[1] = (unsigned int)(((unsigned long)adc.lp1 * 1000) / RR680MI); // Id 0.01mA
-            trans.b = TristatePin;                                                    // save Pin numbers found for this FET
-            trans.c = HighPin;
-            trans.e = LowPin;
         }
 
         ADC_PORT = TXD_VAL; // direct outputs to GND
@@ -153,25 +166,32 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         // if it is a self-conducting P_MOSFET or P-JFET , then must be:  adc.hp1 > adc.hp2
         if (adc.hp1 > (adc.hp2 + 488))
         {
-            // read voltage at the Gate , to differ between MOSFET and JFET
-            ADC_PORT = HiADCp;                   // switch High-Pin directly to VCC
-            ADC_DDR = HiADCm;                    // switch High-Pin to output
-            adc.tp2 = W20msReadADC(TristatePin); // read voltage at the assumed Gate
-            if (adc.tp2 < 977)
-            {                                 // MOSFET
-                PartFound = PART_FET;         // P-Kanal-MOSFET
-                PartMode = PART_MODE_P_D_MOS; // Depletion-MOSFET
+            if (PartFound != PART_FET)
+            {
+                // read voltage at the Gate , to differ between MOSFET and JFET
+                ADC_PORT = HiADCp;                   // switch High-Pin directly to VCC
+                ADC_DDR = HiADCm;                    // switch High-Pin to output
+                adc.tp2 = W20msReadADC(TristatePin); // read voltage at the assumed Gate
+                if (adc.tp2 < 977)
+                {                                 // MOSFET
+                    PartFound = PART_FET;         // P-Kanal-MOSFET
+                    PartMode = PART_MODE_P_D_MOS; // Depletion-MOSFET
+                }
+                else
+                {                         // JFET (pn-passage between Gate and Source is conducting)
+                    PartFound = PART_FET; // P-Kanal-JFET
+                    PartMode = PART_MODE_P_JFET;
+                }
+#if DebugOut == 5
+                lcd_data('P');
+                lcd_data('J');
+#endif
+                gthvoltage = adc.tp1 - adc.hp1;                                                                // voltage GS (Gate - Source)
+                trans.uBE[1] = (unsigned int)(((unsigned long)(ADCconfig.U_AVCC - adc.hp1) * 1000) / RR680PL); // Id 0.01mA
+                trans.b = TristatePin;                                                                         // save Pin numbers found for this FET
+                trans.c = LowPin;
+                trans.e = HighPin;
             }
-            else
-            {                         // JFET (pn-passage between Gate and Source is conducting)
-                PartFound = PART_FET; // P-Kanal-JFET
-                PartMode = PART_MODE_P_JFET;
-            }
-            gthvoltage = adc.tp1 - adc.hp1;                                                                // voltage GS (Gate - Source)
-            trans.uBE[1] = (unsigned int)(((unsigned long)(ADCconfig.U_AVCC - adc.hp1) * 1000) / RR680PL); // Id 0.01mA
-            trans.b = TristatePin;                                                                         // save Pin numbers found for this FET
-            trans.c = LowPin;
-            trans.e = HighPin;
         }
     } // end component has current without TristatePin signal
 
@@ -189,23 +209,12 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         R_DDR = TriPinRH | HiPinRL; // Tripin=RH-
         adc.hp1 = ADCconfig.U_AVCC - W5msReadADC(HighPin);
         adc.tp1 = ReadADC(TristatePin); // voltage at base resistor
-#if DebugOut == 5
-        lcd_line3();
-        lcd_clear_line();
-        lcd_line3();
-        lcd_data('H');
-        lcd_string(utoa(adc.hp1, outval, 10));
-        lcd_space();
-        lcd_data('T');
-        lcd_string(utoa(adc.tp1, outval, 10));
-        lcd_space();
-#endif
 #ifdef LONG_HFE
         c_hfe = ((unsigned long)adc.hp1 * (unsigned long)(((unsigned long)R_H_VAL * 100) /
                                                           (unsigned int)RR680PL)) /
                 (unsigned int)adc.tp1;
 #else
-        c_hfe = ((adc.hp1 / ((RR680PL + 500) / 1000)) * (R_H_VAL / 500)) / (adc.tp2 / 500);
+        c_hfe = ((adc.hp1 / ((RR680PL + 500) / 1000)) * (R_H_VAL / 500)) / (adc.tp1 / 500);
 #endif
     }
     else
@@ -247,6 +256,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
             {
                 PartReady = 1;
             }
+#ifdef COMMON_EMITTER
             trans.uBE[PartReady] = ReadADC(HighPin) - adc.tp2; // Base Emitter Voltage
 
             // compute current amplification factor for circuit with common Emitter
@@ -260,22 +270,32 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
 #endif
                 adc.tp2 = 53;
             }
+            tmp16 = adc.lp1;
+            if (tmp16 > adc.lp_otr)
+            {
+                tmp16 -= adc.lp_otr;
+            }
 
 #ifdef LONG_HFE
-            trans.hfe[PartReady] = ((unsigned int)adc.lp1 * (unsigned long)(((unsigned long)R_H_VAL * 100) /
-                                                                            (unsigned int)RR680MI)) /
+            trans.hfe[PartReady] = ((unsigned int)tmp16 * (unsigned long)(((unsigned long)R_H_VAL * 100) /
+                                                                          (unsigned int)RR680MI)) /
                                    (unsigned int)adc.tp2;
 #else
-            trans.hfe[PartReady] = ((adc.lp1 / ((RR680MI + 500) / 1000)) * (R_H_VAL / 500)) / (adc.tp2 / 500);
+            trans.hfe[PartReady] = ((tmp16 / ((RR680MI + 500) / 1000)) * (R_H_VAL / 500)) / (adc.tp2 / 500);
+#endif
 #endif
 #ifdef COMMON_COLLECTOR
             // current amplification factor for common  Collector (Emitter follower)
             //  c_hFE = (Emitter current - Base current) / Base current
+#ifdef COMMON_EMITTER
             if (c_hfe > trans.hfe[PartReady])
             {
+#endif
                 trans.hfe[PartReady] = c_hfe;
                 trans.uBE[PartReady] = ADCconfig.U_AVCC - adc.hp1 - adc.tp1; // Base Emitter Voltage common collector
+#ifdef COMMON_EMITTER
             }
+#endif
 #endif
 
             if (PartFound != PART_THYRISTOR)
@@ -462,6 +482,7 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
             {
                 PartReady = 1; // check, if test is already done once
             }
+#ifdef COMMON_EMITTER
             trans.uBE[PartReady] = ADCconfig.U_AVCC - adc.tp2 - ReadADC(LowPin);
 
             // compute current amplification factor for common Emitter
@@ -475,22 +496,32 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
 #endif
                 adc.tp2 = 53;
             }
+            tmp16 = adc.hp2;
+            if (tmp16 > adc.lp_otr)
+            {
+                tmp16 -= adc.lp_otr;
+            }
 
 #ifdef LONG_HFE
-            trans.hfe[PartReady] = ((unsigned int)adc.hp2 * (unsigned long)(((unsigned long)R_H_VAL * 100) /
-                                                                            (unsigned int)RR680PL)) /
+            trans.hfe[PartReady] = ((unsigned int)tmp16 * (unsigned long)(((unsigned long)R_H_VAL * 100) /
+                                                                          (unsigned int)RR680PL)) /
                                    (unsigned int)adc.tp2;
 #else
-            trans.hfe[PartReady] = ((adc.hp2 / ((RR680PL + 500) / 1000)) * (R_H_VAL / 500)) / (adc.tp2 / 500);
+            trans.hfe[PartReady] = ((tmp16 / ((RR680PL + 500) / 1000)) * (R_H_VAL / 500)) / (adc.tp2 / 500);
+#endif
 #endif
 #ifdef COMMON_COLLECTOR
             // compare current amplification factor for common Collector (Emitter follower)
             //  hFE = (Emitterstrom - Basisstrom) / Basisstrom
+#ifdef COMMON_EMITTER
             if (c_hfe > trans.hfe[PartReady])
             {
+#endif
                 trans.hfe[PartReady] = c_hfe;
                 trans.uBE[PartReady] = ADCconfig.U_AVCC - adc.lp1 - adc.tp1;
+#ifdef COMMON_EMITTER
             }
+#endif
 #endif
 
             if (adc.tp2 > 2557)
@@ -554,23 +585,15 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     // component has current
     // Test if Diode
     ADC_PORT = TXD_VAL;
-    ADC_DDR = LoADCm; // Low-Pin fix to GND
-    R_DDR = HiPinRL;  // switch R_L port for High-Pin to output (VCC)
-    R_PORT = HiPinRL;
-    ChargePin10ms(TriPinRL, 1); // discharge of P-Kanal-MOSFET gate
-    adc.lp_otr = W5msReadADC(HighPin) - ReadADC(LowPin);
-    R_DDR = HiPinRH; // switch R_H port for High-Pin output (VCC)
-    R_PORT = HiPinRH;
-    adc.hp2 = W5msReadADC(HighPin); // M--|<--HP--R_H--VCC
-
-    R_DDR = HiPinRL; // switch R_L port for High-Pin to output (VCC)
-    R_PORT = HiPinRL;
-    ChargePin10ms(TriPinRL, 0); // discharge for N-Kanal-MOSFET gate
-    adc.hp1 = W5msReadADC(HighPin) - W5msReadADC(LowPin);
-    R_DDR = HiPinRH; // switch R_H port for High-Pin to output (VCC)
-    R_PORT = HiPinRH;
-    adc.hp3 = W5msReadADC(HighPin); // M--|<--HP--R_H--VCC
-
+    for (ii = 0; ii < 200; ii++)
+    {
+        ADC_DDR = LoADCm | HiADCm;  // discharge by short of Low and High side
+        wait_about5ms();            // Low and Highpin to GND for discharge
+        ADC_DDR = LoADCm;           // switch only Low-Pin fix to GND
+        adc.hp1 = ReadADC(HighPin); // read voltage at High-Pin
+        if (adc.hp1 < (150 / 8))
+            break;
+    }
     /*It is possible, that wrong Parts are detected without discharging, because
       the gate of a MOSFET can be charged.
       The additional measurement with the big resistor R_H is made, to differ antiparallel diodes
@@ -578,11 +601,61 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
       A diode has a voltage, that is nearly independent from the current.
       The voltage of a resistor is proportional to the current.
     */
+
+#if 0
+  /* first check with higher current (R_L=680) */
+  /* A diode is found better with a parallel mounted capacitor, */
+  /* but some capacitors can be detected a a diode. */
+  R_DDR = HiPinRL;              //switch R_L port for High-Pin to output (VCC)
+  R_PORT = HiPinRL;
+  ChargePin10ms(TriPinRL,1);    //discharge of P-Kanal-MOSFET gate
+  adc.lp_otr = W5msReadADC(HighPin) - ReadADC(LowPin);
+  R_DDR = HiPinRH;              //switch R_H port for High-Pin output (VCC)
+  R_PORT = HiPinRH;
+  adc.hp2 = W5msReadADC(HighPin);               // M--|<--HP--R_H--VCC
+
+  R_DDR = HiPinRL;              //switch R_L port for High-Pin to output (VCC)
+  R_PORT = HiPinRL;
+  ChargePin10ms(TriPinRL,0);    //discharge for N-Kanal-MOSFET gate
+  adc.hp1 = W5msReadADC(HighPin) - W5msReadADC(LowPin);
+  R_DDR = HiPinRH;              //switch R_H port for High-Pin to output (VCC)
+  R_PORT = HiPinRH;
+  adc.hp3 = W5msReadADC(HighPin);               // M--|<--HP--R_H--VCC
+  if(adc.lp_otr > adc.hp1) {
+      adc.hp1 = adc.lp_otr;	//the higher value wins
+      adc.hp3 = adc.hp2;
+  }
+#else
+    /* check first with low current (R_H=470k) */
+    /* With this method the diode can be better differed from a capacitor, */
+    /* but a parallel to a capacitor mounted diode can not be found. */
+    R_DDR = HiPinRH; // switch R_H port for High-Pin output (VCC)
+    R_PORT = HiPinRH;
+    ChargePin10ms(TriPinRL, 1);     // discharge of P-Kanal-MOSFET gate
+    adc.hp2 = W5msReadADC(HighPin); // M--|<--HP--R_H--VCC
+    ChargePin10ms(TriPinRL, 0);     // discharge for N-Kanal-MOSFET gate
+    adc.hp3 = W5msReadADC(HighPin); // M--|<--HP--R_H--VCC
+
+    /* check with higher current (R_L=680) */
+    R_DDR = HiPinRL; // switch R_L port for High-Pin to output (VCC)
+    R_PORT = HiPinRL;
+    adc.hp1 = W5msReadADC(HighPin) - ReadADC(LowPin);
+    ChargePin10ms(TriPinRL, 1); // discharge for N-Kanal-MOSFET gate
+    adc.lp_otr = W5msReadADC(HighPin) - ReadADC(LowPin);
+
+    R_DDR = HiPinRH; // switch R_H port for High-Pin output (VCC)
+    R_PORT = HiPinRH;
     if (adc.lp_otr > adc.hp1)
     {
         adc.hp1 = adc.lp_otr; // the higher value wins
         adc.hp3 = adc.hp2;
     }
+    else
+    {
+        ChargePin10ms(TriPinRL, 0); // discharge for N-Kanal-MOSFET gate
+    }
+    adc.hp2 = W5msReadADC(HighPin); // M--|<--HP--R_H--VCC
+#endif
 #if DebugOut == 4
     lcd_line3();
     lcd_clear_line();
@@ -591,16 +664,20 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     lcd_data('D');
     lcd_testpin(LowPin);
     lcd_space();
+    lcd_data('h');
+    lcd_string(utoa(adc.hp3, outval, 10));
+    lcd_space();
     lcd_data('L');
     lcd_string(utoa(adc.hp1, outval, 10));
     lcd_space();
     lcd_data('H');
-    lcd_string(utoa(adc.hp3, outval, 10));
+    lcd_string(utoa(adc.hp2, outval, 10));
     lcd_space();
     wait_about1s();
 #endif
 
-    if ((adc.hp1 > 150) && (adc.hp1 < 4640) && (adc.hp1 > (adc.hp3 + (adc.hp3 / 8))) && (adc.hp3 * 8 > adc.hp1))
+    //  if((adc.hp1 > 150) && (adc.hp1 < 4640) && (adc.hp1 > (adc.hp3+(adc.hp3/8))) && (adc.hp3*8 > adc.hp1)) {
+    if ((adc.hp1 > 150) && (adc.hp1 < 4640) && (adc.hp2 < adc.hp1) && (adc.hp1 > (adc.hp3 + (adc.hp3 / 8))) && (adc.hp3 * 16 > adc.hp1))
     {
         // voltage is above 0,15V and below 4,64V => Ok
         if ((PartFound == PART_NONE) || (PartFound == PART_RESISTOR))

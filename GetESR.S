@@ -1,3 +1,6 @@
+#ifndef __ASSEMBLER__
+ #define __ASSEMBLER__
+#endif
 #include <avr/io.h>
 #include <avr/common.h>
 #include <avr/eeprom.h>
@@ -45,6 +48,11 @@
 
 // unsigned long cap_val_nF;	// capacity in nF
 #define cap_val_nF 20	/* SP + 20:23 */
+
+#define LowUpCount 24   /* SP + 24 */
+#define HighUpCount 25  /* SP + 25 */
+#define LowTooHigh 26  /* SP + 26 */
+#define HighTooHigh 26  /* SP + 27 */
 
 #define adcv0L r2
 #define adcv0H r3
@@ -97,7 +105,7 @@
     .macro StartADCwait
 	sts	ADCSRA, StartADCmsk; 	/* ADCSRA = StartADCmsk = r10 */
  	lds	r24, ADCSRA; 	/* while (ADCSRA & (1 <<ADSC)) */
-       	sbrc	r24, ADSC; 
+       	sbrc	r24, ADSC;
        	rjmp	.-8 ;   /* wait until conversion is done */
      .endm
 #endif
@@ -118,7 +126,7 @@
  #if F_CPU == 8000000UL
          /* current begin after last ADCready:  2.25us (wakeup) + 5us + 5tics = 7.875us  */
 	/* half puls length = (20us - 7.875us) = 12.125us (PL=24.25us) */
-	call	wait3us; /* pulse length 23us + 2 clock tics (CALL instead of RCALL) = 23.25 us @ 8 MHz */ 
+	call	wait3us; /* pulse length 23us + 2 clock tics (CALL instead of RCALL) = 23.25 us @ 8 MHz */
 	wdr	;
  #endif
  #if F_CPU == 16000000UL
@@ -186,7 +194,7 @@ GetESR:
        	push	r28;
        	in	r28, _SFR_IO_ADDR(SPL);
        	in	r29, _SFR_IO_ADDR(SPH);
-       	sbiw	r28, 0x1a;
+       	sbiw	r28, 0x1e;	/* 30 */
        	in	r0, _SFR_IO_ADDR(SREG);
        	cli
        	out	_SFR_IO_ADDR(SPH), r29;
@@ -200,7 +208,7 @@ GetESR:
 	std	Y+1, r24;
 
 	lds	r18, PartFound;		/* if (PartFound == PART_CAPACITOR) { */
-	cpi	r18, PART_CAPACITOR;	
+	cpi	r18, PART_CAPACITOR;
  	brne	ad_35e4;
 	lds	r18, cap+cval_max;      /* cap_val_nF = cap.cval_max; */
 	lds	r19, cap+cval_max+1;
@@ -236,7 +244,7 @@ ad_35ba:
 	brcc	ad_35e4
 	ldi	r24, 0xff;
 	ldi	r25, 0xff;
-	rjmp	ad_exit; 
+	rjmp	ad_exit;
 ad_35e4:				/* } */
 
 
@@ -293,16 +301,16 @@ ad_3604:
 
 #if PROCESSOR_TYP == 1280
 	    /* ATmega640/1280/2560 1.1V Reference with REFS0=0 */
-	//  SelectLowPin = (cap.ca | (1<<REFS1) | (0<<REFS0));	// switch ADC to LowPin, Internal Ref. 
+	//  SelectLowPin = (cap.ca | (1<<REFS1) | (0<<REFS0));	// switch ADC to LowPin, Internal Ref.
 	ldi	r25, (1<<REFS1)|(0<<REFS0);	0xC0
 	or	SelectLowPin, r25;
-	//  SelectHighPin = (cap.cb | (1<<REFS1) | (0<<REFS0));	// switch ADC to HighPin, Internal Ref. 
+	//  SelectHighPin = (cap.cb | (1<<REFS1) | (0<<REFS0));	// switch ADC to HighPin, Internal Ref.
 	or	SelectHighPin, r25;
 #else
-	//  SelectLowPin = (cap.ca | (1<<REFS1) | (1<<REFS0));	// switch ADC to LowPin, Internal Ref. 
+	//  SelectLowPin = (cap.ca | (1<<REFS1) | (1<<REFS0));	// switch ADC to LowPin, Internal Ref.
 	ldi	r25, (1<<REFS1)|(1<<REFS0);	0xC0
 	or	SelectLowPin, r25;
-	//  SelectHighPin = (cap.cb | (1<<REFS1) | (1<<REFS0));	// switch ADC to HighPin, Internal Ref. 
+	//  SelectHighPin = (cap.cb | (1<<REFS1) | (1<<REFS0));	// switch ADC to HighPin, Internal Ref.
 	or	SelectHighPin, r25;
 #endif
 
@@ -322,6 +330,8 @@ ad_3604:
 	std	Y+sumvolt2+1, zero_reg;
 	std	Y+sumvolt2+2, zero_reg;
 	std	Y+sumvolt2+3, zero_reg;
+	std	Y+LowUpCount, zero_reg;
+	std	Y+HighUpCount, zero_reg;
 	call	EntladePins;	/* EntladePins();	// discharge capacitor */
 	ldi	r24, TXD_VAL;
 	out	_SFR_IO_ADDR(ADC_PORT), r24; /* ADC_PORT = TXD_VAL;	// switch ADC-Port to GND */
@@ -333,7 +343,7 @@ ad_3604:
 #endif
 	/* start voltage should be negativ */
 	ldd	r19, Y+HiADC;		/* ADC_DDR = HiADC;	// switch High Pin to GND */
-	out	_SFR_IO_ADDR(ADC_DDR), r19; 
+	out	_SFR_IO_ADDR(ADC_DDR), r19;
 	out	_SFR_IO_ADDR(R_PORT), LoPinR_L;	/* R_PORT = LoPinR_L */
 	out	_SFR_IO_ADDR(R_DDR), LoPinR_L;	/* R_DDR = LoPinR_L */
 	call	wait10us;	/* Delay about half the current puls-length of measurement loop */
@@ -409,7 +419,7 @@ ad_370c:
 
 	      /* ********* Reverse direction, connect High side with GND *********** */
 	ldd	r19, Y+HiADC;		/* ADC_DDR = HiADC;	// switch High Pin to GND */
-	out	_SFR_IO_ADDR(ADC_DDR), r19; 
+	out	_SFR_IO_ADDR(ADC_DDR), r19;
 	out	_SFR_IO_ADDR(R_PORT), HiPinR_L;	/* R_PORT = HiPinR_L;	// switch R-Port to VCC */
 	out	_SFR_IO_ADDR(R_DDR), HiPinR_L;	/* R_DDR = HiPinR_L;	// switch R_L port for HighPin to output (VCC) */
 
@@ -432,7 +442,7 @@ ad_370c:
 	DelayBigCap;			/* wait the time defined by macro */
 					/*  }  */
 	out	_SFR_IO_ADDR(R_DDR), zero_reg; 	// switch current off, SH is 1.5 ADC clock ticks behind real start
-	out	_SFR_IO_ADDR(R_PORT), zero_reg; 
+	out	_SFR_IO_ADDR(R_PORT), zero_reg;
 ad_37f4:
 	lds	r24, ADCSRA;		/* while (ADCSRA&(1<<ADSC));	// wait for conversion finished */
 	sbrc	r24, ADSC;
@@ -459,7 +469,7 @@ ad_37f4:
 	std	Y+sumvolt0+2, r16;
 	std	Y+sumvolt0+3, r17;
 	ldd	r24, Y+adcvv1;		/* add HighPin voltages with current */
-	ldd	r25, Y+adcvv1+1; 
+	ldd	r25, Y+adcvv1+1;
 	add	r24, r20;		/* adcv[1] + adcv[3] */
 	adc	r25, r21;
 	ldd	r18, Y+sumvolt1;	/* sumvolt1 += (adcv[1] + adcv[3]); */
@@ -479,27 +489,29 @@ ad_37f4:
 	ldi	r18, lo8(100);
 	cp	r18, r20;
 	cpc	zero_reg, r21;
-	brcs	is_ok1;		/* r20:21 >= 40 */
+	brcs	is_ok1;		/* r20:21 >= 100 */
 	out	_SFR_IO_ADDR(R_PORT), LoPinR_L;	/* R_PORT = LoPinR_L; */
 	out	_SFR_IO_ADDR(R_DDR), LoPinR_L;	/* R_DDR = LoPinR_L;	// switch LowPin with 680 Ohm to VCC */
 	call	wait2us;			/* additional charge the capacitor */
-	out	_SFR_IO_ADDR(R_DDR), zero_reg; 	// switch current off, SH is 1.5 ADC clock ticks behind real start
-	out	_SFR_IO_ADDR(R_PORT), zero_reg; 
-	ldi	r24, '>';
-	call	lcd_data;
-	rjmp	is_ok2;
+	out	_SFR_IO_ADDR(R_DDR), zero_reg; 	// switch current off
+	out	_SFR_IO_ADDR(R_PORT), zero_reg;
+	ldd	r24, Y+LowUpCount; 	/* count additional load pulses at Low side */
+	inc	r24;
+	std	Y+LowUpCount, r24;
+	rjmp	is_ok1b;
 is_ok1:
 	cpi	r20, lo8(1000);
         ldi	r23, hi8(1000);
 	cpc	r21, r23;
-        brcs	is_ok1b;
-	ldi	r24, '+';
-	call	lcd_data;
+        brcs	is_ok1b;			/* voltage reverse direction < 1000 */
+	ldd	r24, Y+LowTooHigh; 	/* count  pulses with too high voltage at Low side */
+	inc	r24;
+	std	Y+LowTooHigh, r24;
 is_ok1b:
 	ldd	r24, Y+adcvv1;
 	ldd	r25, Y+adcvv1+1;
 	cp	r18, r24;
-	cpc	zero_reg, r25;	/* adcvv1 >= 40 */
+	cpc	zero_reg, r25;	/* adcvv1 >= 100 */
 	brcs	is_ok2;
 	ldd	r19, Y+LoADC;
 	out	_SFR_IO_ADDR(ADC_DDR), r19;	/* ADC_DDR = LoADC;	// switch Low-Pin to output (GND) */
@@ -509,15 +521,18 @@ is_ok1b:
 	DelayBigCap;			/* wait the time defined by macro */
 	out	_SFR_IO_ADDR(R_DDR), zero_reg;	/* R_DDR = 0; // switch current off,  SH is 1.5 ADC clock behind real start */
 	out	_SFR_IO_ADDR(R_PORT), zero_reg;	/* R_PORT = 0; */
-        ldi	r24, '<';
-	call	lcd_data;
+	ldd	r24, Y+HighUpCount;	/* count additional load pulses at High side */
+	inc	r24;
+	std	Y+HighUpCount, r24;
+	rjmp	is_ok2b;
 is_ok2:
 	cpi	r24, lo8(1000);
         ldi	r23, hi8(1000);
 	cpc	r25, r23;
-        brcs	is_ok2b;
-	ldi	r24, '#';
-	call	lcd_data;
+        brcs	is_ok2b;			/* voltage forward direction < 1000 */
+	ldd	r24, Y+HighTooHigh; 	/* count  pulses with too high voltage at High side */
+	inc	r24;
+	std	Y+HighTooHigh, r24;
 is_ok2b:
 	inc	r13;			/* for(    ;ii<MAX_CNT;ii++)  */
 	mov	r21, r13;
@@ -552,7 +567,7 @@ ad_3924:
 	ldd	r9, Y+sumvolt1+3;
 /* ############################################################ */
 	lds	r18, PartFound;		/* if (PartFound == PART_CAPACITOR) { */
-	cpi	r18, PART_CAPACITOR;	
+	cpi	r18, PART_CAPACITOR;
  	brne	no_sub;			/* it is not a capacitor */
 
 /* First half of load pulse (13.5us) loads quicker than the second half of load pulse. */
@@ -605,9 +620,41 @@ ad_3972:
 	ldi	r20, 0;
 	ldi	r18, 'd';
 	ldi	r16, 4	;
-	call	DisplayValue
+	call	DisplayValue;
 	ldi	r24, 0x94;		/* lcd_line3(); */
 	call	lcd_command;
+        ldd	r22, Y+LowUpCount;
+	ldi	r23, 0;
+	ldi	r24, 0;
+	ldi	r25, 0;
+	ldi	r20, 0;
+	ldi	r18, '<';
+	ldi	r16, 4	;
+	call	DisplayValue;
+        ldd	r22, Y+HighUpCount;
+	ldi	r23, 0;
+	ldi	r24, 0;
+	ldi	r25, 0;
+	ldi	r20, 0;
+	ldi	r18, '>';
+	ldi	r16, 4	;
+	call	DisplayValue;
+        ldd	r22, Y+LowTooHigh;
+	ldi	r23, 0;
+	ldi	r24, 0;
+	ldi	r25, 0;
+	ldi	r20, 0;
+	ldi	r18, '+';
+	ldi	r16, 4	;
+	call	DisplayValue;
+        ldd	r22, Y+HighTooHigh;
+	ldi	r23, 0;
+	ldi	r24, 0;
+	ldi	r25, 0;
+	ldi	r20, 0;
+	ldi	r18, '#';
+	ldi	r16, 4	;
+	call	DisplayValue;
 #endif
 	movw	r22, r4
 	ldi	r24, 0x00;
@@ -636,24 +683,24 @@ ad_3972:
 	ldi	r22, 16;
 	ldi	r23, 0;
 	call	__udivmodhi4	/* r22:23 = r24:25 / r22:23 */
-	add	r18, r22;	/* esrvalue += esrvalue / 17; */
+	add	r18, r22;	/* esrvalue += esrvalue / 16; */
 	adc	r19, r23;
 	movw	r24,r18;	/* esrvalue */
 	cp	r6, r24;		/* if (esrvalue > esr0) esrvalue -= esr0; */
 	cpc	zero_reg, r25;
 	brcc	esr_too_less;
-	sub	r24, r6;		/* - esr0 */ 
+	sub	r24, r6;		/* - esr0 */
 	sbc	r25, zero_reg;
 	rjmp	ad_exit;
 esr_too_less:
 	mov	r24, zero_reg;
 	mov	r25, zero_reg;
-	
+
 ad_exit:
 #ifdef ADC_Sleep_Mode
 	out	_SFR_IO_ADDR(SMCR), zero_reg; 	/*  SMCR = 0 */
 #endif
-	adiw	r28, 0x1a; 26
+	adiw	r28, 0x1e;   /* 30 */
 	in	r0, _SFR_IO_ADDR(SREG); 63
 	cli
 	out	_SFR_IO_ADDR(SPH), r29; 62

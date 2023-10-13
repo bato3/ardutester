@@ -1,4 +1,7 @@
-;----------------------------------------------------------------------
+#ifndef __ASSEMBLER__
+ #define __ASSEMBLER__
+#endif
+;---------------------------------------------------------------------
 
 #include <avr/io.h>
 #include "config.h"
@@ -49,14 +52,17 @@
        .func _lcd_hw_write
 _lcd_hw_write:
                
-               set_en_high
-               set_en_output;		//init hardware
 
                ; Set RS (0=Cmd, 1=Char)
-               set_rs_low
-               set_rs_output;		//init hardware
                sbrc    preg_1, 0
                        set_rs_high
+               sbrs    preg_1, 0
+                       set_rs_low
+               set_rs_output;		//init hardware
+               nop	;		//wait for address setup
+
+               set_en_high
+               set_en_output;		//init hardware
 
                ; Send high nibble
                set_b4_low

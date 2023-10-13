@@ -1,3 +1,6 @@
+#ifndef __ASSEMBLER__
+ #define __ASSEMBLER__
+#endif
 #include <avr/io.h>
 #include "config.h"
 #include <stdlib.h>
@@ -19,7 +22,7 @@
 	sts	ADCSRA, r24;
  #endif
 	lds     r24, ADCSRA;    /* while (ADCSRA & (1 <<ADSC)) */
-	sbrc    r24, ADSC; 
+	sbrc    r24, ADSC;
 	rjmp    .-8 ;   /* wait until conversion is done */
 	.endm
 #else
@@ -35,8 +38,8 @@
 #endif
 
 
-;unsigned int W20msReadADC(uint8_t Probe) 
-;unsigned int W5msReadADC(uint8_t Probe) 
+;unsigned int W20msReadADC(uint8_t Probe)
+;unsigned int W5msReadADC(uint8_t Probe)
 #ifdef INHIBIT_SLEEP_MODE
 W20msReadADC:
   ACALL wait10ms;
@@ -113,7 +116,7 @@ get_sample:
 r2aa2:
  /* * sample ADC readings */
 	ldi	r18, 0x00;	 Value = 0UL; /* reset sampling variable */
-	ldi	r19, 0x00; 
+	ldi	r19, 0x00;
 	movw	r20, r18;
 	ldi	r30, 0x00;	 Samples = 0; /* number of samples to take */
 	rjmp	r2ae8 ;
@@ -200,4 +203,3 @@ r2b02:
 	movw	r24, r18;
 	pop	r17;
     	ret;
-

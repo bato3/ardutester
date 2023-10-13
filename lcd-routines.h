@@ -4,14 +4,22 @@
 // http://www.mikrocontroller.net/articles/AVR-GCC-Tutorial
 //
 
+extern void _lcd_hw_write(uint8_t flags, uint8_t data);
+
+#define lcd_write_cmd(cmd)          \
+    _lcd_hw_write(0b00000000, cmd); \
+    wait50us();
+#define lcd_write_data(data)         \
+    _lcd_hw_write(0b00000001, data); \
+    wait50us();
+#define lcd_write_init(data_length) _lcd_hw_write(0b10000000, CMD_SetIFOptions | (data_length << 4))
+
 // LCD
 void lcd_testpin(unsigned char temp);
 void lcd_data(unsigned char temp1);
 void lcd_space(void);
 void lcd_command(unsigned char temp1);
-void lcd_send(unsigned char data);
 void lcd_string(char *data);
-void lcd_enable(void);
 void lcd_init(void);
 void lcd_clear(void);
 void lcd_fix_string(const unsigned char *data);
@@ -27,8 +35,8 @@ void uart_newline(void);
 #define CMD_SetEntryMode 0x04
 #define CMD_SetDisplayAndCursor 0x08
 #define CMD_SetIFOptions 0x20
-#define CMD_SetCGRAMAddress 0x40 // f�r Custom-Zeichen
-#define CMD_SetDDRAMAddress 0x80 // zum Cursor setzen
+#define CMD_SetCGRAMAddress 0x40 // for Custom character
+#define CMD_SetDDRAMAddress 0x80 // set Cursor
 
 // Makros for LCD
 #define lcd_line1() lcd_command((uint8_t)(CMD_SetDDRAMAddress))        // move to the beginning of the 1. row
@@ -48,8 +56,9 @@ void uart_newline(void);
 #define LCD_CHAR_DIODE1 1 // Diode-Icon; will be generated as custom character
 #define LCD_CHAR_DIODE2 2 // Diode-Icon;  will be generated as custom character
 #define LCD_CHAR_CAP 3    // Capacitor-Icon;  will be generated as custom character
-#define LCD_CHAR_RESIS1 6 // Resistor left part will be generated as custom character
-#define LCD_CHAR_RESIS2 7 // Resistor right part will be generated as custom character
+// numbers of RESIS1 and RESIS2 are swapped for OLED display, which shows a corrupt RESIS1 character otherwise ???
+#define LCD_CHAR_RESIS1 7 // Resistor left part will be generated as custom character
+#define LCD_CHAR_RESIS2 6 // Resistor right part will be generated as custom character
 
 #ifdef LCD_CYRILLIC
 #define LCD_CHAR_OMEGA 4 // Omega-character
@@ -63,13 +72,6 @@ void uart_newline(void);
 // LCD commands
 
 #define CLEAR_DISPLAY 0x01
-
-// specifies which pins are used for the LCD, adapt to your hardware
-
-#define LCD_PORT PORTD
-#define LCD_DDR DDRD
-#define LCD_RS PD4
-#define LCD_EN1 PD5
 
 #define Cyr_B 0xa0
 #define Cyr_b 0xb2

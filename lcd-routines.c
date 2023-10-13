@@ -11,6 +11,10 @@
 #include <avr/pgmspace.h>
 #include <avr/eeprom.h>
 
+#ifdef STRIP_GRID_BOARD
+#warning "strip-grid-board layout selectet!"
+#endif
+
 // sends numeric character (Pin Number) to the LCD
 // from binary 0 we send ASCII 1 ....
 void lcd_testpin(unsigned char temp)
@@ -27,8 +31,7 @@ void lcd_space(void)
 // sends data byte to the LCD
 void lcd_data(unsigned char temp1)
 {
-    LCD_PORT |= (1 << LCD_RS); // set RS to 1
-    lcd_send(temp1);
+    lcd_write_data(temp1); // set RS to 1
 #ifdef WITH_UART
     switch (temp1)
     {
@@ -66,8 +69,7 @@ void lcd_data(unsigned char temp1)
 
 void lcd_command(unsigned char temp1)
 {
-    LCD_PORT &= ~(1 << LCD_RS); // set RS to 0
-    lcd_send(temp1);
+    lcd_write_cmd(temp1); // set RS to 0
 #ifdef WITH_UART
     if ((temp1 == 0x80) || (temp1 == 0xC0))
     {
@@ -76,60 +78,24 @@ void lcd_command(unsigned char temp1)
 #endif
 }
 
-// output to  LCD; 4-Bit-Modus
-void lcd_send(unsigned char data)
-{
-    // set upper Nibble
-    LCD_PORT = (LCD_PORT & 0xF0) | ((data >> 4) & 0x0F);
-#if F_CPU < 2000000
-    _delay_us(5);
-#else
-    wait5us();
-#endif
-    lcd_enable();
-    // set lower Nibble
-    LCD_PORT = (LCD_PORT & 0xF0) | (data & 0x0F);
-#if F_CPU < 2000000
-    _delay_us(5);
-#else
-    wait5us();
-#endif
-    lcd_enable();
-    wait50us();
-    LCD_PORT &= 0xF0;
-}
-
-// genertes the Enable-Puls
-void lcd_enable(void)
-{
-    LCD_PORT |= (1 << LCD_EN1);
-    wait10us(); // short break
-    // if problems occure, set the wait time to the value of datasheet of your display
-    // http://www.mikrocontroller.net/topic/80900
-    LCD_PORT &= ~(1 << LCD_EN1);
-}
-
 // Initialise:
-// Mustt be called first .
+// Must be called first .
 
 void lcd_init(void)
 {
-    LCD_DDR = LCD_DDR | 0x0F | (1 << LCD_RS) | (1 << LCD_EN1); // switch Port to output
-                                                               // to initialise, send 3 times
     wait30ms();
-    LCD_PORT = (LCD_PORT & 0xF0 & ~(1 << LCD_RS)) | 0x03;
-    lcd_enable();
-
+    // to initialise, send 3 times to be shure to be in 8 Bit mode
+    lcd_write_init(1);
     wait5ms();
-    lcd_enable();
 
+    lcd_write_init(1);
     wait1ms();
-    lcd_enable();
+
+    lcd_write_init(1);
     wait1ms();
-    LCD_PORT = (LCD_PORT & 0xF0 & ~(1 << LCD_RS)) | 0x02;
-    wait1ms();
-    lcd_enable();
-    wait1ms();
+
+    lcd_write_init(0); // switch to 4 Bit mode
+    wait10ms();
 
     // 4Bit / 2 rows / 5x7
     lcd_command(CMD_SetIFOptions | 0x08);
@@ -147,10 +113,11 @@ void lcd_init(void)
 void lcd_clear(void)
 {
     lcd_command(CLEAR_DISPLAY);
-    wait5ms();
+    wait10ms();
 #ifdef WITH_UART
     uart_newline();
 #endif
+    lcd_line1(); // set cursor to Line1 Column 1, (only for OLED-Display)
 }
 
 #ifdef WITH_UART
@@ -172,7 +139,7 @@ void lcd_string(char *data)
     }
 }
 
-#ifdef AUTO_CAL
+#ifdef use_lcd_pgm
 // Load string from PGM  and send to LCD
 void lcd_pgm_string(const unsigned char *data)
 {

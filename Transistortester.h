@@ -12,13 +12,6 @@
 #include <avr/interrupt.h>
 #include <math.h>
 
-#ifdef C_MESS
-#define MULTIP
-#endif
-#ifdef WITH_SELFTEST
-#define MULTIP
-#endif
-
 #if defined(MAIN_C)
 #define COMMON
 /* The voltage at a capacitor grows with  Uc = VCC * (1 - e**(-t/T))
@@ -77,8 +70,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = "Selftest End";
 #endif
 #endif
@@ -100,8 +91,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = "Selftest End";
 #endif
 #endif
@@ -123,8 +112,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = "Selftest End";
 #endif
 #endif
@@ -146,8 +133,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = "Selftest End";
 #endif
 #endif
@@ -169,8 +154,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = "Selftest End";
 #endif
 #endif
@@ -192,8 +175,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = "isolate probe";
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = "Selftest End";
 #endif
 #endif
@@ -215,8 +196,6 @@ const unsigned char TestTimedOut[] MEM_TEXT = {Cyr_v, 'p', 'e', Cyr_m, Cyr_ja, '
 #ifdef WITH_SELFTEST
 const unsigned char SELFTEST[] MEM2_TEXT = "Selftest mode..";
 const unsigned char RELPROBE[] MEM2_TEXT = {'o', Cyr_t, Cyr_k, Cyr_l, Cyr_ju, Cyr_tsch, Cyr_i, Cyr_t, 'b', ' ', Cyr_z, 'o', Cyr_n, Cyr_d, 0};
-#endif
-#ifdef AUTO_CAL
 const unsigned char ATE[] MEM_TEXT = {Cyr_k, 'o', Cyr_n, 'e', Cyr_c, ' ', 'c', 'a', Cyr_m, 'o', Cyr_t, 'e', 'c', Cyr_t, Cyr_i, 'p', 'o', Cyr_v, 'a', Cyr_n, Cyr_i, Cyr_ja, 0};
 #endif
 #endif
@@ -235,23 +214,18 @@ const unsigned char GDS_str[] MEM_TEXT = " GDS=";
 const unsigned char Uf_str[] MEM_TEXT = "Uf=";
 const unsigned char vt_str[] MEM_TEXT = " Vt=";
 const unsigned char Vgs_str[] MEM_TEXT = "@Vgs=";
-#ifdef C_MESS
 const unsigned char CapZeich[] MEM_TEXT = {'-', LCD_CHAR_CAP, '-', 0};
 const unsigned char Cell_str[] MEM_TEXT = "Cell!";
+const unsigned char VCC_str[] MEM_TEXT = "VCC=";
 #if FLASHEND > 0x1fff
 const unsigned char ESR_str[] MEM_TEXT = " ESR=";
-#endif
-#endif
-#if FLASHEND > 0x1fff
 const unsigned char Lis_str[] MEM_TEXT = "L=";
 #endif
 const unsigned char AnKat[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
 const unsigned char KatAn[] MEM_TEXT = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Dioden[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
-#ifdef R_MESS
 const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
-#endif
-const unsigned char VERSION_str[] MEM_TEXT = "Version 1.01k";
+const unsigned char VERSION_str[] MEM_TEXT = "Version 1.02k";
 
 #ifdef WITH_SELFTEST
 const unsigned char URefT[] MEM2_TEXT = "Ref=";
@@ -266,7 +240,7 @@ const unsigned char RHRH[] MEM2_TEXT = "+RH- 12 13 23";
 #ifdef CHECK_CALL
 const unsigned char RIHI[] MEM_TEXT = "Ri_Hi=";
 const unsigned char RILO[] MEM_TEXT = "Ri_Lo=";
-const unsigned char T50HZ[] MEM_TEXT = " 50Hz";
+const unsigned char T50HZ[] MEM2_TEXT = " 50Hz";
 #endif
 #ifdef AUTO_CAL
 const unsigned char MinCap_str[] MEM_TEXT = " >100nF";
@@ -294,7 +268,6 @@ const unsigned char DiodeIcon2[] MEM_TEXT = {0x11,
                                              0x13,
                                              0x11,
                                              0x00}; // Diode-Icon Anode right
-#ifdef C_MESS
 const unsigned char CapIcon[] MEM_TEXT = {0x1b,
                                           0x1b,
                                           0x1b,
@@ -303,8 +276,6 @@ const unsigned char CapIcon[] MEM_TEXT = {0x1b,
                                           0x1b,
                                           0x1b,
                                           0x00}; // Capacitor Icon
-#endif
-#ifdef R_MESS
 const unsigned char ResIcon1[] MEM_TEXT = {0x00,
                                            0x0f,
                                            0x08,
@@ -321,7 +292,6 @@ const unsigned char ResIcon2[] MEM_TEXT = {0x00,
                                            0x1e,
                                            0x00,
                                            0x00}; // Resistor Icon2
-#endif
 
 const unsigned char PinRLtab[] MEM_TEXT = {(1 << (TP1 * 2)),
                                            (1 << (TP2 * 2)),
@@ -342,31 +312,32 @@ const uint16_t R680mi EEMEM = R_L_VAL + PIN_RM; // total resistor to GND
 const int8_t RefDiff EEMEM = REF_R_KORR;        // correction of internal Reference Voltage
 #endif
 const uint8_t PrefixTab[] MEM_TEXT = {'p', 'n', LCD_CHAR_U, 'm', 0, 'k', 'M'}; // p,n,u,m,-,k,M
-#ifdef C_MESS
 #ifdef AUTO_CAL
 //  const uint16_t cap_null EEMEM = C_NULL;	// Zero offset of capacity measurement
 const int16_t ref_offset EEMEM = REF_C_KORR;                                                                                   // default correction of internal reference voltage for capacity measurement
                                                                                                                                // LoPin:HiPin                        2:1    3:1    1:2                    :     3:2                   1:3    2:3
 const uint8_t c_zero_tab[] EEMEM = {C_NULL, C_NULL, C_NULL + TP2_CAP_OFFSET, C_NULL, C_NULL + TP2_CAP_OFFSET, C_NULL, C_NULL}; // table of zero offsets
-const uint8_t EE_ESR_ZERO EEMEM = ESR_ZERO;                                                                                    // zero offset of ESR measurement
 #endif
-#endif
-// End of EEPROM-Strings
-#ifdef MULTIP
-// Multiplier for capacity measurement with R_H (470KOhm)
+const uint8_t EE_ESR_ZERO EEMEM = ESR_ZERO; // zero offset of ESR measurement
+                                            // End of EEPROM-Strings
+//  Multiplier for capacity measurement with R_H (470KOhm)
 unsigned int RHmultip = DEFAULT_RH_FAKT;
-#endif
 #else
 // no MAIN_C
 #define COMMON extern
+#ifdef WITH_SELFTEST
+extern unsigned char SELFTEST[] MEM2_TEXT;
+extern unsigned char RELPROBE[] MEM2_TEXT;
+extern unsigned char ATE[] MEM_TEXT;
+#endif
 #ifdef AUTO_CAL
 extern uint16_t R680pl;
 extern uint16_t R680mi;
 extern int8_t RefDiff;
 extern uint16_t ref_offset;
 extern uint8_t c_zero_tab[];
-extern uint8_t EE_ESR_ZERO EEMEM; // zero offset of ESR measurement
 #endif
+extern uint8_t EE_ESR_ZERO EEMEM; // zero offset of ESR measurement
 extern uint16_t RLtab[];
 
 #if FLASHEND > 0x1fff
@@ -379,9 +350,7 @@ extern uint16_t RHtab[];
 #endif
 extern unsigned char PinRLtab[];
 extern unsigned char PinADCtab[];
-#ifdef MULTIP
 extern unsigned int RHmultip;
-#endif
 #endif
 
 void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin);
@@ -456,7 +425,6 @@ COMMON uint8_t PartMode;
 COMMON uint8_t tmpval, tmpval2;
 COMMON unsigned int ref_mv; // Reference-voltage  in mV units
 
-#ifdef R_MESS
 COMMON struct resis_t
 {
     unsigned long rx; // value of resistor RX
@@ -467,7 +435,6 @@ COMMON struct resis_t
     uint8_t rt;     // Tristate-Pin (inactive)
 } resis[3];
 COMMON uint8_t ResistorsFound; // Number of found resistors
-#endif
 
 COMMON uint8_t ii; // multipurpose counter
 COMMON struct cap_t

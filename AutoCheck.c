@@ -53,7 +53,6 @@ void AutoCheck(void)
     }
 #ifdef WITH_SELFTEST
     lcd_clear();
-    lcd_line1();
     lcd_fix2_string(SELFTEST); // "Selftest mode.."
     wait1s();
 #define TEST_COUNT 7
@@ -237,7 +236,6 @@ void AutoCheck(void)
     }
 #endif
 
-#ifdef C_MESS
     // measure Zero offset for Capacity measurement
     adcmv[3] = 0;
     PartFound = PART_NONE;
@@ -343,17 +341,15 @@ no_c0save:
     }
 
 #endif
-#endif
 
     ADCconfig.Samples = ANZ_MESS; // set to configured number of ADC samples
     lcd_clear();
-    //  lcd_line1();
     lcd_line2();
     lcd_fix_string(VERSION_str); //"Version ..."
     lcd_line1();
     lcd_fix_string(ATE); //"Selftest End"
 #ifdef FREQUENCY_50HZ
-    lcd_fix_string(T50HZ); //" 50Hz"
+    lcd_fix2_string(T50HZ); //" 50Hz"
     ADC_PORT = TXD_VAL;
     ADC_DDR = 1 << TP1 | TXD_MSK; // Pin 1 to GND
     R_DDR = (1 << (TP3 * 2)) | (1 << (TP2 * 2));

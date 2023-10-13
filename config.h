@@ -2,6 +2,10 @@
 /*########################################################################################
         Configuration
 */
+// #define DebugOut 3		// if set, output of voltages of resistor measurements in row 2,3,4
+// #define DebugOut 4		// if set, output of voltages of Diode measurement in row 3+4
+// #define DebugOut 5		// if set, output of Transistor checks in row 2+3
+// #define DebugOut 10		// if set, output of capacity measurements (ReadCapacity) in row 3+4
 
 /* Port , that is directly connected to the probes.
   This Port must have an ADC-Input  (ATmega8:  PORTC).
@@ -51,8 +55,52 @@
 #define ON_DDR DDRD
 #define ON_PORT PORTD
 #define ON_PIN_REG PIND
-#define ON_PIN PD6  // Pin, must be switched to high to switch power on
-#define RST_PIN PD7 // Pin, is swiched to low, if push button is pressed
+#define ON_PIN PD6 // Pin, must be switched to high to switch power on
+
+#ifdef STRIP_GRID_BOARD
+// Strip Grid board version
+#define RST_PIN PD0 // Pin, is switched to low, if push button is pressed
+#else
+// normal layout version
+#define RST_PIN PD7 // Pin, is switched to low, if push button is pressed
+#endif
+
+/*
+       Port(s) / Pins for LCD
+*/
+#ifdef STRIP_GRID_BOARD
+// special Layout for strip grid board
+#define HW_LCD_EN_PORT PORTD
+#define HW_LCD_EN_PIN 5
+
+#define HW_LCD_RS_PORT PORTD
+#define HW_LCD_RS_PIN 7
+
+#define HW_LCD_B4_PORT PORTD
+#define HW_LCD_B4_PIN 4
+#define HW_LCD_B5_PORT PORTD
+#define HW_LCD_B5_PIN 3
+#define HW_LCD_B6_PORT PORTD
+#define HW_LCD_B6_PIN 2
+#define HW_LCD_B7_PORT PORTD
+#define HW_LCD_B7_PIN 1
+#else
+// normal Layout
+#define HW_LCD_EN_PORT PORTD
+#define HW_LCD_EN_PIN 5
+
+#define HW_LCD_RS_PORT PORTD
+#define HW_LCD_RS_PIN 4
+
+#define HW_LCD_B4_PORT PORTD
+#define HW_LCD_B4_PIN 0
+#define HW_LCD_B5_PORT PORTD
+#define HW_LCD_B5_PIN 1
+#define HW_LCD_B6_PORT PORTD
+#define HW_LCD_B6_PIN 2
+#define HW_LCD_B7_PORT PORTD
+#define HW_LCD_B7_PIN 3
+#endif
 
 // U_VCC defines the VCC Voltage of the ATmega in mV units
 
@@ -96,6 +144,9 @@ End of configuration
 #undef U_SCALE
 #define U_SCALE 4
 #endif
+#ifndef REF_L_KORR
+#define REF_L_KORR 50
+#endif
 
 // the following definitions specify where to load external data from: EEprom or flash
 #ifdef USE_EEPROM
@@ -110,6 +161,7 @@ End of configuration
 #define MEM2_read_byte(a) pgm_read_byte(a)
 #define MEM2_read_word(a) pgm_read_word(a)
 #define lcd_fix2_string(a) lcd_pgm_string(a)
+#define use_lcd_pgm
 #endif
 #define MEM_read_word(a) eeprom_read_word(a)
 #define MEM_read_byte(a) eeprom_read_byte(a)
@@ -121,6 +173,7 @@ End of configuration
 #define MEM2_read_byte(a) pgm_read_byte(a)
 #define MEM2_read_word(a) pgm_read_word(a)
 #define lcd_fix2_string(a) lcd_pgm_string(a)
+#define use_lcd_pgm
 #endif
 
 // RH_OFFSET : systematic offset of resistor measurement with RH (470k)
@@ -159,52 +212,15 @@ End of configuration
 #define ACALL rcall
 #endif
 // automatic selection of option and parameters for different AVR s
-//----------------========----------
-#if PROCESSOR_TYP == 48
-//----------------========----------
-#define MCU_STATUS_REG MCUCR
-#define ADC_COMP_CONTROL ADCSRB
-#define TI1_INT_FLAGS TIFR1
-#define DEFAULT_BAND_GAP 1070
-#define DEFAULT_RH_FAKT 884 // mega328 1070 mV
-                            // WITH_SELFTEST enables the selftest fuction
-#ifdef WITH_SELFTEST
-#warning "ATmega48 does NOT support SELFTEST!"
-#undef WITH_SELFTEST
-#endif
-// R_MESS activates the resistor measurement
-#ifdef R_MESS
-#warning "ATmega48 does NOT support Resistor measuring!"
-#undef R_MESS
-#endif
-// C_MESS activates the capacitor measurement
-#ifdef C_MESS
-#warning "ATmega48 does NOT support Capacity measuring!"
-#undef C_MESS
-#endif
-// WITH_UART activates the output of data with software UART
-#ifdef WITH_UART
-#warning "no UART support with ATmega48!"
-#undef WITH_UART
-#endif
-#ifdef BAT_CHECK
-#warning "no BAT_CHECK support with ATmega48!"
-#undef BAT_CHECK
-#endif
-
-#define C_NULL 50
-#define PIN_RM 190
-#define PIN_RP 220
-
 //------------------========----------
-#elif PROCESSOR_TYP == 88
+#if PROCESSOR_TYP == 88
 //------------------========----------
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
 #define DEFAULT_BAND_GAP 1070
 #define DEFAULT_RH_FAKT 884 // mega328 1070 mV
-// LONG_HFE  activates computation of current amplification factor with long variables
+                            // LONG_HFE  activates computation of current amplification factor with long variables
 #define LONG_HFE
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
 #define COMMON_COLLECTOR
@@ -296,10 +312,6 @@ End of configuration
 #endif
 #ifndef REF_C_KORR
 #define REF_C_KORR 0
-#endif
-#ifndef C_MESS
-// undef WITH_AUTO_REF if no capacity measurement
-#undef WITH_AUTO_REF
 #endif
 
 #define LONG_WAIT_TIME 14000
@@ -403,13 +415,11 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 #endif
 
 #undef AUTO_RH
-#ifdef C_MESS
 #ifdef WITH_AUTO_REF
 #define AUTO_RH
 #else
 #ifdef AUTO_CAL
 #define AUTO_RH
-#endif
 #endif
 #endif
 

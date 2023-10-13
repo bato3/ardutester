@@ -40,12 +40,10 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
     unsigned long c_hfe; // amplification factor for common Collector (Emitter follower)
 #endif
 
-#ifdef R_MESS
     struct resis_t *thisR;
     unsigned long lrx1;
     unsigned long lirx1;
     unsigned long lirx2;
-#endif
     /*
       switch HighPin directls to VCC
       switch R_L port for LowPin to GND
@@ -618,10 +616,11 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
 #endif
 
 widmes:
-#ifdef R_MESS
+    if (NumOfDiodes > 0)
+        goto clean_ports;
     // resistor measurement
     wdt_reset();
-    // U_SCALE can be set to 4 for better resolution of ReadADC result
+// U_SCALE can be set to 4 for better resolution of ReadADC result
 #if U_SCALE != 1
     ADCconfig.U_AVCC *= U_SCALE; // scale to higher resolution, mV scale is not required
     ADCconfig.U_Bandgap *= U_SCALE;
@@ -875,7 +874,6 @@ widmes:
 #endif
         }
     }
-#endif
 testend:
 #if U_SCALE != 1
     ADCconfig.U_AVCC /= U_SCALE; // scale back to mV resolution
@@ -889,6 +887,7 @@ testend:
     wait2s();
 #endif
 #endif
+clean_ports:
     ADC_DDR = TXD_MSK;  // all ADC-Pins Input
     ADC_PORT = TXD_VAL; // all ADC outputs to Ground, keine Pull up
     R_DDR = 0;          // all resistor-outputs to Input

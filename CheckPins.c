@@ -142,8 +142,8 @@ void CheckPins(uint8_t HighPin, uint8_t LowPin, uint8_t TristatePin)
         ADC_PORT = TXD_VAL; // direct outputs to GND
 
         // Test, if P-JFET or if self-conducting P-MOSFET
-        ADC_DDR = LoADCm; // switch Low-Pin (assumed Drain) direct to GND,
-                          // R_H for Tristate-Pin (assumed Gate) is already switched to VCC
+        ADC_DDR = LoADCm;                // switch Low-Pin (assumed Drain) direct to GND,
+                                         // R_H for Tristate-Pin (assumed Gate) is already switched to VCC
         R_DDR = TriPinRH | HiPinRL;      // High-Pin to output
         R_PORT = TriPinRH | HiPinRL;     // High-Pin across R_L to Vcc
         adc.hp1 = W20msReadADC(HighPin); // measure voltage at assumed Source

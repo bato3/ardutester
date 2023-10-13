@@ -48,7 +48,7 @@
        .global _lcd_hw_write
        .func _lcd_hw_write
 _lcd_hw_write:
-               
+
                set_en_high
                set_en_output;		//init hardware
 
@@ -87,12 +87,12 @@ _lcd_hw_write:
 
                ; Send low nibble
                set_en_high
-               
+
                set_b4_low
                set_b5_low
                set_b6_low
                set_b7_low
-               
+
                sbrc    preg_2, 0
                        set_b4_high
                sbrc    preg_2, 1
@@ -109,4 +109,3 @@ _lcd_hw_write:
 _lcd_hw_write_exit:
                ret
        .endfunc
-

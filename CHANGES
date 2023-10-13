@@ -10,6 +10,11 @@
 
 ------------------------------------------------------------------------------
 
+v1.20m 2015-12
+- Added IR RC detector and decoder function (requires TSOP IR receiver
+  module).
+- Changed MainMenu() to reduce RAM usage.
+
 v1.19m 2015-11
 - Implemented a fancy pinout displaying symbols and probe numbers for 3 pin
   semiconductors. 
@@ -22,7 +27,8 @@ v1.19m 2015-11
   displays The idea is to display the text first and then to clear the
   remaining space, instead of clearing the complete line and then printing the
   text.
-- Added display driver for ILI9341/ILI9342 based modules.
+- Added display driver for ILI9341/ILI9342 based modules. Thanks to
+  Overtuner @ EEVblog forum for providing two LCD modules.
 - Fixed problem with µ/micro character in font files.
 - Fixed character issue (when larger than 8x8) in LCD_Char() for ST7565R.
 - Updated Czech texts, thanks to Kapa.

@@ -11,12 +11,13 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2015-11-04
+Letzte Änderung:  2015-12-07
 
 Inhaltsübersicht:
   - Über den Tester
   - Sicherheitshinweise
   - Lizenz
+    - Zusätzliche Hinweise
   - Unterschiede
   - Firmware übersetzen
   - Quellcode
@@ -37,6 +38,7 @@ Inhaltsübersicht:
     - Frequenzzähler
     - Drehencoder
     - Kontrast
+    - IR-Fernbedienungsdetektor
     - Selbsttest
     - Selbstabgleich
     - Speichern
@@ -95,6 +97,12 @@ paar Ideen der ursprünglich aufgreift, aber keine Code teilt, sollte dieses
 Vorgehen gerechtfertigt sein. 
 
 
++ Zusätzliche Hinweise
+
+Produkt- oder Firmennamen können geschützte Marken der jeweiligen Eigentümer
+sein.
+
+
 * Unterschiede
 
 Karl-Heinz hat eine richtig gute Doumentation für den Tester geschrieben.
@@ -146,6 +154,18 @@ sie die Messergebnisse eher verschlechtern als verbessern. Wenn du einen
 MCP1702 mit einer typischen Genauigkeit von 0,4% als Spannungsregler
 hast, brauchst du eigentlich keine zusätzliche Spannungsreferenz mehr.
 
+Und natürlich die Software-Optionen:
+- PWM Generator
+- Messung von Induktivität
+- ESR-Messung und In-Circuit-ESR
+- Test von Drehencodern
+- Rechtecksignalgenerator (braucht Drehencoder)
+- Test von IR-Fernbedienungen (braucht TSOP IR-Empfängermodul)
+
+Bitte die Optionen entprechend deinen Wünschen und den begrenzten Ressourcen 
+der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
+zu groß werden, versuche nicht so wichtige Optionen wieder zu deaktivieren.
+
 Verfügbare Sprachen:
 - Englisch
 - Deutsch
@@ -177,6 +197,9 @@ Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
 mit PD5 und setze LCD_CS in config.h (nur für grafische LCD-Module).
 Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
 zu fehlerhaften Ausgaben führen.
+
+Hinweis: Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls!
+         Benutze Pegelumsetzer, sofern notwendig.
 
 
 + HD44780
@@ -220,7 +243,7 @@ sind:
   D/C         LCD_DC             PD3
   SCK         LCD_SCK            PD2
   SDI         LCD_SDI            PD1
-  SDO         LCD_SDO            PD0        not used yet
+  SDO         LCD_SDO            PD0        nur ILI9341, noch nicht benutzt
 
 Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip und
 Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
@@ -427,6 +450,47 @@ Für manche grafische LCD-Module kannst du den Kontrast einstellen. Ein kurzer
 Tastendruck erhöht den Wert, ein langer verkleinert ihn. Zum Beenden die
 Test-Taste zweimal kurz hintereinander drücken. Ist ein Drehencoder
 vorhanden, kann der Kontrastwert damit ebenfalls geändert werden. 
+
+
++ IR-Fernbedienungsdetektor
+
+Diese Funktion benötigt ein TSOP IR-Empfängermodul (oder ähnlich), das mit
+den Testpins verbunden sein muß. Damit lassen sich die Signale von IR-
+Fernsteuerungen detektieren und dekodieren. Wenn ein bekanntes Protokoll
+erkannt wird , gibt der Tester das Protokoll, Adresse (sofern verfügbar),
+Kommando und ggf. zusätzliche Informationen hexadezimal aus.
+Das Ausgabeformat ist:
+  <Protokoll> [<Adresse>:]<Kommando>[:<Extras>]
+Bei einem defekten Datenpaket wird hinter dem Protokoll ein "?" ausgegeben.
+
+Ist das Protokoll unbekannt, zeigt der Tester die Anzahl der Pausen & Pulse
+und die Dauer des ersten Puls und der ersten Pause in Einheiten von 50µs an:
+  ? <Pulse>:<erster Pulse>-<erste Pause>
+Wenn die Anzahl der Pulse bei verschiedenen Tasten der Fernbedienung gleich
+bleit, ist die Modulation sehr wahrscheinlich PDM oder PWM. Eine sich
+ändernde Anzahl von Pulsen weist auf Bi-Phase-Modulation hin. 
+
+Zum Beenden die Test-Taste einmal kurz drücken.
+
+Unterstützte Protokolle:
+  - JVC
+  - Kaseikyo (Japancode, 48 Bit)
+  - Matsushita/Emerson
+  - Motorola
+  - NEC (Standard & Erweitert)
+  - RC-5 (Standard)
+  - Samsung (32 Bit Toshiba)
+  - Sharp
+  - Sony SIRC (12, 15 & 20 Bit)
+
+Die Trägerfrequenz vom TSOP IR-Empfängermodul muß nicht genau zur Fernsteuerung
+passen. Es verringert sich eigentlich nur die Reichweite, was für unseren Zweck
+aber kein Problem darstellt.
+
+Beschaltung für das TSOP-Modul:
+  Probe #1:  Masse/Gnd
+  Probe #2:  Vs (680 Ohm Widerstand zur Strombegrenzung)
+  Probe #3:  Out/Data
 
 
 + Selbsttest

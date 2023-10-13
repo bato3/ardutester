@@ -10,6 +10,11 @@
 
 ------------------------------------------------------------------------------
 
+v1.20m 2015-12
+- Funktion zum Erkennen und Decodieren von IR-Fernsteuerungen implementiert.
+  Benötigt ein TSOP IR-Empfängermodul.
+- MainMenu() geändert, um RAM-Nutzung zu verkleinern.
+
 v1.19m 2015-11
 - Grafisches Pinout für 3-Pin Halbleiter. Zeigt Symbol plus Testpins.
 - Farbunterstützung eingebaut.
@@ -20,7 +25,8 @@ v1.19m 2015-11
   beschleunigen. Die Idee ist, zuerst den Text auszugeben und dann den
   Zeilenrest zu löschen, anstatt zuerst die ganze Zeile zu löschen und dann
   den Text auszugeben.
-- Treiber für ILI9341/ILI9342 basierte LCD-Module.
+- Treiber für ILI9341/ILI9342 basierte LCD-Module geschrieben. Dank an
+  Overtuner @ EEVblog-Forum für zwei LCD-Module zum Testen.
 - Problem mit dem µ/micro Zeichen in den Zeichensatzdateien gelöst.
 - Fehler bei Zeichen größer 8x8 in LCD_Char() für den ST7565R beseitigt. 
 - Tschechische Texte aktualisiert (Dank an Kapa).

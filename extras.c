@@ -43,7 +43,8 @@ FreqCounter_Type       Freq;            /* frequency counter */
  * ************************************************************************ */
 
 
-#if defined (SW_PWM) || defined (SW_ESR)
+#if defined (SW_PWM) || defined (SW_SQUAREWAVE) || defined (SW_ESR)
+
 
 /*
  *  display probe pins used

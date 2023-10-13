@@ -11,12 +11,13 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-11-04
+Last edit:  2015-12-07
 
 Content
   - About
   - Safety Advice
   - License
+    - Additional Disclaimer
   - Whats different?
   - Building the firmware
   - Source Code
@@ -37,6 +38,7 @@ Content
     - Frequency Counter
     - Rotary Encoder
     - Contrast
+    - IR RC detector
     - Selftest
     - Self Adjustment
     - Save
@@ -93,6 +95,11 @@ Since the source code of this firmware version is a major rewrite with
 tons of new code and features, I think that this approach is justified.
 
 
++ Additional Disclaimer
+
+Product or company names are possibly trademarks of the respective owners.
+
+
 * What's different?
 
 Karl-Heinz has done a really great documentation of the tester. I recommend
@@ -143,6 +150,18 @@ The external 2.5V voltage reference should be only enabled if it's at least
 the results worse. If you're using a MCP1702 with a typical tolerance of
 0.4% as voltage regulator you really don't need a 2.5V voltage reference.
 
+And of course the software options:
+- PWM generator
+- inductance measurement
+- ESR measurement and in-circuit ESR measurement
+- check for rotary encoders
+- squarewave signal generator (requires rotary encoder)
+- IR remote control detection (requires TSOP IR receiver module)
+
+Please choose the options carefully to match your needs and the MCU's
+ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
+MCU's flash size, try to disable some options.
+
 Available UI languages:
 - English
 - German
@@ -173,6 +192,9 @@ At the moment following LCD controllers are supported:
 If you connect a rotary encoder to PD2/PD3, please connect the module's /CS
 to PD5 and set LCD_CS in config.h (applies to graphic displays). Otherwise the
 rotary encoder would screw up the display by interfering with the data bus.
+
+Hint: Take care about the LCD's supply voltage and logic levels! Use a level
+      shifter if required.
 
 
 + HD44780
@@ -216,7 +238,7 @@ is:
   D/C         LCD_DC             PD3
   SCK         LCD_SCK            PD2
   SDI         LCD_SDI            PD1
-  SDO         LCD_SDO            PD0       not used yet
+  SDO         LCD_SDO            PD0       ILI9341 only, not used yet
 
 You might need to play with the x/y flip and rotate settings to get the
 correct orientation for your display. And don't forget to set x and y dots
@@ -364,7 +386,7 @@ measured is shown if the test button was pressed long enough for a stable test
 voltage. You may repeat this as long as you like :-) To exit the Zener tool
 press the test button twice quickly.
 
-Connect the Zener diode:
+How to connect the Zener diode:
    Probe +: cathode
    Probe -: anode
 
@@ -380,7 +402,7 @@ capacitor will affect the measurement.
 For triggering a measurement please press the test key. Two quick short key
 presses will exit the tool.
 
-Connect the capacitor:
+How to connect the capacitor:
    Probe #1: positive
    Probe #2: negative (Gnd)
 
@@ -414,6 +436,46 @@ You can adjust the contrast for some graphic LCD modules. A short key press
 increases the value and and a long key press decreases it. Two short key
 presses will exit the tool. With a rotary encoder installed the value
 can also be adjusted by turning the encoder. 
+
+
++ IR RC detector
+
+This function requires a TSOP IR receiver module (or similar) to be connected
+to the probes and will detect and decode IR remote controls. If a known
+protocol is detected the tester displays the protocol, address (when
+available), command and in some cases optional data in hexadecimal.
+The format is:
+  <protocol> [<addr>:]<command>[:<extra data>]
+For a malformend packet the protocol and a "?" are shown.
+
+For a unknown protocol the tester displays the number of pauses and pulses,
+the duration of the first pulse and the first pause in units of 50µs:
+  ? <pulses>:<first pulse>-<first pause>
+When the number of pulses stay the same for different buttons of the RC, the
+modulation is most likely PDM or PWM. A changing number of pulses indicates
+bi-phase modulation.  
+
+To exit the tool please press the test key. 
+
+Supported protocols:
+  - JVC
+  - Kaseikyo (aka Japanese Code, 48 bit)
+  - Matsushita/Emerson
+  - Motorola
+  - NEC (standard & extended)
+  - RC-5 (standard)
+  - Samsung (32 bit Toshiba)
+  - Sharp
+  - Sony SIRC (12, 15 & 20 bit)
+
+The carrier frequency of the TSOP receiver module doesn't have to match the RC
+exactly. A mismatch reduces the possible range, but that doesn't matter much
+for this application.
+
+How to connect the TSOP module:
+  Probe #1:  Gnd
+  Probe #2:  Vs (current limited by 680 ohms resistor)
+  Probe #3:  Out/Data
 
 
 + Selftest

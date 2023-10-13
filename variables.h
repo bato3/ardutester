@@ -118,6 +118,9 @@
     #ifdef SW_CONTRAST
       const unsigned char Contrast_str[] EEMEM = "Kontrast";
     #endif
+    #ifdef SW_IR_RECEIVER
+      const unsigned char IR_Detector_str[] EEMEM = "IR-Detektor";
+    #endif
 
 
   /* language specific: Czech */
@@ -160,6 +163,9 @@
     #ifdef SW_CONTRAST
       const unsigned char Contrast_str[] EEMEM = "Kontrast";
     #endif
+    #ifdef SW_IR_RECEIVER
+      const unsigned char IR_Detector_str[] EEMEM = "IR detector";
+    #endif
 
 
   /* language specific: English (default) */
@@ -201,6 +207,9 @@
     #endif
     #ifdef SW_CONTRAST
       const unsigned char Contrast_str[] EEMEM = "Contrast";
+    #endif
+    #ifdef SW_IR_RECEIVER
+      const unsigned char IR_Detector_str[] EEMEM = "IR detector";
     #endif
   #endif
 
@@ -248,8 +257,23 @@
   #endif
   #ifdef SW_PWM
     const unsigned char PWM_str[] EEMEM = "PWM";
-    const unsigned char PWM_Probes_str[] EEMEM = "2-13";
     const unsigned char Hertz_str[] EEMEM = "Hz";
+  #endif
+  #if defined(SW_PWM) || defined (SW_SQUAREWAVE)
+    const unsigned char PWM_Probes_str[] EEMEM = "2-13";
+  #endif
+  #ifdef SW_IR_RECEIVER
+    const unsigned char IR_Probes_str[] EEMEM = "1=0V 2=5V 3=Out";
+    const unsigned char IR_JVC_str[] EEMEM = "JVC";
+    const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
+    const unsigned char IR_Matsushita_str[] EEMEM = "Mats";
+    const unsigned char IR_Motorola_str[] EEMEM = "Mot";
+    const unsigned char IR_NEC_str[] EEMEM = "NEC";
+    const unsigned char IR_Proton_str[] EEMEM = "Prot";
+    const unsigned char IR_RC5_str[] EEMEM = "RC-5";
+    const unsigned char IR_Samsung_str[] EEMEM = "Sams";
+    const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
+    const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
   #endif
 
 
@@ -260,7 +284,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.19m";
+  const unsigned char Version_str[] EEMEM = "v1.20m";
 
 
   /*
@@ -401,9 +425,11 @@
     extern const unsigned char ESR_Probes_str[];
   #endif
   #ifdef SW_PWM
-    extern const unsigned char PWM_str[];
-    extern const unsigned char PWM_Probes_str[];
+    extern const unsigned char PWM_str[];    
     extern const unsigned char Hertz_str[];
+  #endif
+  #if defined(SW_PWM) || defined (SW_SQUAREWAVE)
+    extern const unsigned char PWM_Probes_str[];
   #endif
   #ifdef SW_SQUAREWAVE
     extern const unsigned char SquareWave_str[];
@@ -421,6 +447,20 @@
   #endif
   #ifdef SW_CONTRAST
     extern const unsigned char Contrast_str[];
+  #endif
+  #ifdef SW_IR_RECEIVER
+    extern const unsigned char IR_Detector_str[];
+    extern const unsigned char IR_Probes_str[];  
+    extern const unsigned char IR_JVC_str[];
+    extern const unsigned char IR_Kaseikyo_str[];
+    extern const unsigned char IR_Matsushita_str[];
+    extern const unsigned char IR_Motorola_str[];
+    extern const unsigned char IR_NEC_str[];
+    extern const unsigned char IR_Proton_str[];
+    extern const unsigned char IR_RC5_str[];
+    extern const unsigned char IR_Samsung_str[];
+    extern const unsigned char IR_Sharp_str[];
+    extern const unsigned char IR_SIRC_str[];
   #endif
 
 

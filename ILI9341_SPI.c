@@ -15,7 +15,7 @@
  *    D/C      LCD_DC
  *    SCK      LCD_SCK
  *    SDI      LCD_SDI
- *    SDO      LCD_SDO (not used yet)
+ *    SDO      LCD_SDO (ILI9341 only, not used yet)
  *  - max. SPI clock: 10MHz, but up to 36 or 48MHz works also fine
  */
 
@@ -208,6 +208,9 @@ void LCD_Send(uint8_t Byte)
     n--;                      /* next bit */
   }
 
+  /* reset clock pin */
+  LCD_PORT = LCD_PORT & ~(1 << LCD_SCK);     /* set clock low */
+
   /* deselect chip, if pin available */
   #ifdef LCD_CS
     LCD_PORT = LCD_PORT | (1 << LCD_CS);     /* set /CS1 high */
@@ -292,6 +295,9 @@ void LCD_Data2(uint16_t Data)
     n--;                      /* next bit */
   }
 
+  /* reset clock pin */
+  LCD_PORT = LCD_PORT & ~(1 << LCD_SCK);     /* set clock low */
+
   /* deselect chip, if pin available */
   #ifdef LCD_CS
     LCD_PORT = LCD_PORT | (1 << LCD_CS);     /* set /CS1 high */
@@ -314,12 +320,12 @@ void LCD_Data2(uint16_t Data)
 void LCD_AddressWindow(void)
 {
   /* X -> column */
-  LCD_Cmd(CMD_COL_ADDR_SET);  
+  LCD_Cmd(CMD_COL_ADDR_SET);
   LCD_Data2(X_Start);               /* start column */
   LCD_Data2(X_End);                 /* end column */
 
   /* Y -> page */
-  LCD_Cmd(CMD_PAGE_ADDR_SET); 
+  LCD_Cmd(CMD_PAGE_ADDR_SET);
   LCD_Data2(Y_Start);               /* start page */
   LCD_Data2(Y_End);                 /* end page */
 }

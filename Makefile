@@ -88,7 +88,7 @@ HEADERS = config.h common.h variables.h HD44780.h functions.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
-OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o
+OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
 OBJECTS_C += display.o HD44780_Par4.o ST7565R_SPI.o
 OBJECTS_C += ILI9341_SPI.o ADS7843.o
 OBJECTS_S = wait.o

@@ -980,23 +980,18 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 
 /*
- *  main menu
+ *  create main menu and return ID of selected item  
  */
 
-void MainMenu(void)
+uint8_t PresentMainMenu(void)
 {
-  #if RES_FLASH >= 32
-    #define MENU_ITEMS  12
-  #endif
+  #define MENU_ITEMS  13
 
   uint8_t           Item = 0;           /* item number */
-  uint8_t           Flag = 1;           /* control flag */
   uint8_t           ID;                 /* ID of selected item */
-  #ifdef SW_PWM
-  uint16_t          Frequency;          /* PWM frequency */  
-  #endif
   void              *MenuItem[MENU_ITEMS];   /* menu item strings */
   uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
+
 
   /*
    *  setup menu
@@ -1038,6 +1033,11 @@ void MainMenu(void)
   MenuID[Item] = 11;
   Item++;
   #endif
+  #ifdef SW_IR_RECEIVER
+  MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
+  MenuID[Item] = 12;
+  Item++;
+  #endif
 
   /* standard items */
   MenuItem[Item] = (void *)Selftest_str;    /* selftest */
@@ -1065,6 +1065,27 @@ void MainMenu(void)
   Item++;                                    /* add 1 for item #0 */
   ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
   ID = MenuID[ID];                           /* get item ID */
+
+  return(ID);                 /* return item ID */
+
+  #undef MENU_ITEMS
+}
+
+
+
+/*
+ *  main menu
+ */
+
+void MainMenu(void)
+{
+  uint8_t           ID;                 /* ID of selected item */
+  uint8_t           Flag = 1;           /* control flag */
+  #ifdef SW_PWM
+  uint16_t          Frequency;          /* PWM frequency */  
+  #endif
+
+  ID = PresentMainMenu();     /* create menu and get user feedback */
 
   /* run selected item */
   switch (ID)
@@ -1133,16 +1154,20 @@ void MainMenu(void)
       ChangeContrast();
       break;
     #endif
+
+    #ifdef SW_IR_RECEIVER
+    case 12:             /* IR RC detection */
+      IR_Detector();
+      break;
+    #endif
   }
 
-  /* display end of item */
+  /* display result */
   LCD_Clear();
   if (Flag == 0)
     LCD_EEString(Error_str);       /* display: error! */
   else
     LCD_EEString(Done_str);        /* display: done! */
-
-#undef MENU_ITEMS
 }
 
 

@@ -56,6 +56,7 @@ extern void lcd_fix_string(const unsigned char *String);
 #ifndef PROBES_C
 
 extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
+extern uint8_t AllProbesShorted(void);
 extern void DischargeProbes(void);
 extern void PullProbe_10ms(uint8_t Probe, uint8_t Mode);
 extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);

@@ -186,7 +186,7 @@ void LCD_NextLine_Mode(uint8_t Mode)
 
 
 /*
- *  move to the mext line and
+ *  move to the next line and
  *  display a fixed string stored in EEPROM
  *
  *

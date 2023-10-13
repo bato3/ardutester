@@ -99,6 +99,11 @@
 #define MODE_KEEP             0b00000010     /* keep first line */
 
 
+/* adjustment modes */
+#define MODE_LOAD             1    /* load adjustment values */
+#define MODE_SAVE             2    /* save adjustment values */
+
+
 /* custom chars/symbols */
 #define LCD_CHAR_0            0    /* just a place holder */
 #define LCD_CHAR_DIODE_AC     1    /* diode icon '>|' */

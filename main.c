@@ -1040,11 +1040,11 @@ int main(void)
 
   if (Test == 3)              /* key press >2s resets to defaults */
   {
-    SetAdjustDefaults();           /* set default values */
+    SetAdjustDefaults();                /* set default values */
   }
   else                        /* normal mode */
   {
-    LoadAdjust();                  /* load adjustment values */
+    ManageAdjust(MODE_LOAD, 1);    /* load adjustment values: profile #1 */
   }
 
   /* set extra stuff */

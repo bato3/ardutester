@@ -7,11 +7,11 @@
 
                   für ATmega328 mit Text- oder Grafikdisplay
 
-        (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2015-12-07
+Letzte Änderung:  2016-01-01
 
 Inhaltsübersicht:
   - Über den Tester
@@ -41,7 +41,7 @@ Inhaltsübersicht:
     - IR-Fernbedienungsdetektor
     - Selbsttest
     - Selbstabgleich
-    - Speichern
+    - Speichern/Laden
     - Werte anzeigen
     - Exit
   - Widerstände
@@ -96,6 +96,8 @@ Da diese Firmwareversion eine komplett neue Version ist, die lediglich ein
 paar Ideen der ursprünglich aufgreift, aber keine Code teilt, sollte dieses
 Vorgehen gerechtfertigt sein. 
 
+Lizenziert unter der EUPL V.1.1
+
 
 + Zusätzliche Hinweise
 
@@ -123,6 +125,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
   + V_f wird für praxisnahe Testströme interpoliert
 - TRIACs
   + Erkennung von MT1 und MT2
+- Detektor/Dekoder für IR-Fernsteuerungen
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
@@ -479,6 +482,7 @@ Unterstützte Protokolle:
   - Motorola
   - NEC (Standard & Erweitert)
   - RC-5 (Standard)
+  - RC-6 (Standard)
   - Samsung (32 Bit Toshiba)
   - Sharp
   - Sony SIRC (12, 15 & 20 Bit)
@@ -487,10 +491,18 @@ Die Trägerfrequenz vom TSOP IR-Empfängermodul muß nicht genau zur Fernsteuerung
 passen. Es verringert sich eigentlich nur die Reichweite, was für unseren Zweck
 aber kein Problem darstellt.
 
+Das IR-Empfängermodul bitte erst im IR-Fernbedienungsdetektor anschliessen!
+
 Beschaltung für das TSOP-Modul:
   Probe #1:  Masse/Gnd
   Probe #2:  Vs (680 Ohm Widerstand zur Strombegrenzung)
   Probe #3:  Out/Data
+
+Hinweis:
+  Der Widerstand zur Strombegrenzung setzt ein IR-Empfängermodul mit einem
+  Versorgungsspannungsbereich von ca. 2,5 - 5V voraus. Wenn du ein 5V-Modul
+  hast, kannst du in config.h den Widerstand auf eigene Gefahr abschalten.
+  Ein Kurzschluss kann allerdings die MCU zerstören.
 
 
 + Selbsttest
@@ -543,16 +555,20 @@ Abgleich ist die Prozedur, ein Messgerät so einzustellen, daß es seine
 Vorgaben bzgl. Genauigkeit und anderer Parameter einhält.
 
 
-+ Speichern
++ Speichern/Laden
 
 Beim Brennen der Firmware wird ein Satz vordefinierter Standardardwerte in das
-EEPROM geschrieben. Nach dem Selbstabgleich kannst du hiermit die
+EEPROM geschrieben. Nach dem Selbstabgleich kannst mit dieser Funktion die
 Standardwerte durch die korrekten Werte überschreiben. Beim nächsten Neustart
-vom Tester werden dann diese Werte geladen und benutzt. 
+vom Tester werden dann diese Werte (Profil #1) automatisch geladen und 
+benutzt.
+
+Zur Bequemlichkeit stehen zwei Profile zum Speichern bzw. Laden zu Verfügung,
+z.B. für zwei unterschiedliche Sätze an Messkabeln.
 
 Die Idee hinter der manuellen Speichern-Funktion ist, daß man z.B. beim
 temporären Wechsel der Messkabel nur einen Selbstabgleich macht und nach
-dem Neustart wieder die Werte für die alten Messkabel hat. Ansonsten müsste
+dem Neustart wieder die Werte für die Haupt-Messkabel hat. Ansonsten müsste
 man für die alten Kabel wieder einen neuen Selbstabgleich machen.
 
 

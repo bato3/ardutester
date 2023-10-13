@@ -7,11 +7,11 @@
 
                  for ATmega328 with character or graphic display
 
-        (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-12-07
+Last edit:  2016-01-01
 
 Content
   - About
@@ -41,7 +41,7 @@ Content
     - IR RC detector
     - Selftest
     - Self Adjustment
-    - Save
+    - Save/Load
     - Show Values
     - Exit
   - Resistors
@@ -94,6 +94,8 @@ original author doesn't contact us to state his wishes until that date.
 Since the source code of this firmware version is a major rewrite with
 tons of new code and features, I think that this approach is justified.
 
+Licensed under the EUPL V.1.1
+
 
 + Additional Disclaimer
 
@@ -121,6 +123,7 @@ official release:
   + V_f is interpolated for a more suitable (virtual) I_b based on hFE
 - TRIACs
   + detection of MT1 and MT2
+- IR RC detector and decoding
 - structured source code
 - some more I couldn't think of right now
 
@@ -464,6 +467,7 @@ Supported protocols:
   - Motorola
   - NEC (standard & extended)
   - RC-5 (standard)
+  - RC-6 (standard)
   - Samsung (32 bit Toshiba)
   - Sharp
   - Sony SIRC (12, 15 & 20 bit)
@@ -472,10 +476,18 @@ The carrier frequency of the TSOP receiver module doesn't have to match the RC
 exactly. A mismatch reduces the possible range, but that doesn't matter much
 for this application.
 
+Please connect the IR receiver module after entering the IR detector function.
+
 How to connect the TSOP module:
   Probe #1:  Gnd
   Probe #2:  Vs (current limited by 680 ohms resistor)
   Probe #3:  Out/Data
+
+Hint:
+  The current limiting resistor for Vs implies a IR receiver module with a
+  supply voltage range of about 2.5 to 5V. If you got a 5V only module you can
+  disable the resistor in the config.h file on your own risk. Any short
+  circuit may destroy the MCU.
 
 
 + Selftest
@@ -527,12 +539,16 @@ differences. The goal is to monitor the drift over time. Adjustment is the
 procedure to adjust a device to meet specific specs.
 
 
-+ Save
++ Save/Load
 
 By flashing the firmware the pre-defined values given in config.h are stored
 in the EEPROM of the MCU. After running the self adjustment you may update
-those default values using the the "Save" function. The next time you power
-on the tester the updated values will be loaded and used.
+those default values using the "Save" function. The next time you power
+on the tester the updated values (profile #1) will be loaded and used
+automatically.
+
+For your convenience you can save and load two profiles, e.g. if you two sets
+of different probes.
 
 The idea of the save function is to prevent automatic saving of adjustment
 values. If you need to use other probe leads for some tests, you'll simply

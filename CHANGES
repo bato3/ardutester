@@ -6,9 +6,18 @@
 
                  for ATmega328 with character or graphic display
 
-                        (c) 2012-2015 by Markus Reschke
+                        (c) 2012-2016 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.21m 2016-01
+- Licensed under the EUPL V.1.1
+- Improved storage managment of adjustment values and added support for
+  two adjustment profiles.
+- Added detection and decoding of RC-6 to IR detector. Solved issue with
+  test button when the IR receiver module is removed too early. Added
+  configuration switch to disable current limiting resistor for Vs in case
+  of a 5V only IR receiver module.
 
 v1.20m 2015-12
 - Added IR RC detector and decoder function (requires TSOP IR receiver

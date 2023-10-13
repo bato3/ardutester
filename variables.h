@@ -72,6 +72,7 @@
    */
 
   const NV_Type     NV_EE EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  const NV_Type     NV_EE2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
 
   /*
@@ -90,6 +91,7 @@
     const unsigned char Selftest_str[] EEMEM = "Selbsttest";
     const unsigned char Adjustment_str[] EEMEM = "Abgleich";
     const unsigned char Save_str[] EEMEM = "Speichern";
+    const unsigned char Load_str[] EEMEM = "Laden";
     const unsigned char Show_str[] EEMEM = "Werte zeigen";
     const unsigned char Remove_str[] EEMEM = "Entferne";
     const unsigned char Create_str[] EEMEM = "Baue";
@@ -135,6 +137,7 @@
     const unsigned char Selftest_str[] EEMEM = "Autotest";
     const unsigned char Adjustment_str[] EEMEM = "Kalibrace";
     const unsigned char Save_str[] EEMEM = "Ulozit";
+    const unsigned char Load_str[] EEMEM = "Nacist";
     const unsigned char Show_str[] EEMEM = "Zobraz hodnoty";
     const unsigned char Remove_str[] EEMEM = "Odstranit";
     const unsigned char Create_str[] EEMEM = "Udelej";
@@ -180,6 +183,7 @@
     const unsigned char Selftest_str[] EEMEM = "Selftest";
     const unsigned char Adjustment_str[] EEMEM = "Adjustment";
     const unsigned char Save_str[] EEMEM = "Save";
+    const unsigned char Load_str[] EEMEM = "Load";
     const unsigned char Show_str[] EEMEM = "Show Values";
     const unsigned char Remove_str[] EEMEM = "Remove";
     const unsigned char Create_str[] EEMEM = "Create";
@@ -248,7 +252,9 @@
   const unsigned char ROffset_str[] EEMEM = "R0";
   const unsigned char Vcc_str[] EEMEM = "Vcc";
   const unsigned char CompOffset_str[] EEMEM = "AComp";
-  const unsigned char Checksum_str[] EEMEM = "ChkSum";
+  const unsigned char Checksum_str[] EEMEM = "Checksum";
+  const unsigned char Profile1_str[] EEMEM = "#1";
+  const unsigned char Profile2_str[] EEMEM = "#2";
 
   #ifdef SW_ESR
     const unsigned char Probes_str[] EEMEM = "Pins";
@@ -271,6 +277,7 @@
     const unsigned char IR_NEC_str[] EEMEM = "NEC";
     const unsigned char IR_Proton_str[] EEMEM = "Prot";
     const unsigned char IR_RC5_str[] EEMEM = "RC-5";
+    const unsigned char IR_RC6_str[] EEMEM = "RC-6";
     const unsigned char IR_Samsung_str[] EEMEM = "Sams";
     const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
@@ -284,7 +291,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.20m";
+  const unsigned char Version_str[] EEMEM = "v1.21m";
 
 
   /*
@@ -384,6 +391,7 @@
    */
 
   extern const NV_Type   NV_EE;
+  extern const NV_Type   NV_EE2;
 
 
   /*
@@ -396,6 +404,7 @@
   extern const unsigned char Selftest_str[];
   extern const unsigned char Adjustment_str[];
   extern const unsigned char Save_str[];
+  extern const unsigned char Load_str[];
   extern const unsigned char Show_str[];
   extern const unsigned char Remove_str[];
   extern const unsigned char Create_str[];
@@ -417,6 +426,8 @@
   extern const unsigned char Vcc_str[];
   extern const unsigned char CompOffset_str[];
   extern const unsigned char Checksum_str[];
+  extern const unsigned char Profile1_str[];
+  extern const unsigned char Profile2_str[];
 
   /* options */
   #ifdef SW_ESR
@@ -458,6 +469,7 @@
     extern const unsigned char IR_NEC_str[];
     extern const unsigned char IR_Proton_str[];
     extern const unsigned char IR_RC5_str[];
+    extern const unsigned char IR_RC6_str[];
     extern const unsigned char IR_Samsung_str[];
     extern const unsigned char IR_Sharp_str[];
     extern const unsigned char IR_SIRC_str[];

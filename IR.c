@@ -170,11 +170,11 @@ uint8_t PulseCheck(uint8_t PulseWidth, uint8_t Ref)
  *  - pointer to pulse duration data
  *    first item has to be a pulse
  *  - number of pulses
- *  - mode: Thomas or IEEE; heading pause
+ *  - mode: Thomas or IEEE, heading pause
  *  - time units of clock half cycle
  *  returns:
  *  - 0 for any error
- *  - 1 for success
+ *  - number of bits
  */
 
 uint8_t BiPhase_Demod(uint8_t *PulseWidth, uint8_t Pulses, uint8_t Mode, uint8_t Clock)
@@ -328,6 +328,11 @@ uint8_t BiPhase_Demod(uint8_t *PulseWidth, uint8_t Pulses, uint8_t Mode, uint8_t
       }
     }
 
+    if (Flag == 0)            /* error */
+    {
+      Pulses = 0;             /* end loop */
+    }
+
     PulseWidth++;             /* next one */
     Counter++;                /* next one */
   }
@@ -474,6 +479,73 @@ uint8_t PxM_Demod(uint8_t *PulseWidth, uint8_t Pulses, uint8_t tS, uint8_t t0, u
   }
 
   return Flag;
+}
+
+
+
+/*
+ *  adjust special bi-phase pulse pair to standard timing
+ *
+ *  requires:
+ *  - pointer to pulse duration data
+ *    first item has to be a pulse
+ *  - number of pulses
+ *  - offset to special pulse pair (half cycles)
+ *  - time units of normal pulse
+ *  - time units of special pulse
+ *  returns:
+ *  - number of special pulses
+ */
+
+uint8_t SpecialBiPhasePulse(uint8_t *PulseWidth, uint8_t Pulses, uint8_t Offset, uint8_t Normal, uint8_t Special)
+{
+  uint8_t           Flag = 0;      /* return value */
+  uint8_t           Mixed;         /* duration of mixed pulse */
+  uint8_t           Time;          /* pulse duration */
+  uint8_t           Cycles = 0;    /* half cycles */
+  uint8_t           n = 0;         /* counter */
+
+  Mixed = Normal + Special;        /* mixed pulse */
+
+  while (Pulses > 0)
+  {
+    Time = *PulseWidth;       /* get duration */
+
+    if (Cycles <= Offset)     /* offset not reached yet */
+    {
+      if (PulseCheck(Time, Normal))     /* normal pulse */
+      {
+        Cycles++;
+      }
+      else                              /* double or mixed pulse */
+      {
+        Cycles += 2;
+      }
+    }
+
+    if (Cycles > Offset)      /* reached offset */
+    {
+      if (PulseCheck(Time, Special))    /* special pulse */
+      {
+        *PulseWidth = Normal;           /* adjust to normal */
+        Flag++;
+
+      }
+      else if (PulseCheck(Time, Mixed)) /* mixed pulse */
+      {
+        *PulseWidth = 2 * Normal;       /* adjust to normal double pulse */
+        Flag++;
+      }
+
+      n++;                         /* increase counter */
+      if (n == 2) Pulses = 1;      /* end loop for pulse pair */
+    }
+
+    Pulses--;                 /* next pulse */
+    PulseWidth++;
+  }
+
+  return(Flag);
 }
 
 
@@ -1075,6 +1147,50 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
   }
 
 
+  /*
+   *  standard RC-6
+   *  - start: pulse 2664탎, pause 888탎
+   *  - Bi-Phase (Thomas):
+   *    normal bit 0: pause 444탎, pulse 444탎
+   *    normal bit 1: pulse 444탎, pause 444탎
+   *    toggle bit 0: pause 888탎, pulse 888탎
+   *    toggle bit 1: pulse 888탎, pause 888탎
+   *  - bit mode: MSB
+   *  - format (Mode 0, 16 bit):
+   *    <start><start bit "1":1><mode:3><toggle:1><address:8><command:8>
+   */
+
+  else if (PulseCheck(Time1, 53))       /* pulse 2664탎 */
+  {
+    if (PulseCheck(Time2, 17))          /* pause 888탎 */
+    {
+      LCD_EEString_Space(IR_RC6_str);   /* display protocol */
+
+      Flag = 1;                         /* detected protocol */
+      PulseWidth += 2;                  /* skip start pulse */
+      Pulses -= 2;
+
+      /* convert toggle bit to standard timing */
+      Data = SpecialBiPhasePulse(PulseWidth, Pulses, 8, 8, 17);
+
+      if (Data == 2)               /* we expect 1 special bit (= 2 pulses) */
+      {
+        IR_RelaxTime = IR_RELAX_SHORT;
+        Bits = BiPhase_Demod(PulseWidth, Pulses, IR_THOMAS, 8);
+        IR_RelaxTime = 0;
+
+        if (Bits == 21)       /* we expect 21 bits */
+        {
+          Address = Codebits(6, 8, IR_MSB);       /* address */
+          Command = Codebits(14, 8, IR_MSB);      /* command */
+
+          Flag = 3;             /* confirmed + standard ouput */
+        }
+      }
+    }
+  }
+
+
   if (Flag <= 1)              /* some issue: unknown protocol/broken frame */
   {
     LCD_Char('?');    
@@ -1157,12 +1273,23 @@ void IR_Detector(void)
   LCD_NextLine_Mode(MODE_KEEP);         /* line mode: keep first line */
   LCD_NextLine_EEString(IR_Probes_str); /* display pinout */
 
-  /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 -- HiZ -- Rh -- Gnd */
+  #ifdef SW_IR_DISABLE_RESISTOR
+  /* unsafe mode without current limiting resistor for Vs */
+  /* set probes: probe-1 -- Gnd / probe-2 -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
+  ADC_PORT = (1 << TP2);                /* pull down probe-1, pull up probe-2 */
+  ADC_DDR = (1 << TP1) | (1 << TP2);    /* enable direct pull down/up */
+  R_DDR = (2 << (TP3 * 2));             /* enable Rh for probe-3 */
+  R_PORT = 0;                           /* pull down probe-3 */
+  #else
+  /* safe mode with current limiting resistor for Vs */
+  /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1);                 /* probe-1 */
   /* pull up probe-2 via Rl, pull down probe-3 via Rh */
   R_DDR = (1 << (TP2 * 2)) | (2 << (TP3 * 2));    /* enable resistors */
   R_PORT = (1 << (TP2 * 2));              /* pull up probe-2, pull down probe-3 */
+  #endif
+
 
   /* wait for IR receiver module or key press */
   n = 1;
@@ -1221,12 +1348,7 @@ void IR_Detector(void)
       }
       else                    /* high: L / no IR signal */
       {
-        /* check test button */
-        while (!(CONTROL_PIN & (1 << TEST_BUTTON)))
-        {
-          MilliSleep(50);                 /* take a nap */
-          Run = 0;                        /* end loop */
-        }
+        Run = 4;              /* check for test key */
       }
     }
     else                      /* sample IR */
@@ -1238,6 +1360,11 @@ void IR_Detector(void)
         if (Period > 240)     /* 12ms timeout */
         {
           Run = 3;            /* switch to decoding mode */
+
+          if (!Flag)          /* IR signal or removed receiver module */
+          {
+            Run = 4;          /* check for test key */
+          }
         }
       }
       else                    /* new pause/pulse */
@@ -1279,6 +1406,17 @@ void IR_Detector(void)
     {
       IR_Decode(&PulseWidth[0], Pulses);     /* try to decode */
       Run = 1;                          /* switch back to waiting mode */
+    }
+    else if (Run == 4)        /* check for test key */
+    {
+      Run = 1;                          /* switch back to waiting mode */
+
+      /* check test button */
+      while (!(CONTROL_PIN & (1 << TEST_BUTTON)))
+      {
+        MilliSleep(50);                 /* take a nap */
+        Run = 0;                        /* end loop */
+      }
     }
 
     wdt_reset();            /* reset watchdog */

@@ -329,6 +329,16 @@
 #define SW_IR_RECEIVER
 
 
+/*
+ *  current limiting resistor for IR receiver module
+ *  - for 5V only modules
+ *  - Warning: any short circuit may destroy your MCU
+ *  - uncomment to disable resistor
+ */
+
+//#define SW_IR_DISABLE_RESISTOR
+
+
 
 /* ************************************************************************
  *   port and pin assignments

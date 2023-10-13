@@ -980,12 +980,60 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 
 /*
+ *  adjustment menu
+ */
+
+void AdjustmentMenu(uint8_t Mode)
+{
+  #define MENU_ITEMS  3
+
+  uint8_t           Item = 0;           /* item number */
+  void              *MenuItem[MENU_ITEMS];   /* menu item strings */
+  uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
+  uint8_t           ID;            /* profile ID */
+
+  /* setup menu */
+  MenuItem[Item] = (void *)Profile1_str;     /* profile #1 */
+  MenuID[Item] = 1;
+  Item++;  
+  MenuItem[Item] = (void *)Profile2_str;     /* profile #2 */
+  MenuID[Item] = 2;
+  Item++;
+  MenuItem[Item] = (void *)Exit_str;         /* exit menu */
+  MenuID[Item] = 0;
+  Item++;                                    /* add 1 for item #0 */
+
+  /* display mode */
+  LCD_Clear();
+  if (Mode == MODE_SAVE)           /* write mode */
+  {
+    LCD_EEString(Save_str);
+  }
+  else                             /* read mode */
+  {
+    LCD_EEString(Load_str);
+  }
+
+  /* run menu */
+  ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
+  ID = MenuID[ID];                           /* get item ID */
+
+  if (ID > 0)                 /* valid profile ID */
+  {
+    ManageAdjust(Mode, ID);
+  }
+
+  #undef MENU_ITEMS
+}
+
+
+/*
  *  create main menu and return ID of selected item  
  */
 
 uint8_t PresentMainMenu(void)
 {
-  #define MENU_ITEMS  13
+  #define MENU_ITEMS  14
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1000,42 +1048,42 @@ uint8_t PresentMainMenu(void)
   /* extra items */
   #ifdef SW_PWM
   MenuItem[Item] = (void *)PWM_str;          /* PWM tool */
-  MenuID[Item] = 5;
+  MenuID[Item] = 6;
   Item++;
   #endif
   #ifdef SW_SQUAREWAVE
   MenuItem[Item] = (void *)SquareWave_str;   /* Square Wave Signal Generator */
-  MenuID[Item] = 6;
+  MenuID[Item] = 7;
   Item++;
   #endif
   #ifdef HW_ZENER
   MenuItem[Item] = (void *)Zener_str;        /* Zener tool */
-  MenuID[Item] = 7;  
+  MenuID[Item] = 8;  
   Item++;
   #endif
   #ifdef SW_ESR
   MenuItem[Item] = (void *)ESR_str;          /* in-circuit ESR */
-  MenuID[Item] = 8;
+  MenuID[Item] = 9;
   Item++;
   #endif
   #ifdef HW_FREQ_COUNTER
   MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
-  MenuID[Item] = 9;
+  MenuID[Item] = 10;
   Item++;
   #endif
   #ifdef SW_ENCODER
   MenuItem[Item] = (void *)Encoder_str;      /* rotary encoder check */
-  MenuID[Item] = 10;
+  MenuID[Item] = 11;
   Item++;
   #endif
   #ifdef SW_CONTRAST
   MenuItem[Item] = (void *)Contrast_str;     /* change LCD contrast */
-  MenuID[Item] = 11;
+  MenuID[Item] = 12;
   Item++;
   #endif
   #ifdef SW_IR_RECEIVER
   MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
-  MenuID[Item] = 12;
+  MenuID[Item] = 13;
   Item++;
   #endif
 
@@ -1043,14 +1091,17 @@ uint8_t PresentMainMenu(void)
   MenuItem[Item] = (void *)Selftest_str;    /* selftest */
   MenuID[Item] = 1;
   Item++;
-  MenuItem[Item] = (void *)Show_str;        /* show self-adjustment values */
-  MenuID[Item] = 4;
-  Item++;
   MenuItem[Item] = (void *)Adjustment_str;  /* self-adjustment */
   MenuID[Item] = 2;
   Item++;  
   MenuItem[Item] = (void *)Save_str;        /* store self-adjustment values */
   MenuID[Item] = 3;
+  Item++;
+  MenuItem[Item] = (void *)Load_str;        /* load self-adjustment values */
+  MenuID[Item] = 4;
+  Item++;
+  MenuItem[Item] = (void *)Show_str;        /* show self-adjustment values */
+  MenuID[Item] = 5;
   Item++;
   MenuItem[Item] = (void *)Exit_str;        /* exit menu */
   MenuID[Item] = 0;
@@ -1100,16 +1151,20 @@ void MainMenu(void)
       Flag = SelfAdjust();
       break;
 
-    case 3:              /* safe self-adjustment values */
-      SafeAdjust();
+    case 3:              /* save self-adjustment values */
+      AdjustmentMenu(MODE_SAVE);
       break;
 
-    case 4:              /* show self-adjustment values */
+    case 4:              /* load self-adjustment values */
+      AdjustmentMenu(MODE_LOAD);
+      break;
+
+    case 5:              /* show self-adjustment values */
       ShowAdjust();
       break;
 
     #ifdef SW_PWM
-    case 5:              /* PWM tool */
+    case 6:              /* PWM tool */
       /* run PWM menu */
       LCD_Clear();
       LCD_EEString(PWM_str);
@@ -1120,43 +1175,43 @@ void MainMenu(void)
     #endif
 
     #ifdef SW_SQUAREWAVE
-    case 6:              /* square wave signal generator */
+    case 7:              /* square wave signal generator */
       SquareWave_SignalGenerator();
       break;   
     #endif
 
     #ifdef HW_ZENER
-    case 7:              /* Zener tool */
+    case 8:              /* Zener tool */
       Zener_Tool();
       break;
     #endif
 
     #ifdef SW_ESR
-    case 8:              /* ESR tool */
+    case 9:              /* ESR tool */
       ESR_Tool();
       break;
     #endif
 
     #ifdef HW_FREQ_COUNTER
-    case 9:              /* frequency counter */
+    case 10:             /* frequency counter */
       FrequencyCounter();
       break;
     #endif
 
     #ifdef SW_ENCODER
-    case 10:             /* rotary encoder check */
+    case 11:             /* rotary encoder check */
       Encoder_Tool();
       break;
     #endif
 
     #ifdef SW_CONTRAST
-    case 11:             /* change contrast */
+    case 12:             /* change contrast */
       ChangeContrast();
       break;
     #endif
 
     #ifdef SW_IR_RECEIVER
-    case 12:             /* IR RC detection */
+    case 13:             /* IR RC detection */
       IR_Detector();
       break;
     #endif

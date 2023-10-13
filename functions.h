@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -25,30 +25,43 @@
 
 
 /* ************************************************************************
- *   functions from LCD.c
+ *   functions from LCD module specific driver
  * ************************************************************************ */
 
-#ifndef LCD_C
+#ifndef LCD_DRIVER_C
 
-  extern void LCD_Enable(void);
-  extern void LCD_Send(unsigned char Data);
-  extern void LCD_Cmd(unsigned char Cmd);
-  extern void LCD_Data(unsigned char Data);
-
-  extern void LCD_Clear(void);
-//  extern void LCD_Line(unsigned char Line);
-  extern void LCD_Line2(void);
+  extern void LCD_BusSetup(void);
   extern void LCD_Init(void);
-  extern void LCD_EELoadChar(const unsigned char *CharData, uint8_t ID);
+  extern void LCD_ClearLine(uint8_t Line);
+  extern void LCD_Clear(void);
+  extern void LCD_Pos(uint8_t x, uint8_t y);
+  extern void LCD_Cursor(uint8_t Mode);
+  extern void LCD_Char(unsigned char Char);
 
-//  extern void LCD_ClearLine(unsigned char Line);
+  #ifdef SW_CONTRAST
+    extern void LCD_Contrast(uint8_t Contrast);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from display.c
+ * ************************************************************************ */
+
+#ifndef DISPLAY_C
+
+  extern void LCD_EEString(const unsigned char *String);
+  extern void LCD_EEString_Space(const unsigned char *String);
+  extern void LCD_ProbeNumber(unsigned char Probe);
+
   extern void LCD_ClearLine2(void);
   extern void LCD_Space(void);
-  extern void LCD_ProbeNumber(unsigned char Probe);
-//  extern void LCD_String(char *String);
-  extern void LCD_EEString(const unsigned char *String);
 
-  extern void LCD_EEString2(const unsigned char *String);
+  extern void LCD_NextLine(void);
+  extern void LCD_NextLine_Mode(uint8_t Mode);
+  extern void LCD_NextLine_EEString(const unsigned char *String);
+  extern void LCD_NextLine_EEString_Space(const unsigned char *String);
 
 #endif
 
@@ -70,6 +83,7 @@
 
 #ifndef ADJUST_C
 
+  extern void SetAdjustDefaults(void);
   extern uint8_t CheckSum(void);
   extern void SafeAdjust(void);
   extern void LoadAdjust(void);
@@ -95,7 +109,7 @@
     extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
   #endif
 
-  #ifdef SW_SIGNAL_GEN
+  #ifdef SW_SQUAREWAVE
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -119,8 +133,8 @@
   #ifdef SW_PWM
     extern void PWM_Tool(uint16_t Frequency);
   #endif
-  #ifdef SW_SIGNAL_GEN
-    extern void SignalGenerator(void);
+  #ifdef SW_SQUAREWAVE
+    extern void SquareWave_SignalGenerator(void);
   #endif
   #ifdef SW_ESR
     extern void ESR_Tool(void);

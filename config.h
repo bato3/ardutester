@@ -8,6 +8,81 @@
  * ************************************************************************ */
 
 
+/* source management */
+#define CONFIG_H
+
+
+
+/* ************************************************************************
+ *   LCD module
+ * ************************************************************************ */
+
+
+/*
+ *  LCD module / controller
+ *
+ *  Please uncomment the package matching your LCD module
+ *  and adjust settings.
+ *
+ *  To uncomment, remove the enclosing "#if 0" and "#endif" or
+ *  put a "//" in front of both.
+ */
+
+
+/*
+ *  HD44780, 4 bit parallel
+ */
+
+#if 0
+#define LCD_HD44780_PAR4
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+                                        /* - lower 4 bits for LCD data interface */
+                                        /* - upper 4 bits for control lines */
+#define LCD_RS           PD4            /* port pin used for RS */
+#define LCD_EN1          PD5            /* port pin used for E */
+#define LCD_CHAR_X       16             /* characters per line */
+#define LCD_CHAR_Y       2              /* number of lines */
+#define FONT_HD44780_INT                /* internal 5x7 font, international */
+#endif
+
+
+/*
+ *  ST7565R, SPI interface
+ *  - settings for Electronic Assembly EA DOGM/DOGL128-6
+ *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
+ */
+
+//#if 0
+#define LCD_ST7565R_SPI
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD0            /* port pin used for /RES */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     22             /* default contrast (0-63) */
+#define FONT_FIXED_8X8                  /* fixed 8x8 font */
+//#endif
+
+
+/*
+ *  check if a LCD module is specified
+ */
+
+#ifndef LCD_PORT
+  #error <<< No LCD module specified! >>>
+#endif
+
+
+
 /* ************************************************************************
  *   Hardware options
  * ************************************************************************ */
@@ -21,7 +96,7 @@
  *    rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
@@ -80,7 +155,7 @@
  *  - uncomment to enable
  */
 
-//#define HW_FREQ_COUNTER
+#define HW_FREQ_COUNTER
 
 
 
@@ -136,19 +211,6 @@
 #define TEST_BUTTON      PD7       /* test/start push button (low active) */
 #define ENCODER_A        PD2       /* rotary encoder A signal */
 #define ENCODER_B        PD3       /* rotary encoder B signal */
-
-
-/*
- *  LCD module
- */
-
-#define LCD_PORT         PORTD     /* port data register */
-                                   /* - lower 4 bits for LCD data interface */
-                                   /* - upper 4 bits for control lines */
-#define LCD_DDR          DDRD      /* port data direction register */
-#define LCD_RS           PD4       /* port pin used for RS */
-#define LCD_EN1          PD5       /* port pin used for E */
-
 
 
 /* ************************************************************************
@@ -332,47 +394,10 @@
 
 
 /*
- *  ATmega168
- */
-
-#if defined(__AVR_ATmega168__)
-
-  /* estimated internal resistance of port to GND (in 0.1 Ohms) */
-  #define R_MCU_LOW           196
-
-  /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
-  #define R_MCU_HIGH          225
-
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
-
-  /*
-   *  capacitance of the probe tracks of the PCB and the MCU (in pF)
-   *  - 35 for ATmega168A
-   *  - 36 for ATmega168
-   */
-
-  #define CAP_PCB             32
-
-  /* total default capacitance (in pF): max. 255 */
-  #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
-
-  /* memory layout: put stuff exceeding 512 bytes EEPROM into flash */
-  #define MEM_TEXT            PROGMEM
-  #define MEM_read_word(a)    pgm_read_word(a)
-  #define MEM_read_byte(a)    pgm_read_byte(a)
-
-  /* this MCU has 16kB Flash, 0.5kB EEPROM and 1kB RAM (enable extra features) */
-  #define RES_FLASH           16
-  #define RES_EEPROM          0.5
-  #define RES_RAM             1
-
-
-/*
  *  ATmega328
  */
 
-#elif defined(__AVR_ATmega328__)
+#if defined(__AVR_ATmega328__)
 
   /* estimated internal resistance of port to GND (in 0.1 Ohms) */
   #define R_MCU_LOW           200  /* 209 */
@@ -389,11 +414,6 @@
   /* total default capacitance (in pF): max. 255 */
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
-  /* memory layout: put stuff into EEPROM (1kB) */
-  #define MEM_TEXT            EEMEM
-  #define MEM_read_word(a)    eeprom_read_word(a)
-  #define MEM_read_byte(a)    eeprom_read_byte(a)
-
   /* this MCU has 32kB Flash, 1kB EEPROM and 2kB RAM (enable extra features) */
   #define RES_FLASH           32
   #define RES_EEPROM          1
@@ -401,17 +421,17 @@
 
 
 /*
+ *  ATmega664   64k flash, 2k EEPROM, 4k RAM
+ *  ATmega1284  128k flash, 4k EEPROM, 16k RAM
+ */
+
+
+/*
  *  missing or unsupported MCU
  */
 
 #else
-
- #error "************************************"
- #error "*                                  *"
- #error "*  No or wrong MCU type selected!  *" 
- #error "*                                  *"
- #error "************************************"
-
+  #error <<< No or wrong MCU type selected! >>> 
 #endif
 
 
@@ -464,44 +484,33 @@
 #endif
 
 
-
 /* ************************************************************************
  *   ressource management
  * ************************************************************************ */
 
 
-/* check hardware options that require >=32kB Flash */
-#if RES_FLASH < 32
-  /* rotary encoder */
-  #ifdef HW_ENCODER
-    #undef HW_ENCODER
-    #warning "Disabled HW_ENCODER!"
-  #endif
-
-  /* high voltage measurement / zener */
-  #ifdef HW_ZENER
-    #undef HW_ZENER
-    #warning "Disabled HW_ZENER!"
-  #endif
-
-  /* frequency counter */
-  #ifdef HW_FREQ_COUNTER
-    #undef HW_FREQ_COUNTER
-    #warning "Disabled HW_FREQ_COUNTER!"
-  #endif
-#endif
-
+/*
+ *  software options
+ */
 
 /* auto-enable extra features for >=32kB Flash */
 #if RES_FLASH >= 32
   #define SW_PWM
   #ifdef HW_ENCODER
-    #define SW_SIGNAL_GEN
+    #define SW_SQUAREWAVE
   #endif
   #define SW_INDUCTOR
   #define SW_ESR
   #define SW_ENCODER
 #endif
+
+/* LCD module */
+#ifdef LCD_CONTRAST
+  #define SW_CONTRAST
+#else
+  #define LCD_CONTRAST        0
+#endif
+
 
 
 /* ************************************************************************

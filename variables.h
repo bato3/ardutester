@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -13,8 +13,14 @@
  */
 
 /* local includes */
-#include "LCD.h"              /* LCD module */
-#include "config.h"
+#ifndef COMMON_H
+  #include "common.h"
+#endif
+
+#ifndef CONFIG_H
+  #include "config.h"
+#endif
+
 
 
 /* ************************************************************************
@@ -29,6 +35,7 @@
 
 #if defined (MAIN_C)
 
+
   /*
    *  global variables
    */
@@ -37,7 +44,9 @@
   char              OutBuffer[12];           /* output buffer */
 
   /* configuration */
+  UI_Type           UI;                      /* user interface */
   Config_Type       Config;                  /* tester modes, offsets and values */
+  NV_Type           NV;                      /* stored values and offsets */
 
   /* probing */
   Probe_Type        Probes;                  /* test probes */
@@ -62,15 +71,7 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
-#define CHECKSUM (uint8_t)R_MCU_LOW + (uint8_t)R_MCU_HIGH + (uint8_t)R_ZERO + C_ZERO + (uint8_t)UREF_OFFSET + (uint8_t)COMPARATOR_OFFSET
-  const uint16_t    NV_RiL EEMEM = R_MCU_LOW;
-  const uint16_t    NV_RiH EEMEM = R_MCU_HIGH;
-  const uint16_t    NV_RZero EEMEM = R_ZERO;
-  const uint8_t     NV_CapZero EEMEM = C_ZERO;
-  const int8_t      NV_RefOffset EEMEM = UREF_OFFSET;
-  const int8_t      NV_CompOffset EEMEM = COMPARATOR_OFFSET;
-//  const int8_t      NV_Flags EEMEM = 0;
-  const uint8_t     NV_Checksum EEMEM = (uint8_t)(CHECKSUM);
+  const NV_Type     NV_EE EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
 
   /*
@@ -79,19 +80,13 @@
 
   /* language specific: German */
   #if defined (UI_GERMAN)
-    /*
-     *  LCD ä 11100001 -> á
-     *  LCD ö 11101111 -> ï
-     *  LCD ü 11110101 -> õ
-     *  LCD ß 11100010 -> â
-     */
     const unsigned char Running_str[] EEMEM = "Suche...";
     const unsigned char Weak_str[] EEMEM = "schwach";
     const unsigned char Low_str[] EEMEM = "leer";
     const unsigned char Failed1_str[] EEMEM = "Kein Bauteil";
     const unsigned char Failed2_str[] EEMEM = "gefunden!";
     const unsigned char Done_str[] EEMEM = "fertig!";
-    const unsigned char Select_str[] EEMEM = "Wáhle";
+    const unsigned char Select_str[] EEMEM = "Wähle";
     const unsigned char Selftest_str[] EEMEM = "Selbsttest";
     const unsigned char Adjustment_str[] EEMEM = "Abgleich";
     const unsigned char Save_str[] EEMEM = "Speichern";
@@ -106,20 +101,24 @@
     const unsigned char Thyristor_str[] EEMEM = "Thyristor";
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char Bye_str[] EEMEM = "Ciao!";
-    #ifdef SW_SIGNAL_GEN
-      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #ifdef SW_SQUAREWAVE
+      const unsigned char SquareWave_str[] EEMEM = "Rechteck";
     #endif
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
       const unsigned char Min_str[] EEMEM = "Min";
     #endif
     #ifdef HW_FREQ_COUNTER
-      const unsigned char FreqCounter_str[] EEMEM = "Freq. Záhler";
+      const unsigned char FreqCounter_str[] EEMEM = "Freq. Zähler";
     #endif
     #ifdef SW_ENCODER
       const unsigned char Encoder_str[] EEMEM = "Dreh-Encoder";
       const unsigned char TurnRight_str[] EEMEM = "Drehe rechts!";
     #endif
+    #ifdef SW_CONTRAST
+      const unsigned char Contrast_str[] EEMEM = "Kontrast";
+    #endif
+
 
   /* language specific: Czech */
   #elif defined (UI_CZECH)
@@ -144,8 +143,8 @@
     const unsigned char Thyristor_str[] EEMEM = "Tyrystor";
     const unsigned char Triac_str[] EEMEM = "Triak";
     const unsigned char Bye_str[] EEMEM = "Nashledanou...";
-    #ifdef SW_SIGNAL_GEN
-      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #ifdef SW_SQUAREWAVE
+      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
     #endif
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
@@ -158,9 +157,10 @@
       const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
       const unsigned char TurnRight_str[] EEMEM = "Turn right!";
     #endif
+    #ifdef SW_CONTRAST
+      const unsigned char Contrast_str[] EEMEM = "Contrast";
+    #endif
 
-  /* language specific: another language */
-  #elif defined (UI_WHATEVER)
 
   /* language specific: English (default) */
   #else
@@ -185,8 +185,8 @@
     const unsigned char Thyristor_str[] EEMEM = "SCR";
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char Bye_str[] EEMEM = "Bye!";
-    #ifdef SW_SIGNAL_GEN
-      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #ifdef SW_SQUAREWAVE
+      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
     #endif
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
@@ -199,10 +199,14 @@
       const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
       const unsigned char TurnRight_str[] EEMEM = "Turn right!";
     #endif
+    #ifdef SW_CONTRAST
+      const unsigned char Contrast_str[] EEMEM = "Contrast";
+    #endif
   #endif
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
+  const unsigned char Edition_str[] EEMEM = "trendy";
   const unsigned char Battery_str[] EEMEM = "Bat.";
   const unsigned char OK_str[] EEMEM = "ok";
   const unsigned char MOS_str[] EEMEM = "MOS";
@@ -250,75 +254,46 @@
 
 
   /* component symbols */
-  const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
+  const unsigned char Cap_str[] EEMEM = {'-', LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE_AC, '-', 0};
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.17m";
+  const unsigned char Version_str[] EEMEM = "v1.18m";
 
 
   /*
-   *  constant custom characters for LCD (stored EEPROM)
-   */
-
-  /* diode icon with anode at left side */
-  const unsigned char DiodeIcon1[] EEMEM = {0x11, 0x19, 0x1d, 0x1f, 0x1d, 0x19, 0x11, 0x00};
-
-  /* diode icon with anode at right side */
-  const unsigned char DiodeIcon2[] EEMEM = {0x11, 0x13, 0x17, 0x1f, 0x17, 0x13, 0x11, 0x00};
-
-  /* capacitor icon */
-  const unsigned char CapIcon[] EEMEM = {0x1b, 0x1b, 0x1b, 0x1b, 0x1b, 0x1b, 0x1b, 0x00};
-
-  /* resistor icon #1 (left part) */
-  const unsigned char ResIcon1[] EEMEM = {0x00, 0x0f, 0x08, 0x18, 0x08, 0x0f, 0x00, 0x00};
-
-  /* resistor icon #2 (right part) */
-  const unsigned char ResIcon2[] EEMEM = {0x00, 0x1e, 0x02, 0x03, 0x02, 0x1e, 0x00, 0x00};
-
-  /* cyrillic character set (omega and µ aren't included) */
-  #ifdef LCD_CYRILLIC
-    /* omega */
-    const unsigned char OmegaIcon[] EEMEM = {0, 0, 14, 17, 17, 10, 27, 0};
-
-    /* µ */
-    const unsigned char MicroIcon[] EEMEM = {0, 17, 17, 17, 19, 29, 16, 16};
-  #endif
-
-
-  /*
-   *  contant tables (stored in EEPROM or PROGMEM)
+   *  contant tables (stored in EEPROM)
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
   const unsigned char Prefix_table[] EEMEM = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
   /* voltage based factors for large caps (using Rl) */
-  /* voltage in mV:                             300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
-  const uint16_t LargeCap_table[] MEM_TEXT = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
+  /* voltage in mV:                          300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
+  const uint16_t LargeCap_table[] EEMEM = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
 
   /* voltage based factors for small caps (using Rh) */
-  /* voltages in mV:                         1000 1050 1100 1150 1200 1250 1300 1350 1400 */
-  const uint16_t SmallCap_table[] MEM_TEXT = {954, 903, 856, 814, 775, 740, 707, 676, 648};
-//const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
+  /* voltages in mV:                      1000 1050 1100 1150 1200 1250 1300 1350 1400 */
+  const uint16_t SmallCap_table[] EEMEM = {954, 903, 856, 814, 775, 740, 707, 676, 648};
+//const uint16_t SmallCap_table[] EEMEM = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
   #ifdef SW_PWM
     /* PWM menu: frequencies */    
-    const uint16_t PWM_Freq_table[] MEM_TEXT = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
+    const uint16_t PWM_Freq_table[] EEMEM = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
   #endif
 
   #ifdef SW_INDUCTOR
     /* ratio based factors for inductors */
-    /* ratio:                                    200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
-    const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
+    /* ratio:                                 200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
+    const uint16_t Inductor_table[] EEMEM = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_SIGNAL_GEN)
+  #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
     /* Timer1 prescalers and corresponding bitmasks */
-    const uint16_t T1_Prescaler_table[] MEM_TEXT = {1, 8, 64, 256, 1024};
-    const uint8_t T1_Bitmask_table[] MEM_TEXT = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
+    const uint16_t T1_Prescaler_table[] EEMEM = {1, 8, 64, 256, 1024};
+    const uint8_t T1_Bitmask_table[] EEMEM = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
   #endif
 
 
@@ -357,7 +332,9 @@
   extern char            OutBuffer[12];           /* output buffer */
 
   /* configuration */
+  extern UI_Type         UI;                      /* user interface */
   extern Config_Type     Config;                  /* offsets and values */
+  extern NV_Type         NV;                      /* stored values and offsets */
 
   /* probing */
   extern Probe_Type      Probes;                  /* test probes */
@@ -382,13 +359,7 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
-  extern const uint16_t  NV_RiL;
-  extern const uint16_t  NV_RiH;
-  extern const uint16_t  NV_RZero;
-  extern const uint8_t   NV_CapZero;
-  extern const int8_t    NV_RefOffset;
-  extern const int8_t    NV_CompOffset;
-  extern const uint8_t   NV_Checksum;
+  extern const NV_Type   NV_EE;
 
 
   /*
@@ -434,8 +405,8 @@
     extern const unsigned char PWM_Probes_str[];
     extern const unsigned char Hertz_str[];
   #endif
-  #ifdef SW_SIGNAL_GEN
-    extern const unsigned char FreqGen_str[];
+  #ifdef SW_SQUAREWAVE
+    extern const unsigned char SquareWave_str[];
   #endif
   #ifdef HW_ZENER
     extern const unsigned char Zener_str[];
@@ -448,9 +419,13 @@
     extern const unsigned char Encoder_str[];
     extern const unsigned char TurnRight_str[];
   #endif
+  #ifdef SW_CONTRAST
+    extern const unsigned char Contrast_str[];
+  #endif
+
 
   /*
-   *  constant tables (stored in EEPROM or PROGMEM)
+   *  constant tables (stored in EEPROM)
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
@@ -472,7 +447,7 @@
     extern const uint16_t Inductor_table[];
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_SIGNAL_GEN)
+  #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
     /* Timer1 prescalers and corresponding bitmasks */
     extern const uint16_t T1_Prescaler_table[];
     extern const uint8_t T1_Bitmask_table[];
@@ -491,6 +466,7 @@
   extern const unsigned char ADC_table[];
 
 #endif
+
 
 
 /* ************************************************************************

@@ -307,7 +307,7 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
   uint16_t          TabStart;           /* table start voltage */
   uint16_t          TabStep;            /* table step voltage */
   uint16_t          TabIndex;           /* table entries (-2) */
-  uint16_t          *Table;
+  uint16_t          *Table;             /* pointer to table */
   uint8_t           Index;              /* table index */
   uint8_t           Diff;               /* difference to next entry */
 
@@ -361,9 +361,9 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
 
   /* get values for index and next entry */
   Table += Index;                       /* advance to index */
-  Fact1 = MEM_read_word(Table);
+  Fact1 = eeprom_read_word(Table);
   Table++;                              /* next entry */
-  Fact2 = MEM_read_word(Table);
+  Fact2 = eeprom_read_word(Table);
 
   /* interpolate values based on the difference */
   Factor = Fact1 - Fact2;

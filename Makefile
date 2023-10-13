@@ -12,10 +12,8 @@
 #
 
 # avr-gcc: MCU model
-# - ATmega168 or ATmega168P : atmega168
 # - ATmega328 or ATmega328P : atmega328
 MCU = atmega328
-#MCU = atmega168
 
 # MCU freqency:
 # - 1MHz  : 1
@@ -43,8 +41,6 @@ endif
 
 
 # avrdude: part number of MCU
-# - ATmega168  : m168
-# - ATmega168P : m168p
 # - ATmega328  : m328
 # - ATmega328P : m328p 
 PARTNO = m328p
@@ -87,11 +83,12 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # header files
-HEADERS = config.h common.h variables.h LCD.h functions.h
+HEADERS = config.h common.h variables.h HD44780.h functions.h
 
 # objects
-OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o LCD.o
+OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o
+OBJECTS_C += display.o HD44780_Par4.o ST7565R_SPI.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -170,35 +167,6 @@ clean:
 #
 #  MCU fuses
 #
-
-# ATmega168 / ATmega168P 
-ifeq (${MCU},atmega168)
-  HFUSE = -U hfuse:w:0xdc:m
-  ifeq (${FREQ},1)
-    # internal RC oscillator (8MHz) and /8 clock divider
-    LFUSE_RC = -U lfuse:w:0x62:m
-    # external 8MHz full swing crystal and /8 clock divider
-    LFUSE_CRYSTAL = -U lfuse:w:0x77:m
-    # external 8MHz low power crystal and /8 clock divider
-    LFUSE_LOWPOWER = -U lfuse:w:0x7f:m
-  endif
-  ifeq (${FREQ},8)
-    # internal RC oscillator (8MHz) and /1 clock divider
-    LFUSE_RC = -U lfuse:w:0xe2:m 
-    # external 8MHz full swing crystal and /1 clock divider
-    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 8MHz low power crystal and /1 clock divider
-    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
-  endif
-  ifeq (${FREQ},16)
-    # internal RC oscillator (8MHz) not possible
-    LFUSE_RC =
-    # external 16MHz full swing crystal and /1 clock divider
-    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 16MHz low power crystal and /1 clock divider
-    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
-  endif
-endif
 
 # ATmega328 / ATmega328P
 ifeq (${MCU},atmega328)

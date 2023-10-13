@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
- *   LCD module (HD44780 compatible)
+ *   HD44780 compatible character display
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -58,29 +58,6 @@
 #define FLAG_LINES_2          0b00001000     /* display two lines */
 #define FLAG_FONT_5X7         0b00000000     /* select 5x7 font */
 #define FLAG_FONT_5X10        0b00000100     /* select 5x10 font */
-
-
-/*
- *  custom character IDs
- */
-
-#define LCD_CHAR_UNSET        0    /* just a place holder */
-#define LCD_CHAR_DIODE_AC     1    /* diode icon '>|' */
-#define LCD_CHAR_DIODE_CA     2	   /* diode icon '|<' */
-#define LCD_CHAR_CAP          3    /* capacitor icon '||' */
-#define LCD_CHAR_RESISTOR_L   6    /* resistor left icon '[' */
-#define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
-
-#ifdef LCD_CYRILLIC
-  #define LCD_CHAR_OMEGA  4        /* omega */ 
-  #define LCD_CHAR_MICRO  5        /* µ / micro */ 
-#else
-  #define LCD_CHAR_OMEGA  244      /* use built-in omega */
-  #define LCD_CHAR_MICRO  228      /* use built-in µ */
-#endif
-
-#define LCD_CHAR_DEGREE	  0xdf     /* use built-in degree */
-
 
 
 /* ************************************************************************

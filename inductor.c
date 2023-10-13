@@ -403,10 +403,10 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
 
     /* total resistance (in 0.1 Ohms) */
     R_total = RescaleValue(Resistor->Value, Resistor->Scale, -1);  /* R_L */
-    R_total += Config.RiH + Config.RiL;
+    R_total += NV.RiH + NV.RiL;
 
     /* shunt resistance (in 0.1 Ohms) */
-    Factor = Config.RiL;
+    Factor = NV.RiL;
 
     if (Mode & MODE_LOW_CURRENT)        /* low current measurement mode */
     {
@@ -422,7 +422,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
      */
 
     /* calculate ratio */
-    Value = Config.Bandgap + Config.CompOffset;   /* = U_ref (in mV) */
+    Value = Config.Bandgap + NV.CompOffset;       /* = U_ref (in mV) */
     Value *= R_total;                             /* * R_total (in 0.1 Ohms) */
     Value /= Factor;                              /* / R_shunt (in 0.1 Ohms) */
     Value /= 5;                                   /* / 5000mV, * 10^3 */

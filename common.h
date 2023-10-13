@@ -30,6 +30,10 @@
 #include <avr/interrupt.h>
 
 
+/* source management */
+#define COMMON_H
+
+
 
 /* ************************************************************************
  *   constants
@@ -71,11 +75,6 @@
 #define TYPE_PARASITIC        0b00000100     /* parasitic BJT */
 
 
-/* tester operation modes */
-#define MODE_CONTINOUS        0    /* continous */
-#define MODE_AUTOHOLD         1    /* auto hold */
-
-
 /* multiplicator table IDs */
 #define TABLE_SMALL_CAP       1
 #define TABLE_LARGE_CAP       2
@@ -89,29 +88,72 @@
 #define FLAG_10MS             0b00010000
 
 
+/* tester operation modes */
+#define MODE_CONTINOUS        0    /* continous */
+#define MODE_AUTOHOLD         1    /* auto hold */
+
+
+/* line modes */
+#define MODE_NONE             0b00000000     /* no mode */
+#define MODE_KEY              0b00000001     /* wait for key press */
+#define MODE_KEEP             0b00000010     /* keep first line */
+
+
+/* custom chars/symbols */
+#define LCD_CHAR_0            0    /* just a place holder */
+#define LCD_CHAR_DIODE_AC     1    /* diode icon '>|' */
+#define LCD_CHAR_DIODE_CA     2	   /* diode icon '|<' */
+#define LCD_CHAR_CAP          3    /* capacitor icon '||' */
+#define LCD_CHAR_OMEGA        4    /* omega */
+#define LCD_CHAR_MICRO        5    /* µ / micro */
+#define LCD_CHAR_RESISTOR_L   6    /* resistor left icon '[' */
+#define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
+
+
 
 /* ************************************************************************
  *   structures
  * ************************************************************************ */
 
 
-/* tester modes, offsets and values */
+/* user interface */
 typedef struct
 {
   uint8_t           TesterMode;    /* tester operation mode */
+  uint8_t           LineMode;      /* line mode for LCD_NextLine() */
+  uint8_t           CharPos_X;     /* current character x position */
+  uint8_t           CharPos_Y;     /* current character y position */
+                                   /* top left is 1/1 */
+  uint8_t           CharMax_X;     /* max. characters per line */
+  uint8_t           CharMax_Y;     /* max. number of lines */
+  uint8_t           MaxContrast;   /* maximum contrast */
+} UI_Type;
+
+
+/* tester modes, offsets and values */
+typedef struct
+{
   uint8_t           SleepMode;     /* MCU sleep mode */
   uint8_t           Samples;       /* number of ADC samples */
   uint8_t           AutoScale;     /* flag to disable/enable ADC auto scaling */
   uint8_t           RefFlag;       /* internal control flag for ADC */
   uint16_t          Bandgap;       /* voltage of internal bandgap reference (mV) */
   uint16_t          Vcc;           /* voltage of Vcc (mV) */
+} Config_Type;
+
+
+/* offests and values stored in EEPROM */
+typedef struct
+{
   uint16_t          RiL;           /* internal pin resistance of MCU in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of MCU in high mode (0.1 Ohms) */
   uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
   uint8_t           CapZero;       /* capacity zero offset (input + leads) (pF) */
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
-} Config_Type;
+  uint8_t           Contrast;      /* current contrast value */
+  uint8_t           CheckSum;      /* checksum for stored values */
+} NV_Type;
 
 
 /* rotary encoder */

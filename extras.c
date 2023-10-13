@@ -58,7 +58,7 @@ void ToolInfo(const unsigned char *String)
   /* blink text up to three times */
   while (n <= 2)
   {
-    LCD_EEString2(Probes_str);     /* show text */
+    LCD_EEString_Space(Probes_str);     /* show text */
     LCD_EEString(String);
     Key = TestKey(700, 0);         /* wait 700ms */
 
@@ -117,9 +117,9 @@ void PWM_Tool(uint16_t Frequency)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString2(PWM_str);             /* display: PWM */
+  LCD_EEString_Space(PWM_str);        /* display: PWM */
   DisplayValue(Frequency, 0, 'H');    /* display frequency */
-  LCD_Data('z');                      /* make it Hz :-) */
+  LCD_Char('z');                      /* make it Hz :-) */
   ToolInfo(PWM_Probes_str);           /* show probes used */
 
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
@@ -250,19 +250,19 @@ void PWM_Tool(uint16_t Frequency)
 
 
 /* ************************************************************************
- *   Signal Generator (squarewave)
+ *   Signal Generator (just squarewave)
  * ************************************************************************ */
 
 
-#ifdef SW_SIGNAL_GEN
+#ifdef SW_SQUAREWAVE
 
 /*
- *  create squarewave signal with variable frequency
+ *  create square wave signal with variable frequency
  *  - use probe #2 (PB2, OC1B) as output
  *    and probe #1 + probe #3 as ground
  */
 
-void SignalGenerator(void)
+void SquareWave_SignalGenerator(void)
 {
   uint8_t           Flag = 2;           /* loop control */
   uint8_t           Test;
@@ -290,7 +290,7 @@ void SignalGenerator(void)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString2(FreqGen_str);         /* display: f Gen. */
+  LCD_EEString_Space(SquareWave_str); /* display: Square Wave */
   ToolInfo(PWM_Probes_str);           /* show probes used */
 
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
@@ -332,8 +332,8 @@ void SignalGenerator(void)
       OldPrescaler = Prescaler;         /* save old value */
 
       /* read new prescaler and bitmask from table */
-      Prescaler = MEM_read_word(&T1_Prescaler_table[Index]);
-      Bitmask = MEM_read_byte(&T1_Bitmask_table[Index]);
+      Prescaler = eeprom_read_word(&T1_Prescaler_table[Index]);
+      Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);
 
       /* auto-ranging: adjust top value for changed prescaler */
       if (Flag == 2)          /* lower prescaler / higher frequency */
@@ -374,7 +374,7 @@ void SignalGenerator(void)
     Value /= Top + 1;
     LCD_ClearLine2();
     DisplayFullValue(Value, Test, 'H');
-    LCD_Data('z');                 /* add z for Hz */
+    LCD_Char('z');                 /* add z for Hz */
 
     /* update timer */
     TCCR1B = (1 << WGM13) | (1 << WGM12);    /* stop timer */
@@ -496,7 +496,7 @@ void ESR_Tool(void)
   LCD_Clear();
   LCD_EEString(ESR_str);           /* display: ESR */
   ToolInfo(ESR_Probes_str);        /* show probes used */
-  LCD_Data('-');                   /* display "no value" */
+  LCD_Char('-');                   /* display "no value" */
 
   while (Run > 0)
   {
@@ -542,12 +542,12 @@ void ESR_Tool(void)
         }
         else                            /* no ESR */
         {
-          LCD_Data('-');
+          LCD_Char('-');
         }
       }
       else                                   /* no capacitor */
       {
-        LCD_Data('-');
+        LCD_Char('-');
       }
 
       #ifdef HW_RELAY
@@ -588,8 +588,8 @@ void Zener_Tool(void)
   /* show info */
   LCD_Clear();
   LCD_EEString(Zener_str);         /* display: Zener */
-  LCD_Line2();
-  LCD_Data('-');                   /* display "no value" */
+  LCD_NextLine();
+  LCD_Char('-');                   /* display "no value" */
 
   while (Run > 0)             /* processing loop */
   {
@@ -670,7 +670,7 @@ void Zener_Tool(void)
       }
       else                         /* unchanged default */
       {
-        LCD_Data('-');                  /* display "no value" */
+        LCD_Char('-');                  /* display "no value" */
       }
 
       Counter2 = 0;           /* reset delay time */
@@ -708,8 +708,8 @@ void FrequencyCounter(void)
   /* show info */
   LCD_Clear();
   LCD_EEString(FreqCounter_str);   /* display: Freq. Counter */
-  LCD_Line2();
-  LCD_Data('-');                   /* display "no value" */
+  LCD_NextLine();
+  LCD_Char('-');                   /* display "no value" */
   
 
   /*
@@ -762,8 +762,8 @@ void FrequencyCounter(void)
     wait500us();                          /* settle time */
 
     /* update prescaler */
-    Prescaler = MEM_read_word(&T1_Prescaler_table[Index]);
-    Bitmask = MEM_read_byte(&T1_Bitmask_table[Index]);
+    Prescaler = eeprom_read_word(&T1_Prescaler_table[Index]);
+    Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);
 
     /* calculate compare value for Timer1 */
     Value = (CPU_FREQ / 1000000);         /* clock based MCU cycles per µs */
@@ -820,10 +820,10 @@ void FrequencyCounter(void)
 
       /* display frequency */
       LCD_ClearLine2();
-      LCD_Data('f');                    /* display: f */
+      LCD_Char('f');                    /* display: f */
       LCD_Space();
       DisplayValue(Value, 0, 'H');      /* display frequency */
-      LCD_Data('z');                    /* append "z" for Hz */
+      LCD_Char('z');                    /* append "z" for Hz */
 
       /* autorange */
       if (Freq.Pulses > 10000)          /* range overrun */

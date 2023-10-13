@@ -17,10 +17,11 @@ The data can also be loaded with any other program to the ATmega without control
 
 You can also create a own subdirectory and copy any of the Makefiles of the other directories to this
 own subdirectory. Now you can set other options in this Makefile copy in your directory and try to build
-your own TransistorTester programming data in this directory.
+your own TransistorTester programming data in this directory. 
 
 Please tell me, if you have problems with my software or if you have found errors.
 You can send me a Email to kh_kuebbeler@web.de or answer to my www.mikrocontroller.net thread.
 
 Good luck
 Karl-Heinz Kübbeler
+

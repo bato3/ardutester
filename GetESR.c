@@ -10,7 +10,7 @@
 /* The reason for the different time is unknown, the start of the next ADC measurement */
 /* should be initiated before the next ADC-clock (8 us). One ADC takes 13 ADC clock + 1 clock setup. */
 /* The setting to sleep mode takes 10 clock tics, the wakeup takes about 24 clock tics, but 8us are 64 clock tics. */
-/* I have found no reason, why a reset of the ADC clock divider should occur during ESR measurement. */
+/* I have found no reason, why a reset of the ADC clock divider should occur during ESR measurement. */ 
 //#define ADC_Sleep_Mode
 
 #define ESR_DEBUG
@@ -60,10 +60,10 @@
  #if F_CPU == 8000000UL
     #define DelayBigCap() wait20us();	/* 2.5 ADC clocks = 20us */ \
            wait5us();		/*  */ \
-           wait2us();	/* pulse length 27.375 us */
-//	   wdt_reset();
-            /* delay 19us + 3 clock tics (CALL instead of RCALL) = 19.375 us @ 8 MHz */
-            /* + 7 clock tics delay from while loop, +0.875us  = 20.25 */
+           wait2us();	/* pulse length 27.375 us */ 
+//	   wdt_reset(); 
+            /* delay 19us + 3 clock tics (CALL instead of RCALL) = 19.375 us @ 8 MHz */ 
+            /* + 7 clock tics delay from while loop, +0.875us  = 20.25 */ 
  //             wdt_reset()	/* 20.375 us + */
  #endif
  #if F_CPU == 16000000UL
@@ -72,8 +72,8 @@
            wait4us();	/* with only 18 us delay the voltage goes down before SH */ \
          /* delay 19us + 3 clock tics (CALL instead of RCALL) = 19.1875 us */ \
          /* + 7 clock tics delay from "while (ADCSRA&(1<<ADSC))" loop = 19.625 */ \
-            wait500ns(); 	/* 20.1875us   */
-//            wdt_reset();	/* 20.250 us + */
+            wait500ns(); 	/* 20.1875us   */ 
+//            wdt_reset();	/* 20.250 us + */ 
 //            wdt_reset()		/* 20.3125us + */
  #endif
 #endif
@@ -99,14 +99,14 @@
             wdt_reset();	/* 4.4375 us  */ \
             wait500ns(); 	/* 5.0    us  */ \
             wdt_reset();	/* 5.0625 us  */ \
-            wdt_reset()		/* 5.1250 us  */
+            wdt_reset()		/* 5.1250 us  */ 
  #endif
 #else
             /* Polling mode, small cap */
  #if F_CPU == 8000000UL
     #define DelaySmallCap() wait5us();	/* with only 4 us delay the voltage goes down before SH */ \
             /* delay 4us + 1 clock tics (CALL instead of RCALL) = 4.125 us @ 8 MHz */ \
-            /* + 7 clock tics delay from while loop, +0.875us  = 5.000 */
+            /* + 7 clock tics delay from while loop, +0.875us  = 5.000 */ 
 //            wdt_reset()		/* 5.125 us   */
  #endif
  #if F_CPU == 16000000UL
@@ -114,7 +114,7 @@
             /* delay 4us + 1 clock tics (CALL instead of RCALL) = 4.0625 us */ \
             /* + 7 clock tics delay from "while (ADCSRA&(1<<ADSC))" loop, +0.4375 = 4.5000 */ \
             wait500ns(); 	/* 5.0625 us  */ \
-            wdt_reset()		/* 5.1250 us  */
+            wdt_reset()		/* 5.1250 us  */ 
  #endif
 #endif
 
@@ -173,11 +173,11 @@ uint16_t GetESR(uint8_t hipin, uint8_t lopin) {
 
 #if PROCESSOR_TYP == 1280
     /* ATmega640/1280/2560 1.1V Reference with REFS0=0 */
-  SelectLowPin = (lopin | (1<<REFS1) | (0<<REFS0));	// switch ADC to LowPin, Internal Ref.
-  SelectHighPin = (hipin | (1<<REFS1) | (0<<REFS0));	// switch ADC to HighPin, Internal Ref.
+  SelectLowPin = (lopin | (1<<REFS1) | (0<<REFS0));	// switch ADC to LowPin, Internal Ref. 
+  SelectHighPin = (hipin | (1<<REFS1) | (0<<REFS0));	// switch ADC to HighPin, Internal Ref. 
 #else
-  SelectLowPin = (lopin | (1<<REFS1) | (1<<REFS0));	// switch ADC to LowPin, Internal Ref.
-  SelectHighPin = (hipin | (1<<REFS1) | (1<<REFS0));	// switch ADC to HighPin, Internal Ref.
+  SelectLowPin = (lopin | (1<<REFS1) | (1<<REFS0));	// switch ADC to LowPin, Internal Ref. 
+  SelectHighPin = (hipin | (1<<REFS1) | (1<<REFS0));	// switch ADC to HighPin, Internal Ref. 
 #endif
 
 
@@ -219,14 +219,14 @@ uint16_t GetESR(uint8_t hipin, uint8_t lopin) {
       adcv[0] = ADCW;			// Voltage LowPin with current
       ADMUX = SelectHighPin;
 //      if (big_cap != 0) {
-         StartADCwait();			// ADCSRA = (1<<ADEN) | (1<<ADIF) | (1<<ADIE) | AUTO_CLOCK_DIV;
+         StartADCwait();			// ADCSRA = (1<<ADEN) | (1<<ADIF) | (1<<ADIE) | AUTO_CLOCK_DIV;	
          ADCSRA = (1<<ADSC) | (1<<ADEN) | (1<<ADIF) | AUTO_CLOCK_DIV; // enable ADC and start with ADSC
          wait4us();
          R_PORT = HiPinR_L;			// switch R-Port to VCC
          R_DDR = HiPinR_L;			// switch R_L port for HighPin to output (VCC)
          DelayBigCap();		// wait predefined time
 //      } else {
-//         StartADCwait();			// ADCSRA = (1<<ADEN) | (1<<ADIF) | (1<<ADIE) | AUTO_CLOCK_DIV;
+//         StartADCwait();			// ADCSRA = (1<<ADEN) | (1<<ADIF) | (1<<ADIE) | AUTO_CLOCK_DIV;	
 //         R_PORT = HiPinR_L;			// switch R-Port to VCC
 //         R_DDR = HiPinR_L;			// switch R_L port for HighPin to output (VCC)
 //         ADCSRA = (1<<ADSC) | (1<<ADEN) | (1<<ADIF) | FAST_CLOCK_DIV; // enable ADC and start with ADSC

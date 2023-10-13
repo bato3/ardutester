@@ -1,4 +1,4 @@
-// new code by K.-H. Kï¿½bbeler
+// new code by K.-H. Kübbeler
 // ca   = Pin number (0-2) of the LowPin
 // cb   = Pin number (0-2) of the HighPin
 
@@ -30,7 +30,7 @@ void GetVloss() {
   R_PORT = 0;				// switch R-Port to GND
   ADC_DDR = LoADC;			// switch Low-Pin to output (GND)
   R_DDR = HiPinR_L;			// switch R_L port for HighPin to output (GND)
-  adcv[0] = ReadADC(cap.cb);		// voltage before any load
+  adcv[0] = ReadADC(cap.cb);		// voltage before any load 
 // ******** should adcv[0] be measured without current???
   if (cap.cpre_max > -9) return;	// too much capacity
   lval.dw = cap.cval_max;
@@ -43,7 +43,7 @@ void GetVloss() {
      /* capacity more than 50uF, Voltage loss is already measured  */
      return;
   }
-  R_PORT = HiPinR_L;			//R_L to 1 (VCC)
+  R_PORT = HiPinR_L;			//R_L to 1 (VCC) 
   R_DDR = HiPinR_L;			//switch Pin to output, across R to GND or VCC
   for (tmpint=0;tmpint<lval.w[0];tmpint+=2) {
 //     wait50us();			// wait exactly 50us
@@ -105,3 +105,4 @@ void GetVloss() {
 #endif
   return;
  } // end GetVdrop()
+

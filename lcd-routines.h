@@ -7,15 +7,12 @@
 
 extern void _lcd_hw_write(uint8_t flags, uint8_t data);
 
-#define lcd_write_cmd(cmd)    \
-    _lcd_hw_write(0x00, cmd); \
-    wait50us();
-#define lcd_write_data(data)   \
-    _lcd_hw_write(0x01, data); \
-    wait50us();
-#define lcd_write_init(data_length) _lcd_hw_write(0x80, CMD_SetIFOptions | (data_length << 4))
+#define lcd_write_cmd(cmd)                     _lcd_hw_write(0x00, cmd); wait50us();
+#define lcd_write_data(data)                   _lcd_hw_write(0x01, data); wait50us();
+#define lcd_write_init(data_length)            _lcd_hw_write(0x80, CMD_SetIFOptions | (data_length << 4))
 
-// LCD
+
+//LCD
 void lcd_testpin(unsigned char temp);
 void lcd_data(unsigned char temp1);
 void lcd_space(void);
@@ -26,39 +23,40 @@ void lcd_clear(void);
 void lcd_fix_string(const unsigned char *data);
 void lcd_pgm_string(const unsigned char *data);
 void lcd_fix_customchar(const unsigned char *chardata);
-void lcd_clear_line(void); // only for DebugOut
+void lcd_clear_line(void);		// only for DebugOut
 
-// Software-UART
+//Software-UART
 void uart_putc(uint8_t data);
 void uart_newline(void);
 
-// LCD-commands
-#define CMD_SetEntryMode 0x04
-#define CMD_SetDisplayAndCursor 0x08
-#define CMD_SetIFOptions 0x20
-#define CMD_SetCGRAMAddress 0x40  // for Custom character
-#define CMD_SetDDRAMAddress 0x80  // set Cursor
-#define CMD1_SetBias 0x10         // set Bias (instruction table 1, DOGM)
-#define CMD1_PowerControl 0x50    // Power Control, set Contrast C5:C4 (instruction table 1, DOGM)
-#define CMD1_FollowerControl 0x60 // Follower Control, amplified ratio (instruction table 1, DOGM)
-#define CMD1_SetContrast 0x70     // set Contrast C3:C0 (instruction table 1, DOGM)
 
-// Makros for LCD
-#define lcd_line1() lcd_command((uint8_t)(CMD_SetDDRAMAddress))        // move to the beginning of the 1. row
-#define lcd_line2() lcd_command((uint8_t)(CMD_SetDDRAMAddress + 0x40)) // move to the beginning of the 2. row
-#define lcd_line3() lcd_command(((uint8_t)CMD_SetDDRAMAddress + 0x14)) // move to the beginning of the 3. row
-#define lcd_line4() lcd_command(((uint8_t)CMD_SetDDRAMAddress + 0x54)) // move to the beginning of the 4. row
+//LCD-commands
+#define CMD_SetEntryMode         0x04
+#define CMD_SetDisplayAndCursor  0x08
+#define CMD_SetIFOptions         0x20
+#define CMD_SetCGRAMAddress      0x40    // for Custom character
+#define CMD_SetDDRAMAddress      0x80    // set Cursor 
+#define CMD1_SetBias             0x10	// set Bias (instruction table 1, DOGM)
+#define CMD1_PowerControl        0x50	// Power Control, set Contrast C5:C4 (instruction table 1, DOGM)
+#define CMD1_FollowerControl     0x60	// Follower Control, amplified ratio (instruction table 1, DOGM)
+#define CMD1_SetContrast         0x70	// set Contrast C3:C0 (instruction table 1, DOGM)
+
+//Makros for LCD
+#define lcd_line1() lcd_command((uint8_t)(CMD_SetDDRAMAddress))		//move to the beginning of the 1. row
+#define lcd_line2() lcd_command((uint8_t)(CMD_SetDDRAMAddress + 0x40))	//move to the beginning of the 2. row
+#define lcd_line3() lcd_command(((uint8_t)CMD_SetDDRAMAddress + 0x14))	//move to the beginning of the 3. row
+#define lcd_line4() lcd_command(((uint8_t)CMD_SetDDRAMAddress + 0x54))	//move to the beginning of the 4. row
 #define lcd_aus() lcd_command(0x08)
 #define lcd_ein() lcd_command(0x0c)
 #define lcd_shift_right() lcd_command(0x1c)
 #define lcd_shift_left() lcd_command(0x18)
 
-#define SetCursor(y, x) lcd_command((uint8_t)(CMD_SetDDRAMAddress + (0x40 * (y - 1)) + x)) // move to the specified position
+#define SetCursor(y, x) lcd_command((uint8_t)(CMD_SetDDRAMAddress + (0x40*(y-1)) + x)) //move to the specified position 
 
-#define LCDLoadCustomChar(addr) lcd_command(CMD_SetCGRAMAddress | (addr << 3)) // load Custom-character
+#define LCDLoadCustomChar(addr) lcd_command(CMD_SetCGRAMAddress | (addr<<3))	//load Custom-character
 
 // LCD commands
-
+ 
 #define CLEAR_DISPLAY 0x01
 
 #define Cyr_B 0xa0

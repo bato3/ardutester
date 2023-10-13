@@ -30,9 +30,14 @@ H_Fakt = 707/100 for a result in pF units.
 // capacitor is measured. If the voltage is more than 300mV, the capacity is computed by
 // interpolating the corresponding values of the table RLtab and multiply that with the number
 // of load pulses (*10).
+#if R_L_VAL == 3300
+// resistor   330 Ohm                       300   325   350   375   400   425   450   475   500   525   550   575   600   625   650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400  mV
+COMMON const uint16_t RLtab[] MEM_TEXT = {43680, 40214, 37242, 34667, 32414, 30425, 28657, 27076, 25652, 24364, 23192, 22123, 21142, 20240, 19407, 18636, 17920, 17253, 16630, 16048, 15501, 14988, 14505, 14049, 13619, 13212, 12826, 12460, 12112, 11781, 11466, 11165, 10878, 10603, 10341, 10089, 9848, 9617, 9395, 9181, 8976, 8778, 8588, 8404, 8227};
+#else
 
-// Widerstand 680 Ohm                300   325   350   375   400   425   450   475   500   525   550   575   600   625   650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400  mV
+// resistor   680 Ohm                       300   325   350   375   400   425   450   475   500   525   550   575   600   625   650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400  mV
 COMMON const uint16_t RLtab[] MEM_TEXT = {22447, 20665, 19138, 17815, 16657, 15635, 14727, 13914, 13182, 12520, 11918, 11369, 10865, 10401, 9973, 9577, 9209, 8866, 8546, 8247, 7966, 7702, 7454, 7220, 6999, 6789, 6591, 6403, 6224, 6054, 5892, 5738, 5590, 5449, 5314, 5185, 5061, 4942, 4828, 4718, 4613, 4511, 4413, 4319, 4228};
+#endif
 
 #if FLASHEND > 0x1fff
 //                                        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91 };
@@ -42,8 +47,13 @@ COMMON const uint16_t LogTab[] PROGMEM = {0, 20, 41, 62, 83, 105, 128, 151, 174,
 
 #ifdef AUTO_RH
 
-// resistor   470000 Ohm      1000 1050 1100 1150 1200 1250 1300 1350 1400  mV
+#if R_H_VAL == 10000
+// resistor  100000 Ohm             1000 1050 1100 1150 1200 1250 1300 1350 1400  mV
+const uint16_t RHtab[] PROGMEM = {4483, 4244, 4026, 3827, 3645, 3477, 3322, 3178, 3045};
+#else
+// resistor  470000 Ohm            1000 1050 1100 1150 1200 1250 1300 1350 1400  mV
 const uint16_t RHtab[] PROGMEM = {954, 903, 856, 814, 775, 740, 707, 676, 648};
+#endif
 
 #endif
 
@@ -266,6 +276,27 @@ const unsigned char ATE[] MEM_TEXT = {'T', 'e', 'c', Cyr_t, ' ', Cyr_z, 'a', Cyr
 #endif
 #endif
 
+#if defined(LANG_LITHUANIAN)                                  // Lithuanian
+const unsigned char TestRunning[] MEM_TEXT = "Tikrinu...";    //"Testing...";
+const unsigned char BatWeak[] MEM_TEXT = "silpna";            //"weak";
+const unsigned char BatEmpty[] MEM_TEXT = "negera";           //"empty!"
+const unsigned char TestFailed2[] MEM_TEXT = "sugedusi ";     //"damaged ";
+const unsigned char Bauteil[] MEM_TEXT = "dalis";             //"part";
+                                                              // const unsigned char Diode[] MEM_TEXT = "Diodas: ";
+const unsigned char Triac[] MEM_TEXT = "Simistorius";         //"Triac";
+const unsigned char Thyristor[] MEM_TEXT = "Tiristorius";     //"Thyristor";
+const unsigned char Unknown[] MEM_TEXT = " nezinoma";         //" unknown";
+const unsigned char TestFailed1[] MEM_TEXT = "Nezinoma arba"; //"Pajunkite detale" "No, unknown, or";
+const unsigned char OrBroken[] MEM_TEXT = "sugedusi ";        //"or damaged";
+const unsigned char TestTimedOut[] MEM_TEXT = "Viso gero!";   //"Timeout!";
+#define Cathode_char 'C'
+#ifdef WITH_SELFTEST
+const unsigned char SELFTEST[] MEM_TEXT = "Testuoju..";     //"Selftest mode..";
+const unsigned char RELPROBE[] MEM_TEXT = "Atjung laidus!"; //"isolate Probe!";
+const unsigned char ATE[] MEM_TEXT = "Testas baigtas";      //"Test End";
+#endif
+#endif
+
 // Strings, which are not dependent of any language
 const unsigned char Bat_str[] MEM_TEXT = "Bat. ";
 const unsigned char OK_str[] MEM_TEXT = "OK";
@@ -312,9 +343,10 @@ const unsigned char AnKat[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
 const unsigned char KatAn[] MEM_TEXT = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Dioden[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
 const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
-const unsigned char VERSION_str[] MEM2_TEXT = "Version 1.08k";
+const unsigned char VERSION_str[] MEM2_TEXT = "Version 1.09k";
 
 #ifdef WITH_SELFTEST
+#ifdef EXTENDED_TESTS
 const unsigned char URefT[] MEM2_TEXT = "Ref=";
 const unsigned char RHfakt[] MEM2_TEXT = "RHf=";
 const unsigned char RH1L[] MEM_TEXT = "RH-";
@@ -322,6 +354,7 @@ const unsigned char RH1H[] MEM_TEXT = "RH+";
 const unsigned char RLRL[] MEM_TEXT = "+RL- 12 13 23";
 const unsigned char RHRH[] MEM_TEXT = "+RH- 12 13 23";
 const unsigned char RHRL[] MEM_TEXT = "RH/RL";
+#endif
 const unsigned char R0_str[] MEM2_TEXT = "R0=";
 #define LCD_CLEAR
 #endif

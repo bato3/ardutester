@@ -1311,7 +1311,7 @@ void IR_Detector(void)
   }
 
   LCD_ClearLine2();                /* clear line #2 */
-  LCD_Pos(1, 1);                   /* move to first line */
+  LCD_CharPos(1, 1);               /* move to first line */
 
 
   /*
@@ -1319,7 +1319,7 @@ void IR_Detector(void)
    *  - processing loop needs about 24 MCU cycles (3탎@8MHz)
    */
 
-  Cycles = (CPU_FREQ / 1000000);        /* MCU cycles per 탎 */
+  Cycles = MCU_CYCLES_PER_US;           /* MCU cycles per 탎 */
   Cycles *= 10;                         /* cycles for 10탎 */
   Cycles -= 24;                         /* consider loop */
   Cycles /= 4;                          /* delay loop is 4 cycles */

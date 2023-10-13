@@ -67,7 +67,7 @@ void LCD_NextLine(void)
         Line--;                    /* next line */
       }
 
-      LCD_Pos(1, 2);               /* move to second line */
+      LCD_CharPos(1, 2);           /* move to second line */
     }
     else                           /* clear complete screen */
     {
@@ -78,7 +78,7 @@ void LCD_NextLine(void)
   {
     /* simply move to the next line */
     Line++;                        /* add one line */
-    LCD_Pos(1, Line);              /* move to new line */
+    LCD_CharPos(1, Line);          /* move to new line */
   }
 }
 
@@ -140,7 +140,7 @@ void LCD_ProbeNumber(unsigned char Probe)
 void LCD_ClearLine2(void)
 {
   LCD_ClearLine(2);           /* clear line #2 */
-  LCD_Pos(1, 2);              /* move to beginning of line #2 */
+  LCD_CharPos(1, 2);          /* move to beginning of line #2 */
 }
 
 

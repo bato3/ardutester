@@ -2,7 +2,7 @@
  *
  *   pause functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -81,7 +81,7 @@ void MilliSleep(uint16_t Time)
 
   /* calculate required timer cycles (prescaler 1024) */
   Cycles = Time;
-  Cycles *= (CPU_FREQ / 1000000);       /* timer cycles based on MCU frequency */
+  Cycles *= MCU_CYCLES_PER_US;          /* timer cycles based on MCU frequency */
 
   if (Mode == SLEEP_MODE_PWR_SAVE)      /* power save mode */
   {

@@ -121,6 +121,7 @@ Since the range overlaps with the low test current we may use a single table.
 
 /*
  *  measure inductance between two probe pins
+ *  - probes have to be set by UpdateProbes()
  *
  *  requires:
  *  - pointer to time variable (ns)
@@ -160,17 +161,19 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
    *  init hardware
    */
 
-  /* set probes: Gnd -- probe-1 / Gnd -- Rl -- probe-2 */
+  /* set probes: Gnd -- probe-1 / Gnd -- (Rl) -- probe-2 */
   R_PORT = 0;                           /* set resistor port to low */
   ADC_PORT = 0;                         /* set ADC port to low */
 
   if (Mode & MODE_LOW_CURRENT)     /* low current */
   {
+    /* set probes: Gnd -- probe-1 / Gnd -- Rl -- probe-2 */
     R_DDR = Probes.Rl_2;                /* pull down probe-2 via Rl */
     ADC_DDR = Probes.Pin_1;             /* pull down probe-1 directly */
   }
   else                             /* high current */
   {
+    /* set probes: Gnd -- probe-1 / Gnd -- probe-2 */
     R_DDR = 0;                          /* disable probe resistors */
     /* pull down probe-1 and probe-2 directly */
     ADC_DDR = Probes.Pin_1 | Probes.Pin_2;
@@ -199,9 +202,9 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
 
   if (Mode & MODE_DELAYED_START)        /* delayed start */
   {
-    Test = (CPU_FREQ / 1000000);        /* MCU cycles per µs */
+    Test = MCU_CYCLES_PER_US;           /* MCU cycles per µs */
 
-    /* change probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
+    /* change probes: Gnd -- (Rl) -- probe-2 / probe-1 -- Vcc */
     ADC_PORT = Probes.Pin_1;            /* pull up probe-1 directly */
 
     /*
@@ -293,7 +296,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   if (Mode & MODE_DELAYED_START)             /* delayed start */
   {
     /* add MCU cycles for delayed start */
-    Offset += ((CPU_FREQ / 1000000) * 4) - 1;
+    Offset += (MCU_CYCLES_PER_US * 4) - 1;
   }
   else                                       /* immediate start */
   {

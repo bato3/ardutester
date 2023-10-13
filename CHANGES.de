@@ -10,9 +10,31 @@
 
 ------------------------------------------------------------------------------
 
+v1.23m 2016-07
+- Unterstützung von PCD8544 und ST7735 kompatiblen LCD-Modulen.
+- wait.s für 20MHz MCU-Takt ergänzt.
+- MeasureESR() unstützt nun auch andere ADC-Taktraten als 125kHz.
+- Erkennung von PUTs (Programmable Unijunction Transistor) und
+  UJTs (Unijunction Transistor) eingebaut.
+- Kleinere Optimierungen für ILI9341 and ST7565R. 
+- Erneut Problem mit Zeichen größer 8x8 für den ST7565R beseitigt.
+- Der /RES Port-Pin für ILI9341 wurde ignoriert. Fehler beseitigt und
+  auch eine falsche Verzögerung für Hardwareresets korrigiert. 
+- Unterstützung von individuellen Datenleitungen für HD44780 basierte
+  LCD-Module.
+- Benutzerdefinierbarer Spannungsteiler für Batteriespannung.
+- Ausgabe von If für Opto-Koppler ergänzt.
+- Testpins vom ESR-Tool auf 1-3 geändert, um mit der k-firmware kompatibel
+  zu sein.
+- MCU-spezifische globale Einstellungen wurden in jeweils eigene Header-
+  Dateien verschoben. Mehrere kleine Anpassungen, um auch ATmega664/1284
+  zu unterstützen.
+- Tschechische Texte aktualisiert. Dank an Kapa.
+
 v1.22m 2016-03
 - Test für Opto-Koppler mit Ausgabe von V_f der LED, CTR und t_on bzw. t_off
-  Zeiten (Typen mit Transistorausgang).
+  Zeiten (Typen mit Transistorausgang). Dank an all_repair@EEVblog für
+  Opto-Koppler zum Testen.
 
 v1.21m 2016-01
 - Lizenziert unter der EUPL V.1.1
@@ -31,14 +53,14 @@ v1.19m 2015-11
 - Grafisches Pinout für 3-Pin Halbleiter. Zeigt Symbol plus Testpins.
 - Farbunterstützung eingebaut.
 - Direkte Ausgabe der Diodenanzahl in ShowDiode(), wenn mehr als 3 Dioden
-  gefunden wurden (nicht länger per Show_Fail()). Hinweis von hapless@eevblog
+  gefunden wurden (nicht länger per Show_Fail()). Hinweis von hapless@EEVblog
 - LCD_ClearLine() in allen LCD-Modul-Treibern so erweitert, daß auch nur der
   Zeilenrest gelöscht werden kann, um das Löschen speziell für Grafik-LCDs zu
   beschleunigen. Die Idee ist, zuerst den Text auszugeben und dann den
   Zeilenrest zu löschen, anstatt zuerst die ganze Zeile zu löschen und dann
   den Text auszugeben.
 - Treiber für ILI9341/ILI9342 basierte LCD-Module geschrieben. Dank an
-  Overtuner @ EEVblog-Forum für zwei LCD-Module zum Testen.
+  Overtuner@EEVblog-Forum für zwei LCD-Module zum Testen.
 - Problem mit dem µ/micro Zeichen in den Zeichensatzdateien gelöst.
 - Fehler bei Zeichen größer 8x8 in LCD_Char() für den ST7565R beseitigt. 
 - Tschechische Texte aktualisiert (Dank an Kapa).

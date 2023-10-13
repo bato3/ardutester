@@ -44,35 +44,26 @@
 
 void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 {
-  /* set probe IDs / ADC MUX input addresses */
+  /* set probe IDs */
   Probes.ID_1 = Probe1;
   Probes.ID_2 = Probe2;
   Probes.ID_3 = Probe3;
 
-  /*
-   * todo: decouple ADC MUX addresses
-   * - add new table for ADC MUX addresses (prepared)
-   * - add ADC_1, ADC_2, ADC_3 to Probes structure (prepared)
-   * - read table into ADC_x (prepared)
-   * - check any function calls with TPx and change it into x if possible 
-   * - change ReadU() and ReadU_5ms() calls from ID_x to ADC_x
-   */
-
-  /* setup masks using bitmask tables */
+  /* set masks using bitmask tables */
   Probes.Rl_1 = eeprom_read_byte(&Rl_table[Probe1]);
   Probes.Rl_2 = eeprom_read_byte(&Rl_table[Probe2]);
   Probes.Rl_3 = eeprom_read_byte(&Rl_table[Probe3]);
-  Probes.Rh_1 = Probes.Rl_1 + Probes.Rl_1;
-  Probes.Rh_2 = Probes.Rl_2 + Probes.Rl_2;
-  Probes.Rh_3 = Probes.Rl_3 + Probes.Rl_3;
+  Probes.Rh_1 = eeprom_read_byte(&Rh_table[Probe1]);
+  Probes.Rh_2 = eeprom_read_byte(&Rh_table[Probe2]);
+  Probes.Rh_3 = eeprom_read_byte(&Rh_table[Probe3]);
   Probes.Pin_1 = eeprom_read_byte(&Pin_table[Probe1]);
   Probes.Pin_2 = eeprom_read_byte(&Pin_table[Probe2]);
   Probes.Pin_3 = eeprom_read_byte(&Pin_table[Probe3]);
 
-  /* setup ADC MUX input addresses */
-//Probes.ADC_1 = eeprom_read_byte(&ADC_table[Probe1]);
-//Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
-//Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
+  /* set ADC MUX input addresses */
+  Probes.ADC_1 = eeprom_read_byte(&ADC_table[Probe1]);
+  Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
+  Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
 }
 
 
@@ -85,7 +76,7 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
  *  - Probe2: ID of second probe (0-2)
  *
  *  returns:
- *  - ID of third probe
+ *  - ID of third probe (0-2)
  */
 
 uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2)
@@ -111,6 +102,7 @@ uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2)
 
 /*
  *  check for a short circuit between two probes
+ *  - changes probe settings
  *
  *  requires:
  *  - ID of first probe (0-2)
@@ -129,19 +121,20 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
   uint16_t          Min;           /* lower threshold */
   uint16_t          Max;           /* upper threshold */
 
+  UpdateProbes(Probe1, Probe2, 0);      /* update probes */
+
   /*
    *  Set up a voltage divider between the two probes:
-   *  - Probe1: Rl pull-up
-   *  - Probe2: Rl pull-down
+   *  - Gnd -- Rl -- probe-2 / probe-1 -- Rl -- Vcc
    *  - third probe: HiZ
    */
 
-  R_PORT = eeprom_read_byte(&Rl_table[Probe1]);
-  R_DDR = eeprom_read_byte(&Rl_table[Probe1]) | eeprom_read_byte(&Rl_table[Probe2]);
+  R_PORT = Probes.Rl_1;                 /* pull up probe-1 via Rl */
+  R_DDR = Probes.Rl_1 | Probes.Rl_2;    /* and pull down probe-2 via Rl */
 
   /* read voltages */
-  U1 = ReadU(Probe1);
-  U2 = ReadU(Probe2);
+  U1 = ReadU(Probes.ADC_1);
+  U2 = ReadU(Probes.ADC_2);
 
   /*
    *  We expect both probe voltages to be about the same and
@@ -180,9 +173,9 @@ uint8_t AllProbesShorted(void)
   uint8_t           Flag = 0;      /* return value */
 
   /* check all possible combinations */
-  Flag = ShortedProbes(TP1, TP2);
-  Flag += ShortedProbes(TP1, TP3);
-  Flag += ShortedProbes(TP2, TP3);
+  Flag = ShortedProbes(PROBE_1, PROBE_2);
+  Flag += ShortedProbes(PROBE_1, PROBE_3);
+  Flag += ShortedProbes(PROBE_2, PROBE_3);
 
   return Flag;  
 }
@@ -273,7 +266,7 @@ void DischargeProbes(void)
     }
     else if (U_c < 800)                 /* extra pull-down */
     {
-      /* it's save now to pull-down probe pin directly */
+      /* it's save now to pull down probe pin directly */
       ADC_DDR |= eeprom_read_byte(&Pin_table[ID]);
     }
 
@@ -335,7 +328,7 @@ void PullProbe(uint8_t Mask, uint8_t Mode)
 
 /*
  *  lookup a voltage/ratio based factor in a table and interpolate it's value
- *  - value descreases over index position
+ *  - value decreases over index position
  *
  *  requires:
  *  - voltage (in mV) or ratio
@@ -448,7 +441,6 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   wdt_reset();                             /* reset watchdog */
   UpdateProbes(Probe1, Probe2, Probe3);    /* update bitmasks */
 
-
   /*
    *  We measure the current from probe 2 to ground with probe 1 pulled up
    *  to 5V and probe 3 in HiZ mode to determine if we got a self-conducting
@@ -465,22 +457,22 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   ADC_DDR = Probes.Pin_1;          /* set probe-1 to output */
   ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
 
-
   /*
    *  For a possible n channel FET we pull down the gate for a few ms,
    *  assuming: probe-1 = D / probe-2 = S / probe-3 = G
+   *
+   *  Hint: The pull-down of the gate will trigger a possible PUT.
    */
 
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate via Rl */
-  U_Rl = ReadU_5ms(Probes.ID_2);                  /* get voltage at Rl */
-
+  U_Rl = ReadU_5ms(Probes.ADC_2);                 /* get voltage at Rl */
 
   /*
    *  If we got conduction we could have a p channel FET. For any
-   *  other part U_Rl will be the same.
+   *  other part U_Rl will stay the same.
    */
  
-  if (U_Rl >= 977)               /* > 1.4mA */
+  if (U_Rl >= 977)            /* > 1.4mA */
   {
     /*
      *  For a possible p channel FET we pull up the gate for a few ms,
@@ -488,14 +480,14 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
      */
 
     PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);   /* discharge gate via Rl */
-    U_Rl = ReadU_5ms(Probes.ID_2);                     /* get voltage at Rl */
+    U_Rl = ReadU_5ms(Probes.ADC_2);                    /* get voltage at Rl */
   }
 
 
   /*
    *  If there's some current we could have a depletion-mode FET
    *  (self-conducting). To skip germanium BJTs with a high leakage current
-   *  we check for a current larger then the usual V_CEO.
+   *  we check for a current larger then their usual I_CEO (I_CES).
    *
    *  Other possibilities:
    *  - diode or resistor
@@ -503,7 +495,10 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
   if (U_Rl > 490)         /* > 700µA (was 92mV/130µA) */
   {
-    CheckDepletionModeFET();
+    if (Check.Done == DONE_NONE)        /* not sure yet */
+    {
+      CheckDepletionModeFET();
+    }
   }
 
 
@@ -511,9 +506,9 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  If there's nearly no conduction (just a small leakage current) between
    *  probe-1 and probe-2 we might have a semiconductor:
    *  - BJT
-   *  - enhancement mode FET
+   *  - enhancement mode FET or IGBT
    *  - Thyristor or Triac
-   *  or a large resistor
+   *  - or a large resistor
    */
 
   if (U_Rl < 977)         /* load current < 1.4mA (resistance > 3k) */
@@ -521,16 +516,21 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
     /*
      *  check for:
      *  - PNP BJT (common emitter circuit)
-     *  - p-channel MOSFET (low side switching circuit)
+     *  - p-channel MOSFET (low side switching circuit) or IGBT
      */
 
-    if (Check.Done == 0)           /* not sure yet */
+    if (Check.Done == DONE_NONE)        /* not sure yet */
     {
-      /* we assume: probe-1 = E / probe-2 = C / probe-3 = B */
-      /* set probes: Gnd -- Rl - probe-2 / probe-1 -- Vcc */
+      /*
+       *  we assume:
+       *  - BJT: probe-1 = E / probe-2 = C / probe-3 = B
+       *  - FET: probe-1 = S / probe-2 = D / probe-3 = G
+       */
+
+      /* set probes: Gnd -- Rl - probe-2 / probe-1 -- Vcc / probe-3 -- Rl -- Gnd */
       R_DDR = Probes.Rl_2;                /* enable Rl for probe-2 */
       R_PORT = 0;                         /* pull down collector via Rl */
-      ADC_DDR = Probes.Pin_1;             /* set probe 1 to output */
+      ADC_DDR = Probes.Pin_1;             /* set probe-1 to output */
       ADC_PORT = Probes.Pin_1;            /* pull up emitter directly */
       wait5ms();
       R_DDR = Probes.Rl_2 | Probes.Rl_3;  /* pull down base via Rl */
@@ -542,8 +542,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
       if (U_1 > 3422)                   /* detected current > 4.8mA */
       {
-        /* distinguish PNP BJT from p-channel MOSFET */
-        CheckBJTorEnhModeMOSFET(TYPE_PNP, U_Rl);
+        /* distinguish PNP BJT from p-channel MOSFET or IGBT */
+        CheckTransistor(TYPE_PNP, U_Rl);
       }
     }
 
@@ -552,19 +552,25 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
      *  check for
      *  - NPN BJT (common emitter circuit)
      *  - Thyristor and Triac
-     *  - n-channel MOSFET (high side switching circuit)
+     *  - n-channel MOSFET (high side switching circuit) or IGBT
      */
 
-    if (Check.Done == 0)           /* not sure yet */
+    if (Check.Done == DONE_NONE)        /* not sure yet */
     {
-      /* we assume: probe-1 = C / probe-2 = E / probe-3 = B */
-      /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
+      /*
+       *  we assume:
+       *  - BJT: probe-1 = C / probe-2 = E / probe-3 = B
+       *  - FET: probe-1 = D / probe-2 = S / probe-3 = G
+       *  - SCR: probe-1 = A / probe-2 = C / probe-3 = G
+       *  - TRIAC: probe-1 = MT2 / probe-2 = MT1 / probe-3 = G
+       */
+
+      /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc / probe-3 -- Rl -- Vcc */
       ADC_DDR = Probes.Pin_2;                /* set probe-2 to output mode */
       ADC_PORT = 0;                          /* pull down probe-2 directly */
       R_DDR = Probes.Rl_1 | Probes.Rl_3;     /* select Rl for probe-1 & Rl for probe-3 */
       R_PORT = Probes.Rl_1 | Probes.Rl_3;    /* pull up collector & base via Rl */
       U_1 = ReadU_5ms(Probe1);               /* get voltage at collector */
-
 
       /*
        *  If DUT is conducting we might have a NPN BJT, something similar or
@@ -578,11 +584,24 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
         if (Flag == 0)                 /* no thyristor or triac */
         {
-          /* we might got a NPN BJT or a n-channel MOSFET. */
-          CheckBJTorEnhModeMOSFET(TYPE_NPN, U_Rl);
+          /* We might got a NPN BJT, a n-channel MOSFET or IGBT. */
+          CheckTransistor(TYPE_NPN, U_Rl);
         }
       }
     }
+
+    #ifdef SW_UJT
+
+    /*
+     *  check for UJT
+     */
+
+    if (Check.Done == DONE_NONE)        /* not sure yet */
+    {
+      CheckUJT();
+    }
+
+    #endif
   }
 
 
@@ -595,6 +614,15 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   else              /* load current > 1.4mA  (resistance < 3k) */
   {
     /*
+     *  check for a PUT
+     */
+
+    if (Check.Done == DONE_NONE)        /* not sure yet */
+    {
+      CheckPUT();
+    }
+
+    /*
      *  We check for a diode even if we already found a component to get Vf, 
      *  since there could be a body/protection diode of a transistor.
      */
@@ -604,9 +632,9 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
 
   /*
-   *  Check for a resistor
+   *  Check for a resistor (or another one)
    *  - if no other component is found yet
-   *  - if we've got already a resistor (for reverse check)
+   *  - if we've got already a resistor
    */
 
   if ((Check.Found == COMP_NONE) ||
@@ -624,7 +652,9 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   {
     /* verify a MOSFET */
     if ((Check.Found == COMP_FET) && (Check.Type & TYPE_MOSFET))
+    {
       VerifyMOSFET();
+    }
   }
 
 
@@ -633,6 +663,50 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   ADC_PORT = 0;          /* set ADC port low */
   R_DDR = 0;             /* set resistor port to HiZ mode */
   R_PORT = 0;            /* set resistor port low */
+}
+
+
+
+/*
+ *  logic for alternative components which might be found
+ */
+
+void CheckAlternatives(void)
+{
+  uint8_t           Flag = 0;
+
+  /*
+   *  problematic components:
+   *  - PNP with B-E resistor and flyback diode passes UJT test once
+   *  - UJT might pass NPN test once
+   *  - TRIAC passes PUT test twice, but PUT only once
+   */
+
+  if (Check.AltFound != COMP_NONE)           /* alternative found */
+  {
+    if (! (Check.Done & DONE_SEMI))          /* not sure about common transistor */
+    {
+      /* but sure about alternative or no common transistor found */
+      if ((Check.Done & DONE_ALTSEMI) || (Check.Found < COMP_BJT))
+      {
+        Flag = 1;                       /* choose alternative component */
+      }
+    }
+  }
+
+  if (Flag)         /* take alternative component */
+  {
+    /* copy some data */
+    Check.Found = Check.AltFound;
+
+    Semi.A = AltSemi.A;
+    Semi.B = AltSemi.B;
+    Semi.C = AltSemi.C;
+
+    #ifdef SW_SYMBOLS
+    Check.Symbol = Check.AltSymbol;
+    #endif
+  }
 }
 
 

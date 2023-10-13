@@ -12,190 +12,12 @@
 #define CONFIG_H
 
 
-
-/* ************************************************************************
- *   LCD module
- * ************************************************************************ */
-
-
 /*
- *  LCD module / controller
- *
- *  Please uncomment the package matching your LCD module
- *  and adjust settings.
- *
- *  To uncomment, remove the enclosing "#if 0" and "#endif" or
- *  put a "//" in front of both.
+ *  For MCU specific settings (port and pin assignments) and LCD display
+ *  settings please edit:
+ *  - ATmega328:           config_328.h
+ *  - ATmega324/644/1284:  config_644.h (not supported yet)
  */
-
-
-/*
- *  HD44780, 4 bit parallel
- */
-
-//#if 0
-#define LCD_HD44780_PAR4
-#define LCD_TEXT                        /* character display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-                                        /* - lower 4 bits for LCD data interface */
-                                        /* - upper 4 bits for control lines */
-#define LCD_RS           PD4            /* port pin used for RS */
-#define LCD_EN1          PD5            /* port pin used for E */
-#define LCD_CHAR_X       16             /* characters per line */
-#define LCD_CHAR_Y       2              /* number of lines */
-#define FONT_HD44780_INT                /* internal 5x7 font, international */
-//#endif
-
-
-/*
- *  ST7565R, SPI interface
- *  - settings for Electronic Assembly EA DOGM/DOGL128-6
- *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
- */
-
-#if 0
-#define LCD_ST7565R_SPI
-#define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD0            /* port pin used for /RES */
-#define LCD_A0           PD1            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
-#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-//#define LCD_FLIP_X                      /* enable horizontal flip */
-#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_FLIP_Y                      /* enable vertical flip */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     22             /* default contrast (0-63) */
-#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
-#define SYMBOLS_24X24_V                 /* 24x24 symbols, vertically aligned */
-#endif
-
-
-
-/*
- *  M12864 DIY Transistor Tester
- *  - ST7565 display
- *  - rotary encoder at PD1/3
- */
-
-#if 0
-#define LCD_ST7565R_SPI
-#define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD0            /* port pin used for /RES */
-#define LCD_A0           PD1            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_FLIP_Y                      /* enable vertical flip */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
-#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
-#define SYMBOLS_24X24_V                 /* 24x24 symbols, vertically aligned */
-#endif
-
-
-
-/*
- *  Chinese clone T3/T4 with ST7565 display
- *  - thanks to tom666 @ EEVblog forum 
- */
-
-#if 0
-#define LCD_ST7565R_SPI
-#define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD4            /* port pin used for /RES */
-#define LCD_A0           PD3            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
-#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
-#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
-#define SYMBOLS_24X24_V                 /* 24x24 symbols, vertically aligned */
-#endif
-
-
-
-/*
- *  ILI8342, SPI interface
- */
-
-#if 0
-#define LCD_ILI9341_SPI
-#define LCD_COLOR                       /* color graphic display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RES          PD4            /* port pin used for /RES */
-#define LCD_CS           PD5            /* port pin used for /CS */
-#define LCD_DC           PD3            /* port pin used for D/C */
-#define LCD_SCK          PD2            /* port pin used for SCK */
-#define LCD_SDI          PD1            /* port pin used for SDI (LCD's data input) */
-#define LCD_SDO          PD0            /* port pin used for SDO (LCD's data output) */
-#define LCD_DOTS_X       320            /* number of horizontal dots */
-#define LCD_DOTS_Y       240            /* number of vertical dots */
-//#define LCD_FLIP_X                      /* enable horizontal flip */
-//#define LCD_FLIP_Y                      /* enable vertical flip */
-//#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
-#define LCD_SLOW                        /* slow interaction */
-#define FONT_16X26_H                    /* 16x26 font, horizontally aligned */
-#define SYMBOLS_32X32_H                 /* 32x32 symbols, horizontally aligned */
-#endif
-
-
-/*
- *  check if a LCD module is specified
- */
-
-#ifndef LCD_PORT
-  #error <<< No LCD module specified! >>>
-#endif
-
-
-
-/* ************************************************************************
- *   touchscreen (optional)
- * ************************************************************************ */
-
-
-/*
- *  touchscreen / controller
- *
- *  Please uncomment the package matching your touchscreen
- *  and adjust settings.
- *
- *  To uncomment, remove the enclosing "#if 0" and "#endif" or
- *  put a "//" in front of both.
- */
-
-
-/*
- *  ADS7843 / XPT2046 (SPI interface)
- *  - not supported yet
- */
-
-#if 0
-#define TOUCH_ADS7843
-#define TOUCH_PORT       PORTD     /* port data register */
-#define TOUCH_DDR        DDRD      /* port data direction register */
-#define TOUCH_CS                   /* port pin used for /CS */
-#define TOUCH_D_CLK                /* port pin used for DCLK */
-#define TOUCH_D_OUT                /* port pin used for DOUT */
-#define TOUCH_D_IN                 /* port pin used for DIN */
-#define TOUCH_PEN                  /* port pin used for /PENIRQ */
-#endif
 
 
 
@@ -205,14 +27,14 @@
 
 
 /*
- *  rotary encoder for user interface (PD2 & PD3)
+ *  rotary encoder for user interface (default: PD2 & PD3)
  *  - in parallel with LCD module
- *  - requires MCU with >=32kB Flash
+ *  - see ENCODER_PORT for port pins
  *  - uncomment to enable and also set ENCODER_PULSES below to match your
  *    rotary encoder
  */
 
-#define HW_ENCODER
+//#define HW_ENCODER
 
 
 /*
@@ -225,8 +47,9 @@
 
 
 /*
- *  2.5V voltage reference for Vcc check (PC4)
+ *  2.5V voltage reference for Vcc check (default: PC4)
  *  - should be at least 10 times more precise than the voltage regulator
+ *  - see TP_REF for port pin
  *  - uncomment to enable and also adjust UREF_25 below for your voltage
  *    reference
  */
@@ -254,10 +77,11 @@
 
 
 /*
- *  voltage measurement up to 50V DC (10:1 voltage divider, PC3):
+ *  voltage measurement up to 50V DC (default: PC3):
+ *  - 10:1 voltage divider
  *  - for Zener diodes
  *  - DC-DC boost converter controled by test push button
- *  - requires MCU with >=32kB Flash and >=1kB EEPROM
+ *  - see TP_BAT for port pin
  *  - uncomment to enable
  */
 
@@ -265,7 +89,7 @@
 
 
 /*
- *  frequency counter (PD4)
+ *  frequency counter (default: PD4)
  *  - in parallel with LCD module
  *  - requires MCU with >=32kB Flash
  *  - uncomment to enable
@@ -348,59 +172,13 @@
 #define SW_OPTO_COUPLER
 
 
-
-/* ************************************************************************
- *   port and pin assignments
- * ************************************************************************ */
-
-
 /*
- *  Test probes:
- *  - Must be an ADC port :-)
- *  - Lower 3 pins of the port must be used for probe pins.
- *  - Please don't change the definitions of TP1, TP2 and TP3!
+ *  check for Unijunction Transistors
+ *  - uncomment to enable
  */
 
-#define ADC_PORT         PORTC     /* ADC port data register */
-#define ADC_DDR          DDRC      /* ADC port data direction register */
-#define ADC_PIN          PINC      /* port input pins register */
-#define TP1              PC0       /* test pin 1 (=0) */
-#define TP2              PC1       /* test pin 2 (=1) */
-#define TP3              PC2       /* test pin 3 (=2) */
+#define SW_UJT
 
-#define TP_ZENER         PC3       /* test pin with 10:1 voltage divider */
-#define TP_REF           PC4       /* test pin with 2.5V reference and relay */
-#define TP_BAT           PC5       /* test pin with 4:1 voltage divider */
-
-
-/*
- *  Probe resistors
- *
- *  The resistors must be connected to the lower 6 pins of the port in
- *  following sequence:
- *  - pin 0: Rl1 680R (test pin 1)
- *  - pin 1: Rh1 470k (test pin 1)
- *  - pin 2: Rl2 680R (test pin 2)
- *  - pin 3: Rh2 470k (test pin 2)
- *  - pin 4: Rl3 680R (test pin 3)
- *  - pin 5: Rh3 470k (test pin 3)
- */
-
-#define R_PORT           PORTB     /* port data register */
-#define R_DDR            DDRB      /* port data direction register */
-
-
-/*
- *  push button and power management
- */
-
-#define CONTROL_PORT     PORTD     /* port data register */
-#define CONTROL_DDR      DDRD      /* port data direction register */
-#define CONTROL_PIN      PIND      /* port input pins register */
-#define POWER_CTRL       PD6       /* controls power (1: on / 0: off) */
-#define TEST_BUTTON      PD7       /* test/start push button (low active) */
-#define ENCODER_A        PD2       /* rotary encoder A signal */
-#define ENCODER_B        PD3       /* rotary encoder B signal */
 
 
 /* ************************************************************************
@@ -466,7 +244,18 @@
 
 
 /*
- *  Voltage drop by reverse voltage protection diode and power management.
+ *  Voltage divider for battery monitoring
+ *  - BAT_R1: top resistor in Ohms
+ *  - BAT_R2: bottom resistor in Ohms
+ *
+ */
+
+#define BAT_R1          10000
+#define BAT_R2          3300
+
+
+/*
+ *  Voltage drop by reverse voltage protection diode and power management
  *  transistor (in mV):
  *  - Schottky diode about 200mV / Transistor about 100mV.
  *  - Get your DMM and measure the voltage drop!
@@ -542,6 +331,7 @@
 #define R_ZERO           20
 
 
+
 /* 
  *  Capacitance of the wires between PCB and terminals (in pF).
  *  Examples:
@@ -592,31 +382,16 @@
 
 #if defined(__AVR_ATmega328__)
 
-  /* estimated internal resistance of port to GND (in 0.1 Ohms) */
-  #define R_MCU_LOW           200  /* 209 */
-
-  /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
-  #define R_MCU_HIGH          220  /* 235 */
-
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
-
-  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
-  #define CAP_PCB             32
-
-  /* total default capacitance (in pF): max. 255 */
-  #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
-
-  /* this MCU has 32kB Flash, 1kB EEPROM and 2kB RAM (enable extra features) */
-  #define RES_FLASH           32
-  #define RES_EEPROM          1
-  #define RES_RAM             2
+  #include "config_328.h"
 
 
 /*
- *  ATmega664   64k flash, 2k EEPROM, 4k RAM
- *  ATmega1284  128k flash, 4k EEPROM, 16k RAM
+ *  ATmega324 / ATmega664 / ATmega1284
  */
+
+#elif defined(__AVR_ATmega324__) || defined(__AVR_ATmega644__) || defined(__AVR_ATmega1284__)
+
+  #include "config_644.h"
 
 
 /*
@@ -635,9 +410,11 @@
 
 
 /*
- *  selection of ADC clock 
- *  - ADC clock can be 125000 or 250000 
- *  - 250kHz is outside of the full accuracy specification!
+ *  ADC clock 
+ *  - The ADC clock is 125000Hz by default.
+ *  - You could also set 250000Hz, but that exceeds the max. ADC clock
+ *    of 200kHz for 10 bit resolution!
+ *  - Special case for MCU clock 20MHz: 156250Hz
  */
 
 #define ADC_FREQ    125000
@@ -645,36 +422,74 @@
 
 /*
  *  define clock divider
- *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clock
- *  - 4 for CPU clock of 1MHz and ADC clock of 250kHz
- *  - 128 for CPU clock of 16MHz and ADC clock of 125kHz
+ *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clocks
+ *  - we got only 7 fixed prescalers from 2 up to 128
  */
 
 #define CPU_FREQ    F_CPU
 
+/* 1MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 4
   #define ADC_CLOCK_DIV (1 << ADPS1) 
 #endif
 
+/* 1MHz/125kHz 2MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 8
   #define ADC_CLOCK_DIV (1 << ADPS1) | (1 << ADPS0)
 #endif
 
+/* 2MHz/125kHz 4MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 16
   #define ADC_CLOCK_DIV (1 << ADPS2)
 #endif
 
+/* 4MHz/125kHz 8MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 32
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS0)
 #endif
 
+/* 8MHz/125kHz 16MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 64
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1)
 #endif
 
+/* 16MHz/125kHz 20MHz/156.25kHz */
 #if CPU_FREQ / ADC_FREQ == 128
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0)
 #endif
+
+
+
+/* ************************************************************************
+ *   derived values
+ * ************************************************************************ */
+
+
+/*
+ *  total default capacitance (in pF)
+ *  - max. 255
+ */
+
+#define C_ZERO           CAP_PCB + CAP_WIRES + CAP_PROBELEADS
+
+
+/*
+ *  number of MCU cycles per µs
+ *  - min. 1 (for 1MHz)
+ *  - max. 20 (for 20MHz)
+ */
+
+#define MCU_CYCLES_PER_US     (CPU_FREQ / 1000000)
+
+
+/*
+ *  number of MCU cycles per ADC cycle
+ *  - min. 4
+ *  - max. 128
+ */ 
+
+#define MCU_CYCLES_PER_ADC    (CPU_FREQ / ADC_FREQ)
+
 
 
 /* ************************************************************************

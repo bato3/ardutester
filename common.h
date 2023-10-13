@@ -54,11 +54,13 @@
 #define COMP_CAPACITOR       11
 #define COMP_INDUCTOR        12
 #define COMP_DIODE           20
-#define COMP_BJT             21
-#define COMP_FET             22
-#define COMP_IGBT            23
-#define COMP_TRIAC           24
-#define COMP_THYRISTOR       25
+#define COMP_BJT             30
+#define COMP_FET             31
+#define COMP_IGBT            32
+#define COMP_TRIAC           33
+#define COMP_THYRISTOR       34
+#define COMP_PUT             35
+#define COMP_UJT             36
 
 
 /* error type IDs */
@@ -79,6 +81,12 @@
 #define TYPE_NPN              0b00000001     /* NPN */
 #define TYPE_PNP              0b00000010     /* PNP */
 #define TYPE_PARASITIC        0b00000100     /* parasitic BJT */
+
+
+/* flags for semicondutor detection logic */
+#define DONE_NONE             0
+#define DONE_SEMI             1
+#define DONE_ALTSEMI          2
 
 
 /* multiplicator table IDs */
@@ -134,6 +142,9 @@
 #define SYMBOL_IGBT_ENH_P     9    /* IGBT enhancement mode, p-channel */
 #define SYMBOL_SCR           10    /* SCR / thyristor */
 #define SYMBOL_TRIAC         11    /* TRIAC */
+#define SYMBOL_PUT           12    /* PUT */
+#define SYMBOL_UJT           13    /* UJT */
+
 
 /* pinout positions (bit mask) */
 #define PIN_NONE              0b00000000     /* no output */
@@ -229,24 +240,26 @@ typedef struct
   uint8_t           Pin_1;         /* pin mask for probe-1 */
   uint8_t           Pin_2;         /* pin mask for probe-2 */
   uint8_t           Pin_3;         /* pin mask for probe-3 */
-//uint8_t           ADC_1;         /* ADC MUX input address for probe-1 */
-//uint8_t           ADC_2;         /* ADC MUX input address for probe-2 */
-//uint8_t           ADC_3;         /* ADC MUX input address for probe-3 */
+  uint8_t           ADC_1;         /* ADC MUX input address for probe-1 */
+  uint8_t           ADC_2;         /* ADC MUX input address for probe-2 */
+  uint8_t           ADC_3;         /* ADC MUX input address for probe-3 */
 } Probe_Type;
 
 
 /* checking/probing */
 typedef struct
 {
-  uint8_t           Done;          /* flag for transistor detection done */
-  uint8_t           Found;         /* component type which was found */ 
+  uint8_t           Found;         /* component type */ 
   uint8_t           Type;          /* component specific subtype */
+  uint8_t           Done;          /* flag for transistor detection done */
+  uint8_t           AltFound;      /* alternative component type */
   uint8_t           Resistors;     /* number of resistors found */
   uint8_t           Diodes;        /* number of diodes found */
   uint8_t           Probe;         /* error: probe pin */ 
-  uint16_t          U;             /* error: voltage left in mV */
+  uint16_t          U;             /* error: voltage in mV */
   #ifdef SW_SYMBOLS
   uint8_t           Symbol;        /* symbol ID */
+  uint8_t           AltSymbol;     /* symbol ID for alternative component */
   #endif
 } Check_Type;
 
@@ -290,7 +303,7 @@ typedef struct
 } Diode_Type;
 
 
-/* semiconductors */
+/* common semiconductors */
 typedef struct
 {
   uint8_t           A;             /* probe pin connected to pin A */
@@ -303,7 +316,6 @@ typedef struct
 } Semi_Type;
 
 /* 
-
   Mapping
 
           BJT         FET         SCR         Triac       IGBT
@@ -313,8 +325,32 @@ typedef struct
   C       Emitter     Source      Cathode     MT1         Emitter
   U_1     U_BE (mV)               V_GT (mV)   V_GT (mV)
   U_2                 V_th (mV)                           V_th (mV)
-  I_1     I_CE0 (µA)                          Help (mV)
+  I_1     I_CEO (µA)                          Ref (mV)
   F_1     hFE
+
+*/
+
+
+/* special semiconductors */
+typedef struct
+{
+  uint8_t           A;             /* probe pin connected to pin A */
+  uint8_t           B;             /* probe pin connected to pin B */
+  uint8_t           C;             /* probe pin connected to pin C */
+  uint16_t          U_1;           /* voltage #1 */
+  uint16_t          U_2;           /* voltage #2 */
+} AltSemi_Type;
+
+/* 
+  Mapping
+
+          PUT         UJT
+  ------------------------------------------------------------------
+  A       Gate        Emitter
+  B       Anode       B2
+  C       Cathode     B1
+  U_1     V_f
+  U_2     V_T
 
 */
 

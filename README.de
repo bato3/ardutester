@@ -5,13 +5,13 @@
 
                                 Trendy Edition
 
-                  für ATmega328 mit Text- oder Grafikdisplay
+           für ATmega328/324/664/1284 mit Text- oder Grafikdisplay
 
         (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2016-03-24
+Letzte Änderung:  2016-07-08
 
 Inhaltsübersicht:
   - Über den Tester
@@ -25,6 +25,8 @@ Inhaltsübersicht:
     - HD44780
     - ST7565R
     - ILI9341/ILI9342
+    - ST7735
+    - PCD8544
   - Test-Taste
     - Drehencoder
   - Einschalten
@@ -66,9 +68,9 @@ Firmware für die aktuelle Testerschaltung von Karl-Heinz und bietet einige
 Änderungen der Benutzerschnittstelle und Mess- und Testverfahren. Während
 die Firmware von Karl-Heinz die offizielle Version ist und auch ältere
 ATmega MCUs unterstützt, ist diese Version zum Ausprobieren und Testen neuer
-Ideen. Außerdem ist sie auf den ATmega328/P beschränkt, da er ausreichend
-Speicherresourcen bietet. Die primären Sprachen für die Bedienung sind
-Englisch und Deutsch, können aber leicht um weitere Sprachen ergänzt werden
+Ideen. Außerdem ist sie auf ATmegas mit mindestens 32kB Flash beschränkt.
+Die primären Sprachen für die Bedienung sind Englisch und Deutsch, können aber
+leicht um weitere Sprachen ergänzt werden
 
 Hinweis: Bitte den Selbstabgleich bei brandneuen Testern oder nach Firmware-
 aktualisierung laufen lassen. Oder auch bei Benutzung anderer Messkabel.
@@ -127,6 +129,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - TRIACs
   + Erkennung von MT1 und MT2
 - Detektor/Dekoder für IR-Fernsteuerungen
+- Test von Opto-Kopplern
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
@@ -137,15 +140,15 @@ Mehr Details dazu findest du in den nachfolgenden Abschnitten.
 
 Als erstes solltest du das Makefile editieren und MCU-Modell, Frequenz,
 Oszillator-Typ und die Programmieradaptereinstellungen anpassen. Alle anderen
-Einstellungen stehen config.h.
+Einstellungen stehen in der globalen config.h und einer MCU-spezifischen
+config-<MCU>.h.
 
-In config.h wähle das LCD-Modul und die Sprache für die Bedienung. Ändere
-die Standardwerte, wenn notwendig. Alle Einstellungen und Werte sind in der
-Datei selber erklärt. Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen
-haben. Für Grafikmodule einen Zeichensatz wählen, der die obige Bedingung
-erfüllt.
+In config.h wähle Hardware- und Software-Optionen, die Sprache für die
+Bedienung, und ändere Standardwerte, wenn notwendig. Alle Einstellungen und
+Werte sind in der Datei selber erklärt. Daher folgt hier nur eine kurze
+Übersicht der wichtigsten Punkte.
 
-Hardware-Optionen werden ebenfalls in config.h aktiviert:
+Hardware-Optionen:
 - Drehencoder
 - externe 2,5V Spannungsreferenz
 - Schutz-Relais zur Kondensatorentladung
@@ -165,6 +168,8 @@ Und natürlich die Software-Optionen:
 - Test von Drehencodern
 - Rechtecksignalgenerator (braucht Drehencoder)
 - Test von IR-Fernbedienungen (braucht TSOP IR-Empfängermodul)
+- Test von Opto-Kopplern
+- Erkennung von UJTs
 
 Bitte die Optionen entprechend deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
@@ -175,9 +180,17 @@ Verfügbare Sprachen:
 - Deutsch
 - Tschechisch (von Kapa)
 
-Nach dem Editieren vom Makefile und config.h bitte "make" ausführen oder
-was-auch-immer dein IDE will, um die Firmware zu übersetzen. Das Makefile
-bietet folgende zusätzliche Targets: 
+Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
+editiere config-<MCU>.h:
+- ATmega328                config_328.h
+- ATmega324/664/1284       config_644.h (noch Baustelle)
+
+Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen haben. Für Grafikmodule
+einen Zeichensatz wählen, der die obige Bedingung erfüllt.
+
+Nach dem Editieren vom Makefile, config.h oder config-<MCU>.h bitte "make"
+ausführen oder was-auch-immer dein IDE will, um die Firmware zu übersetzen.
+Das Makefile bietet folgende zusätzliche Targets: 
 - clean    alle Objektdateien löschen
 - fuses    Fuse Bits setzen
 - upload   Firmware brennen
@@ -253,16 +266,43 @@ Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip und
 Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
 zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240).
 
-The ILI9341/ILI9342 is a color display controller and you can select whether
-you like single color (default) or multi color support by the "LCD_COLOR"
-definition in the display section of config.h.
-
 Der ILI9341/ILI9342 ist ein Farbdisplay-Controller, und du kannst zwischen
 Einfarben oder Mehrfarben-Modus über die LCD_COLOR Definition im LCD-Bereich
 in config.h wählen (Standard: Einfarben-Modus).
 
 Aufgrund der hohen Pixelzahl ist die Ausgabe etwas langsam. Das Löschen der
 kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt.
+
+
++ ST7735
+
+Der ST7735 wird mittel SPI im Bit-Bang-Modus gesteuert. Die Pins sind:
+
+  Modul       config.h           Standard   Hinweis
+  /RESX       LCD_RES            PD4
+  /CSX        LCD_CS             PD5       optional
+  D/CX        LCD_DC             PD3
+  SCL         LCD_SCL            PD2
+  SDA         LCD_SDA            PD1
+
+Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip
+experimentieren.
+
+
++ PCD8544
+
+Der PCD8544 wird mittel SPI im Bit-Bang-Modus gesteuert. Die Pins sind:
+
+  Modul       config.h           Standard   Hinweis
+  /RES        LCD_RES            PD4
+  /SCE        LCD_SCE            PD5       optional
+  D/C         LCD_DC             PD3
+  SCLK        LCD_SCLK           PD2
+  SDIN        LCD_SDIN           PD1
+
+Da das Display nur 84 Punkte in X-Richtung hat, ergeben sich max. 14 Zeichen
+pro Zeile bei einem 6x8-Zeichensatz. Also werden bis zu zwei Zeichen
+verschluckt. Wenn das stört, kannst du in variables.h die Texte etwas kürzen.
 
 
 * Test-Taste
@@ -421,7 +461,7 @@ Test-Taste zweimal kurz hintereinander drücken.
 
 Beschaltung für Kondensator:
    Pin #1:  Plus
-   Pin #2:  Minus
+   Pin #3:  Minus
 
 
 + Frequenzzähler (Hardware-Option)
@@ -508,13 +548,13 @@ Hinweis:
 
 + Opto-Koppler-Test
 
-Dieser Test prüft Opto-Koppler und gibt V_f der LED, den CTR-Wert und t_on
-bzw. t_off Zeiten (für Transistortypen) aus. Unterstützt werden Standard-
-NPN-Transistoren, NPN-Darlington-Stufen und TRIACs. Für die CTR-Messung wird
-der I/O-Pin der MCU kurzzeitig für ca. 3ms überlastet. Das Datenblatt gibt
-einen maximalen Ausgangsstrom vom 20mA an, wir überlasten den Pin aber bis zu
-ca. 100mA. Daher ist der maximale CTR-Wert begrenzt, und Werte über 2000%
-sollte man mit Vorsicht geniessen.
+Dieser Test prüft Opto-Koppler und gibt V_f der LED, den CTR-Wert (auch If)
+und t_on bzw. t_off Zeiten (für Transistortypen) aus. Unterstützt werden
+Standard-NPN-Transistoren, NPN-Darlington-Stufen und TRIACs. Für die CTR-
+Messung wird der I/O-Pin der MCU kurzzeitig für ca. 3ms überlastet. Das
+Datenblatt gibt einen maximalen Ausgangsstrom vom 20mA an, wir überlasten
+den Pin aber bis zu ca. 100mA. Daher ist der maximale CTR-Wert begrenzt, und
+Werte über 2000% sollte man mit Vorsicht geniessen.
 
 Der maximale Strom für die LED ist 5mA, was bei TRIAC-Typen zu beachten ist.
 Relais-Typen (MOSFET back to back) werden als Transistor erkannt und der
@@ -718,7 +758,8 @@ unterschieden werden können, sie sind funktional identisch. In diesem Fall
 bitte im Datenblatt nach Details der Pinbelegung schauen.
 
 Die Pinbelegung eines Triac wird mit den Pins 'G', '1' and '2'. angezeigt.
-'1' ist MT1 und '2' ist MT2.
+'1' ist MT1 und '2' ist MT2. Und für einen UJT, sofern die Erkennung aktiviert
+ist, ist es '1' für B1, '2' für B2 und 'E' für den Emitter.
 
 Wenn die "Fancy Pinout" Funktion aktiviert wurde (über das Setzen einer
 Symboldatei in config.h), wird das Bauteilesymbol mit den entsprechenden
@@ -740,7 +781,9 @@ Ein weiterer Spezialfall ist ein Bipolartransistor mit integrierter
 Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
 PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
 somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
-entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
+entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet. Man
+muß damit rechnen, daß ein solcher NPN als PNP+ bzw. PNP als NPN+ erkannt
+wird. 
 
 
 * Nicht unterstütze Bauelemente

@@ -2,7 +2,7 @@
  *
  *   self adjustment functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -255,10 +255,10 @@ uint8_t SelfAdjust(void)
 
           /*
            *  The resistance is for two probes in series and we expect it to be
-           *  smaller than 1.00 Ohms, i.e. 0.50 Ohms for a single probe
+           *  lower than 1.00 Ohms, i.e. 0.50 Ohms for a single probe.
            */
 
-          UpdateProbes(TP2, TP1, 0);
+          UpdateProbes(PROBE_2, PROBE_1, 0);
           Val1 = SmallResistor(0);
           if (Val1 < 100)                    /* within limit */
           {
@@ -266,7 +266,7 @@ uint8_t SelfAdjust(void)
             RCounter++;
           }
 
-          UpdateProbes(TP3, TP1, 0);
+          UpdateProbes(PROBE_3, PROBE_1, 0);
           Val2 = SmallResistor(0);
           if (Val2 < 100)                    /* whithin limit */
           {
@@ -274,7 +274,7 @@ uint8_t SelfAdjust(void)
             RCounter++;
           }
 
-          UpdateProbes(TP3, TP2, 0);
+          UpdateProbes(PROBE_3, PROBE_2, 0);
           Val3 = SmallResistor(0);
           if (Val3 < 100)                    /* within limit */
           {
@@ -355,7 +355,7 @@ uint8_t SelfAdjust(void)
            *  less than 100pF.
            */
 
-          MeasureCap(TP2, TP1, 0);
+          MeasureCap(PROBE_2, PROBE_1, 0);
           Val1 = (uint16_t)Caps[0].Raw;
           /* limit offset to 100pF */
           if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100))
@@ -364,7 +364,7 @@ uint8_t SelfAdjust(void)
             CapCounter++;            
           }
 
-          MeasureCap(TP3, TP1, 1);
+          MeasureCap(PROBE_3, PROBE_1, 1);
           Val2 = (uint16_t)Caps[1].Raw;
           /* limit offset to 100pF */
           if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100))
@@ -373,7 +373,7 @@ uint8_t SelfAdjust(void)
             CapCounter++;            
           }
 
-          MeasureCap(TP3, TP2, 2);
+          MeasureCap(PROBE_3, PROBE_2, 2);
           Val3 = (uint16_t)Caps[2].Raw;
           /* limit offset to 100pF */
           if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100))
@@ -395,11 +395,11 @@ uint8_t SelfAdjust(void)
       if (DisplayFlag)
       {
         LCD_NextLine();                 /* move to line #2 */
-        DisplayValue(Val1, 0 , 0);      /* display TP1 */
+        DisplayValue(Val1, 0 , 0);      /* display value probe-1 */
         LCD_Space();
-        DisplayValue(Val2, 0 , 0);      /* display TP2 */
+        DisplayValue(Val2, 0 , 0);      /* display value probe-2 */
         LCD_Space();
-        DisplayValue(Val3, 0 , 0);      /* display TP3 */
+        DisplayValue(Val3, 0 , 0);      /* display value probe-3 */
       }
 
       /* wait and check test push button */
@@ -511,6 +511,7 @@ uint8_t SelfTest(void)
   uint8_t           DisplayFlag;        /* display flag */
   uint16_t          Val0;               /* voltage/value */
   int16_t           Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages/values */
+  int16_t           Temp;               /* value */
 
   /* make sure all probes are shorted */
   Counter = ShortCircuit(1);
@@ -539,8 +540,8 @@ uint8_t SelfTest(void)
       switch (Test)
       {
         case 1:     /* reference voltage */
-          Val0 = ReadU(0x0e);           /* dummy read for bandgap stabilization */
-          Val0 = ReadU(0x0e);           /* read bandgap reference voltage */ 
+          Val0 = ReadU(ADC_BANDGAP);    /* dummy read for bandgap stabilization */
+          Val0 = ReadU(ADC_BANDGAP);    /* read bandgap reference voltage */ 
           LCD_EEString(URef_str);       /* display: Vref */
 
           LCD_NextLine();
@@ -556,22 +557,25 @@ uint8_t SelfTest(void)
           /* set up a voltage divider with the Rl's */
           /* substract theoretical voltage of voltage divider */
 
-          /* TP1: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
+          /* voltage of voltage divider */
+          Temp = ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+
+          /* TP3: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
           R_PORT = 1 << (TP1 * 2);
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2));
-          Val1 = ReadU_20ms(TP3);
-          Val1 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val3 = ReadU_20ms(TP3);
+          Val3 -= Temp;
 
-          /* TP1: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
+          /* TP2: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP3 * 2));
           Val2 = ReadU_20ms(TP2);
-          Val2 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val2 -= Temp;
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-2 -- Rl -- Vcc */
           R_PORT = 1 << (TP2 * 2);
           R_DDR = (1 << (TP2 * 2)) | (1 << (TP3 * 2));
-          Val3 = ReadU_20ms(TP2);
-          Val3 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val1 = ReadU_20ms(TP1);
+          Val1 -= Temp;
 
           break;
 
@@ -581,22 +585,25 @@ uint8_t SelfTest(void)
 
           /* set up a voltage divider with the Rh's */
 
-          /* TP1: Gnd -- Rh -- probe-2 -- probe-1 -- Rh -- Vcc */
+          /* voltage of voltage divider (ignore RiL and RiH) */
+          Temp = Config.Vcc / 2;
+
+          /* TP3: Gnd -- Rh -- probe-2 -- probe-1 -- Rh -- Vcc */
           R_PORT = 2 << (TP1 * 2);
           R_DDR = (2 << (TP1 * 2)) | (2 << (TP2 * 2));
-          Val1 = ReadU_20ms(TP3);
-          Val1 -= (Config.Vcc / 2);
+          Val3 = ReadU_20ms(TP3);
+          Val3 -= Temp;
 
-          /* TP1: Gnd -- Rh -- probe-3 -- probe-1 -- Rh -- Vcc */
+          /* TP2: Gnd -- Rh -- probe-3 -- probe-1 -- Rh -- Vcc */
           R_DDR = (2 << (TP1 * 2)) | (2 << (TP3 * 2));
           Val2 = ReadU_20ms(TP2);
-          Val2 -= (Config.Vcc / 2);
+          Val2 -= Temp;
 
           /* TP1: Gnd -- Rh -- probe-3 -- probe-2 -- Rh -- Vcc */
           R_PORT = 2 << (TP2 * 2);
           R_DDR = (2 << (TP2 * 2)) | (2 << (TP3 * 2));
-          Val3 = ReadU_20ms(TP1);
-          Val3 -= (Config.Vcc / 2);
+          Val1 = ReadU_20ms(TP1);
+          Val1 -= Temp;
 
           break;
 
@@ -614,11 +621,11 @@ uint8_t SelfTest(void)
           R_DDR = 2 << (TP1 * 2);
           Val1 = ReadU_20ms(TP1);
 
-          /* TP1: Gnd -- Rh -- probe */
+          /* TP2: Gnd -- Rh -- probe */
           R_DDR = 2 << (TP2 * 2);
           Val2 = ReadU_20ms(TP2);
 
-          /* TP1: Gnd -- Rh -- probe */
+          /* TP3: Gnd -- Rh -- probe */
           R_DDR = 2 << (TP3 * 2);
           Val3 = ReadU_20ms(TP3);
 
@@ -632,12 +639,12 @@ uint8_t SelfTest(void)
           R_PORT = 2 << (TP1 * 2);
           Val1 = ReadU_20ms(TP1);
 
-          /* TP1: probe -- Rh -- Vcc */
+          /* TP2: probe -- Rh -- Vcc */
           R_DDR = 2 << (TP2 * 2);
           R_PORT = 2 << (TP2 * 2);
           Val2 = ReadU_20ms(TP2);
 
-          /* TP1: probe -- Rh -- Vcc */
+          /* TP3: probe -- Rh -- Vcc */
           R_DDR = 2 << (TP3 * 2);
           R_PORT = 2 << (TP3 * 2);
           Val3 = ReadU_20ms(TP3);
@@ -653,11 +660,11 @@ uint8_t SelfTest(void)
       if (DisplayFlag)
       {
         LCD_NextLine();                      /* move to line #2 */
-        DisplaySignedValue(Val1, 0 , 0);     /* display TP1 */
+        DisplaySignedValue(Val1, 0 , 0);     /* display value probe-1 */
         LCD_Space();
-        DisplaySignedValue(Val2, 0 , 0);     /* display TP2 */
+        DisplaySignedValue(Val2, 0 , 0);     /* display value probe-2 */
         LCD_Space();
-        DisplaySignedValue(Val3, 0 , 0);     /* display TP3 */
+        DisplaySignedValue(Val3, 0 , 0);     /* display value probe-3 */
       }
 
       /* wait and check test push button */

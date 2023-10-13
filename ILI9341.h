@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
- *   ILI9341 graphic display controller
+ *   ILI9341 color graphic display controller
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -21,7 +21,7 @@
 
 
 /*
- *  no operation
+ *  software reset
  *  - 1 byte cmd
  */
 
@@ -51,57 +51,59 @@
 /* data byte #1: dummy data */
 
 /* data byte #2: status */
-  /* booster voltage: */
-
-  /* row address order: */
-#define FLAG_STAT_ROW_NORM    0b00000000     /* top to bottom */
-#define FLAG_STAT_ROW_REV     0b01000000     /* bottom to top */
-  /* column address order: */
-#define FLAG_STAT_COL_NORM    0b00000000     /* left to right */
-#define FLAG_STAT_COL_REV     0b00100000     /* right to left */
-  /* row/column exchange: */
-#define FLAG_STAT_EXCH_NORM   0b00000000     /* normal */
-#define FLAG_STAT_EXCH_REV    0b00010000     /* reversed */
-  /* vertical refresh: */
-#define FLAG_STAT_VER_NORM    0b00000000     /* top to bottom */
-#define FLAG_STAT_VER_REV     0b00001000     /* bottom to top */
-  /* RGB/BGR order */
-#define FLAG_STAT_RGB         0b00000000     /* RGB */
-#define FLAG_STAT_BGR         0b00000100     /* BGR */
   /* horizontal refresh: */
 #define FLAG_STAT_HOR_NORM    0b00000000     /* left to right */
 #define FLAG_STAT_HOR_REV     0b00000010     /* right to left */
+  /* RGB/BGR order */
+#define FLAG_STAT_RGB         0b00000000     /* RGB */
+#define FLAG_STAT_BGR         0b00000100     /* BGR */
+  /* vertical refresh: */
+#define FLAG_STAT_VER_NORM    0b00000000     /* top to bottom */
+#define FLAG_STAT_VER_REV     0b00001000     /* bottom to top */
+  /* row/column exchange: */
+#define FLAG_STAT_EXCH_NORM   0b00000000     /* normal */
+#define FLAG_STAT_EXCH_REV    0b00010000     /* reversed */
+  /* column address order: */
+#define FLAG_STAT_COL_NORM    0b00000000     /* left to right */
+#define FLAG_STAT_COL_REV     0b00100000     /* right to left */
+  /* row address order: */
+#define FLAG_STAT_ROW_NORM    0b00000000     /* top to bottom */
+#define FLAG_STAT_ROW_REV     0b01000000     /* bottom to top */
+  /* booster voltage: */
+#define FLAG_STAT_BOOST_OFF   0b00000000     /* booster on */
+#define FLAG_STAT_BOOST_ON    0b10000000     /* booster off */
 
 /* data byte #3: status */
-  /* interface color pixel format: */
-#define FLAG_STAT_PIX_16      0b01010000     /* 16 bits per pixel */
-#define FLAG_STAT_PIX_18      0b01100000     /* 18 bits per pixel */
-  /* idle mode: */
-#define FLAG_STAT_IDLE_OFF    0b00000000     /* off */
-#define FLAG_STAT_IDLE_ON     0b00001000     /* on */
-  /* partial mode: */
-#define FLAG_STAT_PART_OFF    0b00000000     /* off */
-#define FLAG_STAT_PART_ON     0b00000100     /* on */
-  /* sleep mode: */
-#define FLAG_STAT_SLEEP_OFF   0b00000000     /* off */
-#define FLAG_STAT_SLEEP_ON    0b00000010     /* on */
   /* display normal mode: */
 #define FLAG_STAT_NORM_OFF    0b00000000     /* off */
 #define FLAG_STAT_NORM_ON     0b00000001     /* on */
+  /* sleep mode: */
+#define FLAG_STAT_SLEEP_OFF   0b00000000     /* off */
+#define FLAG_STAT_SLEEP_ON    0b00000010     /* on */
+  /* partial mode: */
+#define FLAG_STAT_PART_OFF    0b00000000     /* off */
+#define FLAG_STAT_PART_ON     0b00000100     /* on */
+  /* idle mode: */
+#define FLAG_STAT_IDLE_OFF    0b00000000     /* off */
+#define FLAG_STAT_IDLE_ON     0b00001000     /* on */
+  /* interface color pixel format: */
+#define FLAG_STAT_PIX_16      0b01010000     /* 16 bits per pixel */
+#define FLAG_STAT_PIX_18      0b01100000     /* 18 bits per pixel */
 
 /* data byte #4: status */
-  /* display: */
-#define FLAG_STAT_DISP_OFF    0b00000000     /* off */
-#define FLAG_STAT_DISP_ON     0b00000100     /* on */
+  /* gamma curve bit #2: always 0 */
   /* tearing effect line: */
 #define FLAG_STAT_TEAR_OFF    0b00000000     /* off */
 #define FLAG_STAT_TEAR_ON     0b00000010     /* on */
+  /* display: */
+#define FLAG_STAT_DISP_OFF    0b00000000     /* off */
+#define FLAG_STAT_DISP_ON     0b00000100     /* on */
 
 /* data byte #5: status */
   /* tearing effect line mode: */
 #define FLAG_STAT_TEAR_MODE1  0b00000000     /* mode 1: V-blanking */
 #define FLAG_STAT_TEAR_MODE2  0b00100000     /* mode 2: V-blanking and H-blanking */
-  /* gamma curve (also bit 0 of data byte #4): */
+  /* gamma curve bits #1 and #0 (bit #2 is always 0): */
 #define FLAG_STAT_GAMMA1      0b00000000     /* gamma curve 1 */
 
 
@@ -198,6 +200,7 @@
 /* data byte #1: dummy data */
 
 /* data byte #2: status */
+  /* gamma curve */
 #define FLAG_IMG_GAMMA1       0b00000000     /* gamma curve 1 */
 
 
@@ -246,15 +249,15 @@
 
 
 /*
- *  enter sleep mode
+ *  enter sleep mode (sleep in)
  *  - 1 byte cmd
  */
 
-#define CMD_SLEEP_MODE        0b00010000     /* enter sleep mode */
+#define CMD_SLEEP_IN          0b00010000     /* enter sleep mode */
 
 
 /*
- *  leave sleep mode
+ *  leave sleep mode (sleep out)
  *  - 1 byte cmd
  */
 
@@ -331,7 +334,7 @@
 /* data byte #2: start column, LSB (bits 7-0) */
 /* data byte #3: end column, MSB (bits 15-8) */
 /* data byte #4: end column, LSB (bits 7-0) */
-/* valid range: 0x0001 - 0x00ef/0x013f */
+/* valid range: 0x0000 - 0x00ef/0x013f */
 
 
 /*
@@ -345,7 +348,7 @@
 /* data byte #2: start page, LSB (bits 7-0) */
 /* data byte #3: end page, MSB (bits 15-8) */
 /* data byte #4: end page, LSB (bits 7-0) */
-/* valid range: 0x0001 - 0x013f/0x00ef */
+/* valid range: 0x0000 - 0x013f/0x00ef */
 
 
 /*
@@ -392,7 +395,7 @@
 /* data byte #2: start row, LSB (bits 7-0) */
 /* data byte #3: end row, MSB (bits 15-8) */
 /* data byte #4: end row, LSB (bits 7-0) */
-/* valid range: 0x0001 - 0x013f */
+/* valid range: 0x0000 - 0x013f */
 
 
 /*
@@ -752,7 +755,7 @@
 
 
 /*
- *  frame control in idle mode
+ *  frame control in idle mode (8bit color depth)
  *  - 1 byte cmd + 2 bytes data
  */
 
@@ -1255,10 +1258,10 @@
 #define CMD_POWER_CTRL_2      0b11000001     /* power control 2 */
 
 /* data byte #1: factor used in step-up converter */
-#define FLAG_BT_0             0b00000000     /* DDVDH=2*VCI, VGH=7xVCI, VGL=-4*VCI */
-#define FLAG_BT_1             0b00000001     /* DDVDH=2*VCI, VGH=7xVCI, VGL=-3*VCI */
-#define FLAG_BT_2             0b00000010     /* DDVDH=2*VCI, VGH=6xVCI, VGL=-4*VCI */
-#define FLAG_BT_3             0b00000011     /* DDVDH=2*VCI, VGH=6xVCI, VGL=-3*VCI */
+#define FLAG_BT_0             0b00000000     /* DDVDH=2*VCI, VGH=7*VCI, VGL=-4*VCI */
+#define FLAG_BT_1             0b00000001     /* DDVDH=2*VCI, VGH=7*VCI, VGL=-3*VCI */
+#define FLAG_BT_2             0b00000010     /* DDVDH=2*VCI, VGH=6*VCI, VGL=-4*VCI */
+#define FLAG_BT_3             0b00000011     /* DDVDH=2*VCI, VGH=6*VCI, VGL=-3*VCI */
 
 
 /*
@@ -1477,7 +1480,7 @@
 #define FLAG_VML_0700         0b01001000     /* -0.700V */
 #define FLAG_VML_0675         0b01001001     /* -0.675V */
 #define FLAG_VML_0650         0b01001010     /* -0.650V */
-#define FLAG_VML_0625         0b01001111     /* -0.6V25 */
+#define FLAG_VML_0625         0b01001111     /* -0.625V */
 #define FLAG_VML_0600         0b01001100     /* -0.600V */
 #define FLAG_VML_0575         0b01001101     /* -0.575V */
 #define FLAG_VML_0550         0b01001110     /* -0.550V */

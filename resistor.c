@@ -249,8 +249,8 @@ void CheckResistor(void)
   ADC_DDR = Probes.Pin_2;               /* pull down probe-2 directly */
   R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
   R_PORT = Probes.Rl_1;                 /* pull up probe-1 via Rl */
-  U_Ri_L = ReadU_5ms(Probes.ID_2);      /* get voltage at internal R of MCU */
-  U_Rl_H = ReadU(Probes.ID_1);          /* get voltage at Rl pulled up */
+  U_Ri_L = ReadU_5ms(Probes.ADC_2);     /* get voltage at internal R of MCU */
+  U_Rl_H = ReadU(Probes.ADC_1);         /* get voltage at Rl pulled up */
 
 
   /*
@@ -260,7 +260,7 @@ void CheckResistor(void)
   /* set probes: Gnd -- probe-2 / Gnd -- Rh -- probe-1 */
   R_PORT = 0;                           /* set resistor port low */
   R_DDR = Probes.Rh_1;                  /* pull down probe-1 via Rh */
-  U_Rh_L = ReadU_5ms(Probes.ID_1);      /* get voltage at probe 1 */
+  U_Rh_L = ReadU_5ms(Probes.ADC_1);     /* get voltage at probe-1 */
 
   /* we got a resistor if the voltage is near Gnd */
   if (U_Rh_L <= 20)
@@ -271,7 +271,7 @@ void CheckResistor(void)
 
     /* set probes: Gnd -- probe-2 / probe-1 -- Rh -- Vcc */
     R_PORT = Probes.Rh_1;                    /* pull up probe-1 via Rh */
-    U_Rh_H = ReadU_5ms(Probes.ID_1);         /* get voltage at Rh pulled up */
+    U_Rh_H = ReadU_5ms(Probes.ADC_1);        /* get voltage at Rh pulled up */
 
 
     /*
@@ -283,12 +283,12 @@ void CheckResistor(void)
     ADC_PORT = Probes.Pin_1;                 /* pull up probe-1 directly */
     R_PORT = 0;                              /* set resistor port to low */ 
     R_DDR = Probes.Rl_2;                     /* pull down probe-2 via Rl */
-    U_Ri_H = ReadU_5ms(Probes.ID_1);         /* get voltage at internal R of MCU */
-    U_Rl_L = ReadU(Probes.ID_2);             /* get voltage at Rl pulled down */
+    U_Ri_H = ReadU_5ms(Probes.ADC_1);        /* get voltage at internal R of MCU */
+    U_Rl_L = ReadU(Probes.ADC_2);            /* get voltage at Rl pulled down */
 
     /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */
     R_DDR = Probes.Rh_2;                /* pull down probe-2 via Rh */
-    U_Rh_L = ReadU_5ms(Probes.ID_2);    /* get voltage at Rh pulled down */
+    U_Rh_L = ReadU_5ms(Probes.ADC_2);   /* get voltage at Rh pulled down */
 
     /* if voltage breakdown is sufficient */
     if ((U_Rl_H >= 4400) || (U_Rh_H <= 97))   /* R >= 5.1k or R < 9.3k */

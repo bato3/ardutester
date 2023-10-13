@@ -3,7 +3,7 @@
  *   driver functions for HD44780 compatible character displays
  *   - 4 bit parallel interface
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -89,21 +89,32 @@ void LCD_BusSetup(void)
 
 
 /*
- *  send a byte (data or command) to the LCD
- *  - bit-bang 8 bits, MSB first, LSB last
+ *  send a nibble to the LCD (4 bit mode)
  *
  *  requires:
- *  - byte value to send
+ *  - nibble value to send
  */
 
-void LCD_Send(uint8_t Byte)
+void LCD_SendNibble(uint8_t Nibble)
 {
-  /*
-   *  send upper nibble (bits 4-7)
-   */
+  uint8_t           Data;
 
-  /* set upper nibble of byte */
-  LCD_PORT = (LCD_PORT & 0xF0) | ((Byte >> 4) & 0x0F);
+  Data = LCD_PORT;            /* get current bitmask */
+  /* reset all 4 data lines */
+  Data &= ~((1 << LCD_DB4) | (1 << LCD_DB5) | (1 << LCD_DB6) | (1 << LCD_DB7));
+
+  #ifdef LCD_DB_STD
+    /* standard pins: simply take nibble */
+    Data |= Nibble;
+  #else
+    /* non-standard pins: set bits individually */
+    if (Nibble & 0b00000001) Data |= (1 << LCD_DB4);
+    if (Nibble & 0b00000010) Data |= (1 << LCD_DB5);
+    if (Nibble & 0b00000100) Data |= (1 << LCD_DB6);
+    if (Nibble & 0b00001000) Data |= (1 << LCD_DB7);
+  #endif
+
+  LCD_PORT = Data;            /* set nibble */
 
   /* give LCD some time */
   #if CPU_FREQ < 2000000
@@ -113,25 +124,46 @@ void LCD_Send(uint8_t Byte)
   #endif
 
   LCD_EnablePulse();          /* trigger LCD */
+}
+
+
+
+/*
+ *  send a byte (data or command) to the LCD
+ *  - bit-bang 8 bits as two nibbles (MSB first, LSB last)
+ *
+ *  requires:
+ *  - byte value to send
+ */
+
+void LCD_Send(uint8_t Byte)
+{
+  uint8_t           Nibble;
+
+  /*
+   *  send upper nibble (bits 4-7)
+   */
+
+  Nibble = (Byte >> 4) & 0x0F;          /* get upper nibble */
+  LCD_SendNibble(Nibble);
 
 
   /*
    *  send lower nibble (bits 0-3)
    */
 
-  /* set lower nibble of byte */ 
-  LCD_PORT = (LCD_PORT & 0xF0) | (Byte & 0x0F);
+  Nibble = Byte & 0x0F;                 /* get lower nibble */
+  LCD_SendNibble(Nibble);
 
-  /* give LCD some time */
-  #if CPU_FREQ < 2000000
-    _delay_us(5);
-  #else
-    wait5us();
-  #endif
-
-  LCD_EnablePulse();     /* trigger LCD */
   wait50us();            /* LCD needs some time for processing */
-  LCD_PORT &= 0xF0;      /* clear data on port */
+
+
+  /*
+   *  clear data lines on port
+   */  
+
+  Nibble = ~((1 << LCD_DB4) | (1 << LCD_DB5) | (1 << LCD_DB6) | (1 << LCD_DB7));
+  LCD_PORT &= Nibble;         /* clear port */
 }
 
 
@@ -176,7 +208,9 @@ void LCD_Char(unsigned char Char)
  
   LCD_Send(ID);                    /* send character ID */
 
-  UI.CharPos_X++;                  /* update character position */
+  /* update character position */
+  UI.CharPos_X++;                  /* next character in current line */
+  /* LCD's RAM address already points to next character */
 }
 
 
@@ -334,7 +368,7 @@ void LCD_Init(void)
  *  - y:  vertical position
  */
 
-void LCD_Pos(uint8_t x, uint8_t y)
+void LCD_CharPos(uint8_t x, uint8_t y)
 {
   uint8_t           Address = 0;        /* RAM address */
 
@@ -394,7 +428,7 @@ void LCD_ClearLine(uint8_t Line)
   }
   else                   /* standard case: some line */
   {
-    LCD_Pos(1, Line);              /* go to beginning of line */
+    LCD_CharPos(1, Line);     /* go to beginning of line */
   }
 
   while (n < 20)              /* up to 20 bytes */
@@ -419,7 +453,7 @@ void LCD_Cursor(uint8_t Mode)
 {
   uint8_t           Command;
 
-  LCD_Pos(LCD_CHAR_X, LCD_CHAR_Y);      /* move to bottom right */
+  LCD_CharPos(LCD_CHAR_X, LCD_CHAR_Y);       /* move to bottom right */
 
   /* default: cursor off */
   Command = CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF;

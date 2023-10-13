@@ -41,7 +41,7 @@
  *    with 25 samples we end up with about 2.6ms
  *
  *  requires:
- *  - Probe: input channel of ADC MUX (lower 4 bits)
+ *  - Probe: input channel of ADC MUX (lower 4 or 5 bits)
  *           may also include setting of voltage reference
  *
  */

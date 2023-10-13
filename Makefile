@@ -5,6 +5,7 @@
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
+PROJECT = ComponentTester
 
 #
 # MCU settings
@@ -84,13 +85,17 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # header files
-HEADERS = config.h common.h variables.h HD44780.h functions.h
+HEADERS = config.h common.h variables.h functions.h colors.h
+HEADERS += config_328.h config_664.h
+HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h
+HEADERS += ADS7843.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
-OBJECTS_C += display.o HD44780_Par4.o ST7565R_SPI.o
-OBJECTS_C += ILI9341_SPI.o ADS7843.o
+OBJECTS_C += display.o
+OBJECTS_C += HD44780_Par4.o ST7565R_SPI.o ILI9341_SPI.o PCD8544.o ST7735_SPI.o
+OBJECTS_C += ADS7843.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 

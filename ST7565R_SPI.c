@@ -2,8 +2,9 @@
  *
  *   driver functions for ST7565R compatible grafic displays
  *   - using SPI interface (4 and 5 line)
+ *   - 128 x 64 (132 x 64) pixels
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -46,9 +47,9 @@
 #include "functions.h"        /* external functions */
 #include "ST7565R.h"          /* ST7565R specifics */
 
-/* fonts and symbols, vertically aligned */
+/* fonts and symbols, vertically aligned, bank-wise grouping */
 #include "font_8x8_v.h"
-#include "symbols_24x24_v.h"
+#include "symbols_24x24_vp.h"
 
 
 
@@ -99,10 +100,11 @@
  */
 
 /* position management */
-uint8_t             X_Start;       /* start position X/column */
+uint8_t             X_Start;       /* start position X (column) */
+uint8_t             Y_Start;       /* start position Y (page) */
 
 #ifdef SW_SYMBOLS
-/* symbol positions */
+/* symbol positions (aligned to character positions) */
 uint8_t             SymbolTop;     /* top line */
 uint8_t             SymbolBottom;  /* bottom line */
 uint8_t             SymbolLeft;    /* left of symbol */
@@ -242,6 +244,36 @@ void LCD_Data(uint8_t Data)
 
 
 /*
+ *  set LCD dot position
+ *  - since we can't read the LCD and don't use a RAM buffer
+ *    we have to move page-wise in y direction
+ *  - top left: 0/0
+ *
+ *  requires:
+ *  - x:  horizontal position (0-)
+ *  - y:  vertical position (0-)
+ */
+
+void LCD_DotPos(uint8_t x, uint8_t y)
+{
+  uint8_t           Temp;     /* temp. value */
+
+  /* horizontal position (column) */
+  Temp = x;
+  Temp &= 0b00001111;              /* filter lower nibble */
+  LCD_Cmd(CMD_COLUMN_L | Temp);    /* set lower nibble */
+  Temp = x;
+  Temp >>= 4;                      /* shift upper nibble to lower */
+  Temp &= 0b00001111;              /* filter nibble */
+  LCD_Cmd(CMD_COLUMN_H | Temp);    /* set upper nibble */
+
+  /* vertical position (page) */
+  LCD_Cmd(CMD_PAGE | y);           /* set page */  
+}
+
+
+
+/*
  *  set LCD character position
  *  - since we can't read the LCD and don't use a RAM buffer
  *    we have to move page-wise in y direction
@@ -252,33 +284,28 @@ void LCD_Data(uint8_t Data)
  *  - y:  vertical position (1-)
  */
 
-void LCD_Pos(uint8_t x, uint8_t y)
+void LCD_CharPos(uint8_t x, uint8_t y)
 {
-  uint8_t           Temp;     /* temp. value */
-
   /* update UI */
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
 
-  /* vertical position */
-  y--;                               /* pages start at 0 */
-  y *= CHAR_PAGES;                   /* offset for character */
-  LCD_Cmd(CMD_PAGE | y);             /* set page */
+  /* update display */
 
-  /* horizontal position */
-  x--;                               /* columns starts at 0 */
-  x *= FONT_SIZE_X;                  /* offset for character */
+  /* horizontal position (column) */
+  x--;                             /* columns starts at 0 */
+  x *= FONT_SIZE_X;                /* offset for character */
   #ifdef LCD_OFFSET_X
-  x += 4;                            /* offset of 4 dots */
+  x += 4;                          /* x offset of 4 dots */
   #endif
-  X_Start = x;                       /* update start position */
-  Temp = x;
-  Temp &= 0b00001111;                /* filter lower nibble */
-  LCD_Cmd(CMD_COLUMN_L | Temp);      /* set lower nibble */
-  Temp = x;
-  Temp >>= 4;                        /* shift upper nibble to lower */
-  Temp &= 0b00001111;                /* filter nibble */
-  LCD_Cmd(CMD_COLUMN_H | Temp);      /* set upper nibble */
+  X_Start = x;                     /* update start position */
+
+  /* vertical position (page) */
+  y--;                             /* pages start at 0 */
+  y *= CHAR_PAGES;                 /* offset for character */
+  Y_Start = y;                     /* update start position */
+
+  LCD_DotPos(x, y);                /* set dot position */
 }
 
 
@@ -294,26 +321,24 @@ void LCD_Pos(uint8_t x, uint8_t y)
 void LCD_ClearLine(uint8_t Line)
 {
   uint8_t           MaxPage;            /* page limit */
-  uint8_t           Pos = 1;            /* character position */
-  uint8_t           n;                  /* counter */
+  uint8_t           n = 1;              /* counter */
 
   if (Line == 0)         /* special case: rest of current line */
   {
-    Line = UI.CharPos_Y;                /* current line */
-    Pos = UI.CharPos_X;                 /* current character position */
+    Line = UI.CharPos_Y;      /* get current line */
+    n = UI.CharPos_X;         /* get current character position */
   }
 
-  /* convert line to page */
-  Line--;                               /* pages start at 0 */
-  Line *= CHAR_PAGES;                   /* offset for char */
+  LCD_CharPos(n, Line);       /* set char position */
+
+  /* calculate pages */
+  Line = Y_Start;                       /* get start page */
   MaxPage = Line + CHAR_PAGES;          /* end page + 1 */
 
   /* clear line */
   while (Line < MaxPage)           /* loop through pages */
   {
-    LCD_Pos(Pos, 1);               /* set start position */
-                                   /* updates also X_Start */
-    LCD_Cmd(CMD_PAGE | Line);      /* set page directly */
+    LCD_DotPos(X_Start, Line);     /* set dot position */
 
     /* clear page */
     n = X_Start;              /* reset counter */
@@ -344,7 +369,7 @@ void LCD_Clear(void)
     n++;                           /* next line */
   }
 
-  LCD_Pos(1, 1);         /* reset character position */
+  LCD_CharPos(1, 1);          /* reset character position */
 }
 
 
@@ -405,7 +430,7 @@ void LCD_Init(void)
   /* set contrast: resistor ratio 6.5 */
   LCD_Cmd(CMD_V0_RATIO | FLAG_RATIO_65);
 
-  /* set contrast: user defined value (default 22) */
+  /* set contrast: default value */
   LCD_Contrast(LCD_CONTRAST);
 
   /* no indicator */
@@ -452,19 +477,12 @@ void LCD_Char(unsigned char Char)
   Offset = FONT_BYTES_N * Index;       /* offset for character */
   Table += Offset;                     /* address of character data */
 
-  /* calculate vertical start position */
-  Page = CHAR_PAGES;                  /* pages/bytes per character */
-  Page *= (UI.CharPos_Y - 1);         /* offset for character */
+  Page = Y_Start;                  /* get start page */
 
   /* read character bitmap and send it to display */
   while (y <= FONT_BYTES_Y)
   {
-    if (y > 1)                /* multi-page bitmap */
-    {
-      /* set byte position */
-      LCD_Pos(UI.CharPos_X, UI.CharPos_Y);   /* set x pos, keep y pos */
-      LCD_Cmd(CMD_PAGE | Page);              /* set new y pos (page) directly */
-    }
+    LCD_DotPos(X_Start, Page);          /* set start position */
 
     /* read and send all column bytes for this row */
     x = 1;
@@ -480,7 +498,9 @@ void LCD_Char(unsigned char Char)
     y++;                                /* next row */
   }
 
-  UI.CharPos_X++;             /* update character position */
+  /* update character position */
+  UI.CharPos_X++;                  /* next character in current line */
+  X_Start += FONT_SIZE_X;          /* also update X dot position */
 }
 
 
@@ -496,7 +516,7 @@ void LCD_Char(unsigned char Char)
 
 void LCD_Cursor(uint8_t Mode)
 {
-  LCD_Pos(LCD_CHAR_X, LCD_CHAR_Y);      /* move to bottom right */
+  LCD_CharPos(LCD_CHAR_X, LCD_CHAR_Y);       /* move to bottom right */
 
   if (Mode)              /* cursor on */
   {
@@ -538,18 +558,14 @@ void LCD_Symbol(uint8_t ID)
   Offset = SYMBOL_BYTES_N * ID;         /* offset for symbol */
   Table += Offset;                      /* address of symbol data */
 
-  /* calculate vertical start position */
-  Page = CHAR_PAGES;                  /* pages/bytes per character */
-  Page *= (UI.CharPos_Y - 1);         /* offset for character */
+  Page = Y_Start;                  /* get start page */
 
   /* read character bitmap and send it to display */
   while (y <= SYMBOL_BYTES_Y)
   {
     if (y > 1)                /* multi-page bitmap */
     {
-      /* set byte position */
-      LCD_Pos(UI.CharPos_X, UI.CharPos_Y);   /* set x pos, keep y pos */
-      LCD_Cmd(CMD_PAGE | Page);              /* set new y pos (page) directly */
+      LCD_DotPos(X_Start, Page);        /* move to new page */
     }
 
     /* read and send all column bytes for this row */
@@ -565,6 +581,8 @@ void LCD_Symbol(uint8_t ID)
     Page++;                             /* next page */
     y++;                                /* next row */
   }
+
+  /* hint: we don't update the char position */
 }
 
 
@@ -594,7 +612,7 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
     if (Data & PIN_BOTTOM) y = SymbolBottom;
 
     /* show probe number */
-    LCD_Pos(x, y);               /* set position */
+    LCD_CharPos(x, y);           /* set position */
     LCD_ProbeNumber(Probe);      /* display probe number */
   }
 }
@@ -644,8 +662,8 @@ void LCD_FancySemiPinout(void)
   LCD_FancyProbeNumber(Semi.C, Table);       /* C pin */
 
   /* display symbol */
-  LCD_Pos(SymbolLeft + 1, SymbolTop);   /* set top left position  */
-  LCD_Symbol(Check.Symbol);             /* display symbol */
+  LCD_CharPos(SymbolLeft + 1, SymbolTop);    /* set top left position  */
+  LCD_Symbol(Check.Symbol);                  /* display symbol */
 }
 
 #endif

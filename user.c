@@ -375,18 +375,18 @@ uint8_t ReadEncoder(void)
   uint8_t           Old_AB;                  /* old AB state */
 
   /* set encoder's A & B pins to input */
-  Old_AB = CONTROL_DDR;                 /* save current settings */
-  CONTROL_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
-  CONTROL_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
+  Old_AB = ENCODER_DDR;                 /* save current settings */
+  ENCODER_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
+  ENCODER_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
   wait500us();                          /* settle time */
 
   /* get A & B signals */
-  Temp = CONTROL_PIN;
+  Temp = ENCODER_PIN;
   if (Temp & (1 << ENCODER_A)) AB = 0b00000010;
   if (Temp & (1 << ENCODER_B)) AB |= 0b00000001;
 
   /* restore port/pin settings */
-  CONTROL_DDR = Old_AB;                 /* restore old settings */
+  ENCODER_DDR = Old_AB;                 /* restore old settings */
 
   /* update state history */
   if (Enc.Dir == (DIR_RIGHT | DIR_LEFT))     /* first scan */
@@ -834,7 +834,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     while (n < Lines)
     {
-      LCD_Pos(1, n + 2);           /* move to start of line */
+      LCD_CharPos(1, n + 2);       /* move to start of line */
 
       /* display indicator for multiline displays */
       if (Lines > 1)
@@ -882,7 +882,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     /* show navigation help for 2 line displays */
     if (Lines == 1)
     {
-      LCD_Pos(UI.CharMax_X, UI.CharMax_Y);     /* set position to bottom right */
+      LCD_CharPos(UI.CharMax_X, UI.CharMax_Y);    /* set position to bottom right */
       if (Selected < Items) n = '>';      /* another item follows */
       else n = '<';                       /* last item */
       LCD_Char(n);

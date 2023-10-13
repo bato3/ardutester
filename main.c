@@ -592,8 +592,8 @@ void Show_BJT(void)
    *  A   - Base pin
    *  B   - Collector pin
    *  C   - Emitter pin
-   *  U_1 - U_BE (mV)
-   *  I_1 - I_CE0 (µA)
+   *  U_1 - U_BE (mV) (not yet)
+   *  I_1 - I_CEO (µA)
    *  F_1 - hFE
    */
 
@@ -721,7 +721,7 @@ void Show_BJT(void)
   /* I_CEO: collector emitter cutoff current (leakage) */
   if (Semi.I_1 > 0)                     /* show if not zero */
   {
-    LCD_NextLine_EEString_Space(I_CEO_str);  /* display: I_CE0 */
+    LCD_NextLine_EEString_Space(I_CEO_str);  /* display: I_CEO */
     DisplayValue(Semi.I_1, -6, 'A');         /* display current */
   }
 
@@ -893,16 +893,17 @@ void Show_IGBT(void)
 
 
 /*
- *  show special components like Thyristor and Triac
+ *  show Thyristor and Triac
  */
 
-void Show_Special(void)
+void Show_ThyristorTriac(void)
 {
   /*
    *  Mapping for Semi structure:
-   *  A   - Gate pin
-   *  B   - Anode/MT2 pin
-   *  C   - Cathode/MT1 pin
+   *        SCR        Triac
+   *  A   - Gate       Gate
+   *  B   - Anode      MT2
+   *  C   - Cathode    MT1
    *  U_1 - V_GT (mV)
    */
 
@@ -934,6 +935,72 @@ void Show_Special(void)
 
 
 
+/*
+ *  show PUT
+ */
+
+void Show_PUT(void)
+{
+  /*
+   *  Mapping for AltSemi structure:
+   *  A   - Gate
+   *  B   - Anode
+   *  C   - Cathode
+   *  U_1 - V_f
+   *  U_2 - V_T
+   */
+
+  LCD_EEString(PUT_str);              /* display: PUT */
+  LCD_NextLine();                     /* move to line #2 */
+  Show_SemiPinout('G', 'A', 'C');     /* display pinout */
+
+  /* display V_T */
+  LCD_NextLine_EEString_Space(V_T_str); /* display: VT */
+  DisplayValue(AltSemi.U_2, -3, 'V');   /* display: V_T */
+
+  /* display Uf */
+  LCD_NextLine_EEString_Space(Vf_str);  /* display: Vf */
+  DisplayValue(AltSemi.U_1, -3, 'V');   /* display: Vf */
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
+}
+
+
+
+#ifdef SW_UJT
+
+/*
+ *  show UJT
+ */
+
+void Show_UJT(void)
+{
+  /*
+   *  Mapping for AltSemi structure:
+   *  A   - Emitter
+   *  B   - B2
+   *  C   - B1
+   */
+
+  LCD_EEString(UJT_str);              /* display: UJT */
+  LCD_NextLine();                     /* move to line #2 */
+  Show_SemiPinout('E', '2', '1');     /* display pinout */
+
+  /* display R_BB */
+  LCD_NextLine_EEString_Space(R_BB_str);  /* display: R_BB */  
+  DisplayValue(Resistors[0].Value, Resistors[0].Scale, LCD_CHAR_OMEGA);
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
+}
+
+#endif
+
+
+
 /* ************************************************************************
  *   the one and only main()
  * ************************************************************************ */
@@ -947,6 +1014,8 @@ int main(void)
 {
   uint16_t          U_Bat;         /* voltage of power supply */
   uint8_t           Test;          /* test value */
+  uint32_t          Temp;          /* some value */
+
 
   /*
    *  init
@@ -1091,12 +1160,16 @@ start:
   /* reset variabels */
   Check.Found = COMP_NONE;
   Check.Type = 0;
-  Check.Done = 0;
+  Check.Done = DONE_NONE;
+  Check.AltFound = COMP_NONE;
   Check.Diodes = 0;
   Check.Resistors = 0;
   Semi.U_1 = 0;
+  Semi.U_2 = 0;
   Semi.I_1 = 0;
   Semi.F_1 = 0;
+  AltSemi.U_1 = 0;
+  AltSemi.U_2 = 0;
 
   /* reset hardware */
   ADC_DDR = 0;                     /* set all pins of ADC port as input */
@@ -1126,9 +1199,9 @@ start:
   #endif
 
   /* internal bandgap reference */
-  Config.Bandgap = ReadU(0x0e);         /* dummy read for bandgap stabilization */
+  Config.Bandgap = ReadU(ADC_BANDGAP);  /* dummy read for bandgap stabilization */
   Config.Samples = 200;                 /* do a lot of samples for high accuracy */
-  Config.Bandgap = ReadU(0x0e);         /* get voltage of bandgap reference (mV) */
+  Config.Bandgap = ReadU(ADC_BANDGAP);  /* get voltage of bandgap reference (mV) */
   Config.Samples = ADC_SAMPLES;         /* set samples back to default */
   Config.Bandgap += NV.RefOffset;       /* add voltage offset */ 
 
@@ -1138,14 +1211,17 @@ start:
    */
 
   /*
-   *  ADC pin is connected to a voltage divider Rh = 10k and Rl = 3k3.
-   *  Ul = (Uin / (Rh + Rl)) * Rl  ->  Uin = (Ul * (Rh + Rl)) / Rl
-   *  Uin = (Ul * (10k + 3k3)) / 3k3 = 4 * Ul  
+   *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+   *  U2 = (Uin / (R1 + R2)) * R2 
+   *  Uin = (U2 * (R1 + R2)) / R2
    */
 
-  /* get current voltage */
-  U_Bat = ReadU(TP_BAT);                /* read voltage (mV) */
-  U_Bat *= 4;                           /* calculate U_bat (mV) */
+  /* get current battery voltage */
+  U_Bat = ReadU(TP_BAT);                /* read voltage U2 (mV) */
+  Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
+  Temp *= U_Bat;                        /* Uin (0.001 mV) */
+  Temp /= 1000;                         /* Uin (mV) */
+  U_Bat = (uint16_t)Temp;
   U_Bat += BAT_OFFSET;                  /* add offset for voltage drop */
 
   /* display battery voltage */
@@ -1192,12 +1268,13 @@ start:
   }
 
   /* check all 6 combinations of the 3 probes */ 
-  CheckProbes(TP1, TP2, TP3);
-  CheckProbes(TP2, TP1, TP3);
-  CheckProbes(TP1, TP3, TP2);
-  CheckProbes(TP3, TP1, TP2);
-  CheckProbes(TP2, TP3, TP1);
-  CheckProbes(TP3, TP2, TP1);
+  CheckProbes(PROBE_1, PROBE_2, PROBE_3);
+  CheckProbes(PROBE_2, PROBE_1, PROBE_3);
+  CheckProbes(PROBE_1, PROBE_3, PROBE_2);
+  CheckProbes(PROBE_3, PROBE_1, PROBE_2);
+  CheckProbes(PROBE_2, PROBE_3, PROBE_1);
+  CheckProbes(PROBE_3, PROBE_2, PROBE_1);
+  CheckAlternatives();             /* process alternatives */
 
   /* if component might be a capacitor */
   if ((Check.Found == COMP_NONE) ||
@@ -1208,9 +1285,9 @@ start:
     LCD_Char('C');    
 
     /* check all possible combinations */
-    MeasureCap(TP3, TP1, 0);
-    MeasureCap(TP3, TP2, 1);
-    MeasureCap(TP2, TP1, 2);
+    MeasureCap(PROBE_3, PROBE_1, 0);
+    MeasureCap(PROBE_3, PROBE_2, 1);
+    MeasureCap(PROBE_2, PROBE_1, 2);
   }
 
 
@@ -1248,12 +1325,22 @@ result:
       break;
 
     case COMP_THYRISTOR:
-      Show_Special();
+      Show_ThyristorTriac();
       break;
 
     case COMP_TRIAC:
-      Show_Special();
+      Show_ThyristorTriac();
       break;
+
+    case COMP_PUT:
+      Show_PUT();
+      break;
+
+    #ifdef SW_UJT
+    case COMP_UJT:
+      Show_UJT();
+      break;
+    #endif
 
     case COMP_RESISTOR:
       Show_Resistor();

@@ -491,7 +491,7 @@ void ESR_Tool(void)
   Cap = &Caps[0];                  /* pointer to first cap */
 
   #ifdef HW_RELAY
-  ADC_DDR = (1<<TP_REF);           /* short circuit probes */
+  ADC_DDR = (1 << TP_REF);         /* short circuit probes */
   #endif
 
   /* show tool info */
@@ -507,7 +507,7 @@ void ESR_Tool(void)
      *  two short key presses -> exit tool
      */
 
-    Test = TestKey(0, 0);               /* wait for user feedback */
+    Test = TestKey(0, 2);               /* wait for user feedback */
     if (Test == 1)                      /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
@@ -519,16 +519,16 @@ void ESR_Tool(void)
     }
 
     /* measure cap */
-    if (Run > 0)                       /* key pressed */
+    if (Run > 0)                        /* key pressed */
     {
       #ifdef HW_RELAY
-      ADC_DDR = 0;                     /* remove short circuit */
+      ADC_DDR = 0;                      /* remove short circuit */
       #endif
 
-      LCD_ClearLine2();                /* update line #2 */
-      LCD_EEString(Running_str);       /* display: probing... */
-      MeasureCap(TP2, TP1, 0);         /* probe 2 = Gnd, probe 1 = Vcc */
-      LCD_ClearLine2();                /* update line #2 */
+      LCD_ClearLine2();                 /* update line #2 */
+      LCD_EEString(Running_str);        /* display: probing... */
+      MeasureCap(PROBE_1, PROBE_3, 0);  /* probe-1 = Vcc, probe-3 = Gnd */
+      LCD_ClearLine2();                 /* update line #2 */
       
       if (Check.Found == COMP_CAPACITOR)     /* found capacitor */
       {
@@ -768,7 +768,7 @@ void FrequencyCounter(void)
     Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);
 
     /* calculate compare value for Timer1 */
-    Value = (CPU_FREQ / 1000000);         /* clock based MCU cycles per µs */
+    Value = MCU_CYCLES_PER_US;            /* clock based MCU cycles per µs */
     Value *= GateTime;                    /* gatetime (in ms) */
     Value *= 1000;                        /* scale to µs */
     Value /= Prescaler;                   /* divide by prescaler */
@@ -1061,18 +1061,18 @@ void Encoder_Tool(void)
       Flag = 0;                        /* reset flag */
     }
 
-    UpdateProbes(TP1, TP2, TP3);       /* check first pinout */
+    UpdateProbes(PROBE_1, PROBE_2, PROBE_3);      /* check first pinout */
     Flag = CheckEncoder(&History[0]);
 
     if (Flag == 0)
     {
-      UpdateProbes(TP1, TP3, TP2);     /* check second pinout */
+      UpdateProbes(PROBE_1, PROBE_3, PROBE_2);    /* check second pinout */
       Flag = CheckEncoder(&History[1]);
     }
 
     if (Flag == 0)
     {    
-      UpdateProbes(TP2, TP3, TP1);     /* check third pinout */
+      UpdateProbes(PROBE_2, PROBE_3, PROBE_1);    /* check third pinout */
       Flag = CheckEncoder(&History[2]);
     }
 
@@ -1128,7 +1128,7 @@ void Check_LED(uint8_t Probe1, uint8_t Probe2)
   ADC_DDR = Probes.Pin_1;          /* set probe-1 to output */
   ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
 
-  U1 = ReadU_5ms(Probes.ID_2);     /* voltage at Rl (cathode) */
+  U1 = ReadU_5ms(Probes.ADC_2);    /* voltage at Rl (cathode) */
 
   if (U1 >= 977)         /*  not just a leakage current (> 1.4mA) */
   {
@@ -1192,12 +1192,12 @@ void OptoCoupler_Tool(void)
       Check.Diodes = 0;                 /* reset number of diodes */
 
       /* check all possible probe combinations */
-      Check_LED(TP1, TP2);
-      Check_LED(TP2, TP1);
-      Check_LED(TP1, TP3);
-      Check_LED(TP3, TP1);
-      Check_LED(TP2, TP3);
-      Check_LED(TP3, TP2);
+      Check_LED(PROBE_1, PROBE_2);
+      Check_LED(PROBE_2, PROBE_1);
+      Check_LED(PROBE_1, PROBE_3);
+      Check_LED(PROBE_3, PROBE_1);
+      Check_LED(PROBE_2, PROBE_3);
+      Check_LED(PROBE_3, PROBE_2);
 
       if (Check.Diodes == 1)       /* got one */
       {
@@ -1232,7 +1232,7 @@ void OptoCoupler_Tool(void)
         ADC_PORT = 0;                        /* pull down probe-2 directly */
         R_DDR = Probes.Rl_1 | Probes.Rl_3;   /* select Rl for probe-1 & Rl for probe-3 */
         R_PORT = Probes.Rl_3;                /* pull up collector via Rl */
-        U1 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is off */
+        U1 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is off */
 
         /* make sure we have no conduction without the LED lit */
         if (U1 > 4000)        /* allow a leakage current of 1.5mA */
@@ -1241,10 +1241,10 @@ void OptoCoupler_Tool(void)
           R_PORT = Probes.Rl_1;                /* turn on LED */
           wait1ms();                           /* wait a tad */
           R_PORT = Probes.Rl_1 | Probes.Rl_3;  /* also pull up collector via Rl */
-          U1 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is on */
+          U1 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is on */
 
           R_PORT = Probes.Rl_3;                /* turn off LED */
-          U2 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is off */
+          U2 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is off */
 
           /* we should have conduction when the LED is lit */
           if (U1 <= 4000)          /* more than 1.5mA */
@@ -1286,8 +1286,8 @@ void OptoCoupler_Tool(void)
         Config.Samples = 10;            /* just a few samples for 1ms runtime */
         R_PORT = Probes.Rl_1;           /* turn LED on */
         wait1ms();                      /* time for propagation delay */
-        U1 = ReadU(Probes.ID_1);        /* voltage at LED's anode (Rl) */
-        U2 = ReadU(Probes.ID_2);        /* voltage at emitter (RiL) */
+        U1 = ReadU(Probes.ADC_1);       /* voltage at LED's anode (Rl) */
+        U2 = ReadU(Probes.ADC_2);       /* voltage at emitter (RiL) */
         R_PORT = 0;                     /* turn LED off */
         Config.Samples = ADC_SAMPLES;   /* reset samples to default */
 
@@ -1298,19 +1298,19 @@ void OptoCoupler_Tool(void)
         CTR *= 10000;                   /* scale to 0.0001 mV */
         U4 = NV.RiH + (R_LOW * 10);     /* RiH + Rl (0.1 Ohms) */
         CTR /= U4;                      /* If = U/R in µA */
-        U1 = (uint16_t)CTR;             /* If in µA */
+        U3 = (uint16_t)CTR;             /* If in µA */
 
         /* calculate BJT's Ie */
         /* Ie = I_total - If = (U2 / RiL) - If */
         CTR = (uint32_t)U2;             /* U2 (mV) */
         CTR *= 10000;                   /* scale to 0.0001 mV */
         CTR /= NV.RiL;                  /* /RiL in 0.1 Ohms -> I_total (µA) */ 
-        CTR -= U1;                      /* Ie = I_total - If (µA) */
+        CTR -= U3;                      /* Ie = I_total - If (µA) */
 
         /* calculate CTR */
         /* CTR = Ie / If */
         CTR *= 100;                     /* scale up to % */
-        CTR /= U1;                      /* Ie / If (%) */
+        CTR /= U3;                      /* Ie / If (%) */
       }
 
 
@@ -1331,7 +1331,7 @@ void OptoCoupler_Tool(void)
         R_DDR = Probes.Rl_1 | Probes.Rl_3;   /* select Rl for probe-1 & Rl for probe-3 */
         R_PORT = Probes.Rl_3;                /* pull up collector via Rl */
 
-        U1 = ReadU_5ms(Probes.ID_3);         /* voltage at collector when LED is off */
+        U1 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is off */
 
         /* make sure we have no conduction without the LED lit */
         if (U1 > 4000)        /* allow a leakage current of 1.5mA */
@@ -1359,7 +1359,7 @@ void OptoCoupler_Tool(void)
           if (Run <= 250)          /* no overrun */
           {
             U1 = Run * 70;                   /* delay (0.1 MCU cycles) */
-            U1 /= (CPU_FREQ / 1000000);      /* delay (0.1 µs) */
+            U1 /= MCU_CYCLES_PER_US;         /* delay (0.1 µs) */
           }
 
 
@@ -1384,7 +1384,7 @@ void OptoCoupler_Tool(void)
           if (Run <= 250)          /* no overrun */
           {
             U2 = Run * 70;                   /* delay (0.1 MCU cycles) */
-            U2 /= (CPU_FREQ / 1000000);      /* delay (0.1 µs) */
+            U2 /= MCU_CYCLES_PER_US;         /* delay (0.1 µs) */
           }
 
           Run = 1;            /* reset value */
@@ -1403,6 +1403,9 @@ void OptoCoupler_Tool(void)
 
         LCD_NextLine_EEString_Space(CTR_str);     /* display: CTR */
         DisplayValue(CTR, 0, '%');                /* display CTR */
+
+        LCD_NextLine_EEString_Space(If_str);      /* display: If */
+        DisplayValue(U3, -6, 'A');                /* display If */
 
         if (U1 < UINT16_MAX)       /* valid t_on */
         {

@@ -34,7 +34,7 @@
   extern void LCD_Init(void);
   extern void LCD_ClearLine(uint8_t Line);
   extern void LCD_Clear(void);
-  extern void LCD_Pos(uint8_t x, uint8_t y);
+  extern void LCD_CharPos(uint8_t x, uint8_t y);
   extern void LCD_Cursor(uint8_t Mode);
   extern void LCD_Char(unsigned char Char);
 
@@ -195,10 +195,15 @@
   extern void CheckDiode(void);
 
   extern void VerifyMOSFET(void);
-  extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl);
+  extern void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl);
   extern void CheckDepletionModeFET(void);
 
   extern uint8_t CheckThyristorTriac(void);
+  extern void CheckPUT(void);
+
+  #ifdef SW_UJT
+    extern void CheckUJT(void);
+  #endif
 
 #endif
 
@@ -259,6 +264,7 @@
   extern uint16_t GetFactor(uint16_t U_in, uint8_t ID);
 
   extern void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern void CheckAlternatives(void);
 
 #endif
 

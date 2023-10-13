@@ -56,7 +56,8 @@
   Resistor_Type     Resistors[3];            /* resistors (3 combinations) */
   Capacitor_Type    Caps[3];                 /* capacitors (3 combinations) */
   Diode_Type        Diodes[6];               /* diodes (3 combinations in 2 directions) */
-  Semi_Type         Semi;                    /* semiconductor (BJT, FET, ...) */
+  Semi_Type         Semi;                    /* common semiconductor (BJT, FET, ...) */
+  AltSemi_Type      AltSemi;                 /* special semiconductors */
 
   #ifdef SW_INDUCTOR
     Inductor_Type   Inductor;                /* inductor */
@@ -84,6 +85,7 @@
     const unsigned char Running_str[] EEMEM = "Suche...";
     const unsigned char Weak_str[] EEMEM = "schwach";
     const unsigned char Low_str[] EEMEM = "leer";
+    const unsigned char Timeout_str[] EEMEM = "Timeout";
     const unsigned char Failed1_str[] EEMEM = "Kein Bauteil";
     const unsigned char Failed2_str[] EEMEM = "gefunden!";
     const unsigned char Done_str[] EEMEM = "fertig!";
@@ -99,9 +101,11 @@
     const unsigned char DischargeFailed_str[] EEMEM = "Batterie?";
     const unsigned char Error_str[] EEMEM = "Fehler!";
     const unsigned char Exit_str[] EEMEM = "Abbrechen";
+    const unsigned char Checksum_str[] EEMEM = "Prüfsummen-";
     const unsigned char BJT_str[] EEMEM = "Transistor";
     const unsigned char Thyristor_str[] EEMEM = "Thyristor";
     const unsigned char Triac_str[] EEMEM = "Triac";
+    const unsigned char PUT_str[] EEMEM = "PUT";
     const unsigned char Bye_str[] EEMEM = "Ciao!";
     #ifdef SW_SQUAREWAVE
       const unsigned char SquareWave_str[] EEMEM = "Rechteck";
@@ -128,12 +132,16 @@
       const unsigned char Start_str[] EEMEM = "Start";
       const unsigned char None_str[] EEMEM = "Keiner";
     #endif
+    #ifdef SW_UJT
+      const unsigned char UJT_str[] EEMEM = "UJT";
+    #endif
 
   /* language specific: Czech */
   #elif defined (UI_CZECH)
     const unsigned char Running_str[] EEMEM = "Probiha mereni..";
     const unsigned char Weak_str[] EEMEM = "slaba!";
     const unsigned char Low_str[] EEMEM =  "vybita!";
+    const unsigned char Timeout_str[] EEMEM = "Vyprsel cas";
     const unsigned char Failed1_str[] EEMEM = "Zadna soucastka";
     const unsigned char Failed2_str[] EEMEM = "neznama - vadna";
     const unsigned char Done_str[] EEMEM = "hotovo!";
@@ -149,9 +157,11 @@
     const unsigned char DischargeFailed_str[] EEMEM = "Baterie?";
     const unsigned char Error_str[] EEMEM = "Chyba!";
     const unsigned char Exit_str[] EEMEM = "Exit";
+    const unsigned char Checksum_str[] EEMEM = "Kontrolni soucet";
     const unsigned char BJT_str[] EEMEM = "Tranzistor";
     const unsigned char Thyristor_str[] EEMEM = "Tyristor";
     const unsigned char Triac_str[] EEMEM = "Triak";
+    const unsigned char PUT_str[] EEMEM = "PUT";
     const unsigned char Bye_str[] EEMEM = "Nashledanou...";
     #ifdef SW_SQUAREWAVE
       const unsigned char SquareWave_str[] EEMEM = "Gen. obdelniku";
@@ -171,12 +181,15 @@
       const unsigned char Contrast_str[] EEMEM = "Kontrast";
     #endif
     #ifdef SW_IR_RECEIVER
-      const unsigned char IR_Detector_str[] EEMEM = "IR detector";
+      const unsigned char IR_Detector_str[] EEMEM = "IR detektor";
     #endif
     #ifdef SW_OPTO_COUPLER
-      const unsigned char OptoCoupler_str[] EEMEM = "Opto Coupler";
+      const unsigned char OptoCoupler_str[] EEMEM = "Optron";
       const unsigned char Start_str[] EEMEM = "Start";
-      const unsigned char None_str[] EEMEM = "None";
+      const unsigned char None_str[] EEMEM = "zadny";
+    #endif
+    #ifdef SW_UJT
+      const unsigned char UJT_str[] EEMEM = "UJT";
     #endif
 
   /* language specific: English (default) */
@@ -184,6 +197,7 @@
     const unsigned char Running_str[] EEMEM = "Probing...";
     const unsigned char Weak_str[] EEMEM = "weak";
     const unsigned char Low_str[] EEMEM = "low";
+    const unsigned char Timeout_str[] EEMEM = "Timeout";
     const unsigned char Failed1_str[] EEMEM = "No component";
     const unsigned char Failed2_str[] EEMEM = "found!";
     const unsigned char Done_str[] EEMEM = "done!";
@@ -199,9 +213,11 @@
     const unsigned char DischargeFailed_str[] EEMEM = "Battery?";
     const unsigned char Error_str[] EEMEM = "Error!";
     const unsigned char Exit_str[] EEMEM = "Exit";
+    const unsigned char Checksum_str[] EEMEM = "Checksum";
     const unsigned char BJT_str[] EEMEM = "BJT";
     const unsigned char Thyristor_str[] EEMEM = "SCR";
     const unsigned char Triac_str[] EEMEM = "Triac";
+    const unsigned char PUT_str[] EEMEM = "PUT";
     const unsigned char Bye_str[] EEMEM = "Bye!";
     #ifdef SW_SQUAREWAVE
       const unsigned char SquareWave_str[] EEMEM = "Square Wave";
@@ -228,6 +244,9 @@
       const unsigned char Start_str[] EEMEM = "Start";
       const unsigned char None_str[] EEMEM = "None";
     #endif
+    #ifdef SW_UJT
+      const unsigned char UJT_str[] EEMEM = "UJT";
+    #endif
 
   #endif
 
@@ -253,7 +272,7 @@
   const unsigned char DiodeCap_str[] EEMEM = "C";
   const unsigned char Vth_str[] EEMEM = "Vth";
   const unsigned char I_R_str[] EEMEM = "I_R";
-  const unsigned char Timeout_str[] EEMEM = "Timeout";
+  const unsigned char V_T_str[] EEMEM = "VT";
   const unsigned char URef_str[] EEMEM = "Vref";
   const unsigned char RhLow_str[] EEMEM = "Rh-";
   const unsigned char RhHigh_str[] EEMEM = "Rh+";
@@ -266,14 +285,13 @@
   const unsigned char ROffset_str[] EEMEM = "R0";
   const unsigned char Vcc_str[] EEMEM = "Vcc";
   const unsigned char CompOffset_str[] EEMEM = "AComp";
-  const unsigned char Checksum_str[] EEMEM = "Checksum";
   const unsigned char Profile1_str[] EEMEM = "#1";
   const unsigned char Profile2_str[] EEMEM = "#2";
 
   #ifdef SW_ESR
     const unsigned char Probes_str[] EEMEM = "Pins";
     const unsigned char ESR_str[] EEMEM = "ESR";
-    const unsigned char ESR_Probes_str[] EEMEM = "1-2";
+    const unsigned char ESR_Probes_str[] EEMEM = "1-3";
   #endif
   #ifdef SW_PWM
     const unsigned char PWM_str[] EEMEM = "PWM";
@@ -298,8 +316,12 @@
   #endif
   #ifdef SW_OPTO_COUPLER
     const unsigned char CTR_str[] EEMEM = "CTR";
+    const unsigned char If_str[] EEMEM = "If";
     const unsigned char t_on_str[] EEMEM = "t_on";
     const unsigned char t_off_str[] EEMEM = "t_off";
+  #endif
+  #ifdef SW_UJT
+    const unsigned char R_BB_str[] EEMEM = "R_BB";
   #endif
 
   /* component symbols */
@@ -309,7 +331,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.22m";
+  const unsigned char Version_str[] EEMEM = "v1.23m";
 
 
   /*
@@ -361,7 +383,7 @@
   const unsigned char Pin_table[] EEMEM = {(1 << TP1), (1 << TP2), (1 << TP3)};
 
   /* bitmasks for ADC MUX input addresses based on probe ID */
-//const unsigned char ADC_table[] EEMEM = {TP1, TP2, TP3};
+  const unsigned char ADC_table[] EEMEM = {TP1, TP2, TP3};
 
 
 
@@ -396,7 +418,8 @@
   extern Resistor_Type   Resistors[3];            /* resistors (3 combinations) */
   extern Capacitor_Type  Caps[3];                 /* capacitors (3 combinations) */
   extern Diode_Type      Diodes[6];               /* diodes (3 combinations in 2 directions) */
-  extern Semi_Type       Semi;                    /* semiconductor (BJT, FET, ...) */
+  extern Semi_Type       Semi;                    /* common semiconductor (BJT, FET, ...) */
+  extern AltSemi_Type    AltSemi;                 /* special semiconductors */
 
   #ifdef SW_INDUCTOR
     extern Inductor_Type          Inductor;       /* inductor */
@@ -436,6 +459,7 @@
   extern const unsigned char Vf_str[];
   extern const unsigned char BJT_str[];
   extern const unsigned char Triac_str[];
+  extern const unsigned char PUT_str[];
 
   extern const unsigned char URef_str[];
   extern const unsigned char RhLow_str[];
@@ -503,10 +527,13 @@
     extern const unsigned char Start_str[];
     extern const unsigned char None_str[];
     extern const unsigned char CTR_str[];
+    extern const unsigned char If_str[];
     extern const unsigned char t_on_str[];
     extern const unsigned char t_off_str[];
   #endif
-
+  #ifdef SW_UJT
+    extern const unsigned char UJT_str[];
+  #endif
 
   /*
    *  constant tables (stored in EEPROM)
@@ -546,11 +573,14 @@
   /* bitmasks for Rl probe resistors based on probe ID */
   extern const unsigned char Rl_table[];
 
+  /* bitmasks for Rh probe resistors based on probe ID */
+  extern const unsigned char Rh_table[];
+
   /* bitmasks for pins (ADC port) based on probe ID */
   extern const unsigned char Pin_table[];
 
   /* bitmasks for ADC MUX input addresses based on probe ID */
-//extern const unsigned char ADC_table[];
+  extern const unsigned char ADC_table[];
 
 #endif
 

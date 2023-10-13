@@ -3,7 +3,7 @@
  *   fixed 12x16 font based on ISO 8859-1
  *   horizontally aligned
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -33,7 +33,7 @@
  *  - format:
  *    - 32 bytes per character
  *    - first two bytes: first horizontal line (top to down)
- *      first byte: left part, second byte: right part
+ *      first byte: left part, second byte: right part (4 bits unused)
  *    - bit #0: left / bit #7: right (horizontally flipped)
  *      second byte: bits #4-7 unused
  */

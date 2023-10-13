@@ -13,7 +13,7 @@
  */
 
 /* local includes */
-#include "LCD.h"              /* LCD module */
+#include "HD44780.h"          /* HD44780 LCD module */
 #include "config.h"
 
 
@@ -106,8 +106,8 @@
     const unsigned char Thyristor_str[] EEMEM = "Thyristor";
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char Bye_str[] EEMEM = "Ciao!";
-    #ifdef SW_SIGNAL_GEN
-      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #ifdef SW_SQUAREWAVE
+      const unsigned char SquareWave_str[] EEMEM = "Rechteck";
     #endif
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
@@ -144,8 +144,8 @@
     const unsigned char Thyristor_str[] EEMEM = "Tyrystor";
     const unsigned char Triac_str[] EEMEM = "Triak";
     const unsigned char Bye_str[] EEMEM = "Nashledanou...";
-    #ifdef SW_SIGNAL_GEN
-      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #ifdef SW_SQUAREWAVE
+      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
     #endif
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
@@ -185,8 +185,8 @@
     const unsigned char Thyristor_str[] EEMEM = "SCR";
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char Bye_str[] EEMEM = "Bye!";
-    #ifdef SW_SIGNAL_GEN
-      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #ifdef SW_SQUAREWAVE
+      const unsigned char SquareWave_str[] EEMEM = "Square Wave";
     #endif
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
@@ -256,7 +256,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.17m";
+  const unsigned char Version_str[] EEMEM = "v1.18m";
 
 
   /*
@@ -434,8 +434,8 @@
     extern const unsigned char PWM_Probes_str[];
     extern const unsigned char Hertz_str[];
   #endif
-  #ifdef SW_SIGNAL_GEN
-    extern const unsigned char FreqGen_str[];
+  #ifdef SW_SQUAREWAVE
+    extern const unsigned char SquareWave_str[];
   #endif
   #ifdef HW_ZENER
     extern const unsigned char Zener_str[];

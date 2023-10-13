@@ -24,7 +24,7 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
+#include "HD44780.h"          /* HD44780 LCD module */
 #include "functions.h"        /* external functions */
 
 
@@ -136,7 +136,7 @@ void LoadAdjust(void)
   {
     /* tell user */
     LCD_Clear();
-    LCD_EEString2(Checksum_str);        /* display: Checksum */
+    LCD_EEString_Space(Checksum_str);   /* display: Checksum */
     LCD_EEString(Error_str);            /* display: error! */
     MilliSleep(2000);                   /* give user some time to read */
 
@@ -165,42 +165,42 @@ void ShowAdjust(void)
 {
   /* display RiL and RiH */
   LCD_Clear();
-  LCD_EEString2(RiLow_str);             /* display: Ri- */
+  LCD_EEString_Space(RiLow_str);        /* display: Ri- */
   DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
 
   LCD_Line2();
-  LCD_EEString2(RiHigh_str);            /* display: Ri+ */
+  LCD_EEString_Space(RiHigh_str);       /* display: Ri+ */
   DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
 
   WaitKey();                  /* let the user read */
 
   /* display C-Zero */
   LCD_Clear();
-  LCD_EEString2(CapOffset_str);              /* display: C0 */
+  LCD_EEString_Space(CapOffset_str);         /* display: C0 */
   DisplayValue(Config.CapZero, -12, 'F');    /* display C0 offset */
 
   /* display R-Zero */
   LCD_Line2();
-  LCD_EEString2(ROffset_str);                      /* display: R0 */
+  LCD_EEString_Space(ROffset_str);                 /* display: R0 */
   DisplayValue(Config.RZero, -2, LCD_CHAR_OMEGA);  /* display R0 */
 
   WaitKey();                  /* let the user read */
 
   /* display internal bandgap reference */
   LCD_Clear();
-  LCD_EEString2(URef_str);                   /* display: Vref */
+  LCD_EEString_Space(URef_str);              /* display: Vref */
   DisplayValue(Config.Bandgap, -3, 'V');     /* display bandgap ref */
 
   /* display Vcc */
   LCD_Line2();
-  LCD_EEString2(Vcc_str);                    /* display: Vcc */
+  LCD_EEString_Space(Vcc_str);               /* display: Vcc */
   DisplayValue(Config.Vcc, -3, 'V');         /* display Vcc */
 
   WaitKey();                  /* let the user read */
 
   /* display offset of analog comparator */
   LCD_Clear();
-  LCD_EEString2(CompOffset_str);             /* display: AComp */
+  LCD_EEString_Space(CompOffset_str);        /* display: AComp */
   DisplaySignedValue(Config.CompOffset, -3, 'V');
 
   WaitKey();                  /* let the user read */
@@ -264,8 +264,8 @@ uint8_t SelfAdjust(void)
       switch (Test)
       {
         case 1:     /* resistance of probe leads (probes shorted) */
-          LCD_EEString2(ROffset_str);   /* display: R0 */
-          LCD_EEString(ProbeComb_str);  /* display: 12 13 23 */          
+          LCD_EEString_Space(ROffset_str);   /* display: R0 */
+          LCD_EEString(ProbeComb_str);       /* display: 12 13 23 */          
 
           /*
            *  The resistance is for two probes in series and we expect it to be
@@ -361,8 +361,8 @@ uint8_t SelfAdjust(void)
           break;
 
         case 5:     /* capacitance offset (PCB and probe leads) */
-          LCD_EEString2(CapOffset_str);   /* display: C0 */
-          LCD_EEString(ProbeComb_str);    /* display: 12 13 23 */
+          LCD_EEString_Space(CapOffset_str); /* display: C0 */
+          LCD_EEString(ProbeComb_str);       /* display: 12 13 23 */
 
           /*
            *  The capacitance is for two probes and we expect it to be
@@ -564,8 +564,8 @@ uint8_t SelfTest(void)
           break;
 
         case 2:     /* compare Rl resistors (probes still shorted) */
-          LCD_EEString2(Rl_str);          /* display: +Rl- */
-          LCD_EEString(ProbeComb_str);    /* display: 12 13 23 */
+          LCD_EEString_Space(Rl_str);        /* display: +Rl- */
+          LCD_EEString(ProbeComb_str);       /* display: 12 13 23 */
 
           /* set up a voltage divider with the Rl's */
           /* substract theoretical voltage of voltage divider */
@@ -590,8 +590,8 @@ uint8_t SelfTest(void)
           break;
 
         case 3:     /* compare Rh resistors (probes still shorted) */
-          LCD_EEString2(Rh_str);          /* display: +Rh- */
-          LCD_EEString(ProbeComb_str);    /* display: 12 13 23 */
+          LCD_EEString_Space(Rh_str);        /* display: +Rh- */
+          LCD_EEString(ProbeComb_str);       /* display: 12 13 23 */
 
           /* set up a voltage divider with the Rh's */
 

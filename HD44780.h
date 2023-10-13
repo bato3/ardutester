@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
- *   LCD module (HD44780 compatible)
+ *   HD44780 compatible character display
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */

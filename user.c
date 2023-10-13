@@ -23,7 +23,7 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
+#include "HD44780.h"          /* HD44780 module */
 #include "functions.h"        /* external functions */
 
 
@@ -172,7 +172,7 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
-#ifdef SW_SIGNAL_GEN
+#ifdef SW_SQUAREWAVE
 
 /*
  *  display unsigned value
@@ -724,7 +724,7 @@ uint8_t ShortCircuit(uint8_t Mode)
  *  - Unit: optional fixed string stored in EEPROM
  *
  *  returns:
- *  - number of selected item
+ *  - ID of selected item
  */
 
 uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
@@ -774,7 +774,6 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     if (Selected < Items) n = '>';      /* another item follows */
     else n = '<';                       /* last item */
-
     LCD_Data(n);
 
 
@@ -784,6 +783,45 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     n = TestKey(0, 0);             /* wait for testkey */
 
+    #ifdef HW_ENCODER
+    /* processing for rotary encoder */
+    if (n == 1)                    /* short key press: select item */
+    {
+      n = 2;                            /* trigger item selection */
+    }
+    else if (n == 3)               /* rotary encoder: right turn */
+    {
+      n = 1;                            /* trigger next item */
+    }
+    else if (n == 4)               /* rotary encoder: left turn */
+    {
+      if (Selected == 0)                /* first item */
+      {
+        Selected = Items;               /* roll over to last item */
+      }
+      else                              /* not first item */
+      {
+        Selected--;                     /* move to previous item */
+      }
+    }
+    #endif
+
+    /* processing for testkey */
+    if (n == 1)                    /* short key press: move to next item */
+    {
+      Selected++;                       /* move to next item */
+      if (Selected > Items)             /* max. number of items exceeded */
+      {
+        Selected = 0;                   /* roll over to first one */
+      }
+    }
+    else if (n == 2)               /* long key press: select current item */
+    {
+      Run = 0;                          /* end loop */
+    }
+
+
+#if 0
     if (n == 1)                    /* short key press: moves to next item */
     {
       #ifdef HW_ENCODER
@@ -824,6 +862,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       Run = 2;                          /* signal change by encoder */
     }
     #endif
+#endif
   }
 
   LCD_Clear();                 /* feedback for user */
@@ -865,8 +904,8 @@ void MainMenu(void)
   MenuID[Item] = 5;
   Item++;
   #endif
-  #ifdef SW_SIGNAL_GEN
-  MenuItem[Item] = (void *)FreqGen_str;      /* Squarewave Generator */
+  #ifdef SW_SQUAREWAVE
+  MenuItem[Item] = (void *)SquareWave_str;   /* Square Wave Signal Generator */
   MenuID[Item] = 6;
   Item++;
   #endif
@@ -950,9 +989,9 @@ void MainMenu(void)
       break;
     #endif
 
-    #ifdef SW_SIGNAL_GEN
-    case 6:              /* squarewave signal generator */
-      SignalGenerator();
+    #ifdef SW_SQUAREWAVE
+    case 6:              /* square wave signal generator */
+      SquareWave_SignalGenerator();
       break;   
     #endif
 

@@ -2,9 +2,18 @@
 
                   Change Log for the Component Tester firmware
 
+                                Classic Edition
+
+                 for ATmega168/328 with HD44780 LCD module (2x16)
+
                         (c) 2012-2015 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.18m 2015-07
+- Optimized feedback processing in MenuTool().
+- Forked a new firmware edition, which also supports graphic displays, named
+  "Trendy Edition". The old firmware is called "Classic Edition" now.
 
 v1.17m 2015-02
 - Improved CheckDiode() to support measured Vcc in resistor check and fixed

@@ -3,11 +3,15 @@
 
                    ReadMe for the Component Tester firmware
 
+                              Classic Edition
+
+              for ATmega168/328 with HD44780 LCD module (2x16)
+
         (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-01-23
+Last edit:  2015-07-10
 
 Content
   - About
@@ -22,7 +26,7 @@ Content
   - Power Off
   - Menu
     - PWM Tool
-    - Signal Generator
+    - Square Wave Generator
     - Zener Tool
     - ESR Tool
     - Frequency Counter
@@ -62,7 +66,7 @@ for the ATmega328/P:
 - inductance measurement
 - Zener voltage measurement (hardware option)
 - PWM generator
-- Squarewave signal generator (requires also rotary encoder)
+- Square wave signal generator (requires also rotary encoder)
 - ESR measurement and ESR in-circuit measurement
 - frequency counter (hardware option)
 - rotary encoder test
@@ -88,9 +92,10 @@ Karl-Heinz has done a really great documentation of the tester. I recommend
 to read it. Therefore I'll tell you just about the major differences to the
 official release:
 
-- no support of graphical displays
-  I think it's better to use the limited flash memory for features and
-  not for a fancy display.
+- no support of graphic displays
+  There's another firmware version for graphic displays. This one just
+  supports HD44780 compatible character LCD modules (2x16) to be able to run
+  on an ATmega168 with limited ressources.
 - user interface
   No worries! ;)
 - adaptive component discharge function
@@ -117,9 +122,12 @@ There are more details in the sections below.
 First edit the Makefile to specify your MCU model, frequency, oscilator
 type and programmer settings. All other settings are moved to config.h.
 
-In config.h please choose the language for the UI and change any defaults
-if required. All defaults are explained in the file, so I won't discuss
-them here. Hardware options are also enabled in configh.h:
+In config.h please choose the language for the UI. Change any default values
+if required. All settings and values are explained in the file, so I won't
+discuss them here. The display has to provide 2 lines with 16 characters
+each, at least.
+
+Hardware options are also enabled in configh.h:
 - rotary encoder
 - 2.5V voltage reference
 - relay based cap discharger
@@ -215,11 +223,13 @@ Simply press the test key twice quickly (might need some practice :-). If
 the rotary encoder option is enabled, a left turn will also enter the menu. 
 
 While in the menu a short key press shows the the next item in the menu and a
-long key press runs the shown item. At the right side you'll see a '>' if
-another items follows or a '<' if the last item is reached (will roll over to
-the first menu item). With a rotary encoder you can move the items up or down
-based on the turning direction and a short key press will run the displayed
-item.
+long key press runs the shown item. At the bottom right you'll see a
+navigation help.  A '>' if another item follows, or a '<' for the very last
+item (will roll over to the first item).
+
+With a rotary encoder you can move the items up or down based on the turning
+direction and a short key press will run the displayed item, instead of moving
+to the next item. Roll over is also enabled for the first item.
 
 Some tools show you the probe pins used before doing anything. The output will
 blink up to three times if you don't press the test button to confirm the
@@ -244,9 +254,9 @@ Configuration of the probes:
   Probe #1 and #3:  Ground
 
 
-+ Signal Generator
++ Square Wave Signal Generator
 
-The signal generator creates a squarewave signal with variable frequency up
+The signal generator creates a square wave signal with variable frequency up
 to 1/4 of the MCU clock rate (2MHz for 8MHz MCU clock). The default frequency
 is 1000Hz and you can change it by turning the rotary encoder, The turning
 velocity determines the frequency change, i.e. slow turning results in small
@@ -457,9 +467,8 @@ BJT isn't measured with the same test current as for a power BJT.
 
 * Displaying Results
 
-Several names and abbreviations are changed. The output for several devices
-is splitted into multiple pages to have sufficient space to fully display all
-data.
+Some names and abbreviations are changed. The output for several parts is
+splitted into multiple pages, because of the limited size of a 2x16 display.
 
 For a single diode the low current Vf (measured with 10µA) is shown in braces
 if the voltage is below 250mV. That should give you a hint for germanium
@@ -471,7 +480,7 @@ The leakage current I_R for a single diode or I_CEO for a BJT will be displayed
 if it exeeds 1µA. Germanium BJTs got a leakage current of a few µA up to around
 500µA. Germanium diodes are around a few µA usually.
 
-For some devices the capacitance is shown also. In case the capacitance is
+For some components the capacitance is shown also. In case the capacitance is
 below 5pF or the measurement failed for some reason the value displayed
 will be 0pF.
 

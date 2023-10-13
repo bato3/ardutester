@@ -58,18 +58,18 @@ void ToolInfo(const unsigned char *String)
   /* blink text up to three times */
   while (n <= 2)
   {
-    LCD_EEString2(Probes_str);     /* show text */
+    LCD_EEString_Space(Probes_str);     /* show text */
     LCD_EEString(String);
-    Key = TestKey(700, 0);         /* wait 700ms */
+    Key = TestKey(700, 0);              /* wait 700ms */
 
-    LCD_ClearLine2();              /* clear line #2 */
+    LCD_ClearLine2();                   /* clear line #2 */
     if (Key == 0) Key = TestKey(300, 0);      /* wait 300ms */
 
-    if (Key > 0) n = 3;            /* on key press end loop */
-    n++;                           /* next run */
+    if (Key > 0) n = 3;                 /* on key press end loop */
+    n++;                                /* next run */
   }
 
-  MilliSleep(250);                 /* smooth UI */
+  MilliSleep(250);                      /* smooth UI */
 }
 
 #endif
@@ -117,7 +117,7 @@ void PWM_Tool(uint16_t Frequency)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString2(PWM_str);             /* display: PWM */
+  LCD_EEString_Space(PWM_str);        /* display: PWM */
   DisplayValue(Frequency, 0, 'H');    /* display frequency */
   LCD_Data('z');                      /* make it Hz :-) */
   ToolInfo(PWM_Probes_str);           /* show probes used */
@@ -250,19 +250,19 @@ void PWM_Tool(uint16_t Frequency)
 
 
 /* ************************************************************************
- *   Signal Generator (squarewave)
+ *   Signal Generator (just squarewave)
  * ************************************************************************ */
 
 
-#ifdef SW_SIGNAL_GEN
+#ifdef SW_SQUAREWAVE
 
 /*
- *  create squarewave signal with variable frequency
+ *  create square wave signal with variable frequency
  *  - use probe #2 (PB2, OC1B) as output
  *    and probe #1 + probe #3 as ground
  */
 
-void SignalGenerator(void)
+void SquareWave_SignalGenerator(void)
 {
   uint8_t           Flag = 2;           /* loop control */
   uint8_t           Test;
@@ -288,10 +288,10 @@ void SignalGenerator(void)
       1024       7812.5Hz   0.12Hz       1953.125Hz 
   */
 
-  ShortCircuit(0);                    /* make sure probes are not shorted */
+  ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString2(FreqGen_str);         /* display: f Gen. */
-  ToolInfo(PWM_Probes_str);           /* show probes used */
+  LCD_EEString_Space(SquareWave_str);   /* display: Square Wave */
+  ToolInfo(PWM_Probes_str);             /* show probes used */
 
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */

@@ -24,7 +24,7 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
+#include "HD44780.h"          /* HD44780 LCD module */
 #include "functions.h"        /* external functions */
 
 
@@ -41,17 +41,6 @@ uint8_t        RunsMissed;              /* counter for failed/missed measurement
 /* ************************************************************************
  *   output found components
  * ************************************************************************ */
-
-
-/*
- *  wait for key press and goto display line #2
- */
-
-void UpdateLine2(void)
-{
-  WaitKey();                  /* next page */
-  LCD_ClearLine2();           /* only change line #2 */
-}
 
 
 /*
@@ -318,9 +307,9 @@ void Show_Capacitor(void)
   ESR = MeasureESR(MaxCap);        /* measure ESR */
   if (ESR > 0)                     /* if successfull */
   {
+//    LCD_UpdateLine2();                       /* key press for line #2 */
+//    LCD_EEString_Space(ESR_str);             /* display: ESR */
     LCD_Space();
-//    UpdateLine2();                           /* key press for line #2 */
-//    LCD_EEString2(ESR_str);                  /* display: ESR */
     DisplayValue(ESR, -2, LCD_CHAR_OMEGA);   /* display ESR */
   }
   #endif
@@ -499,7 +488,7 @@ void Show_Diode(void)
 
   /* display Uf */
   LCD_ClearLine2();                /* only change line #2 */  
-  LCD_EEString2(Vf_str);           /* display: Vf */
+  LCD_EEString_Space(Vf_str);      /* display: Vf */
 
   /* first diode */
   DisplayValue(D1->V_f, -3, 'V');
@@ -522,8 +511,8 @@ void Show_Diode(void)
     I_leak = GetLeakageCurrent();       /* get current (in µA) */
     if (I_leak > 0)                     /* show if not zero */
     {
-      UpdateLine2();                    /* key press for line #2 */
-      LCD_EEString2(I_R_str);           /* display: I_R */
+      LCD_UpdateLine2();                /* key press for line #2 */
+      LCD_EEString_Space(I_R_str);      /* display: I_R */
       DisplayValue(I_leak, -6, 'A');    /* display current */
     }
   }
@@ -536,8 +525,8 @@ void Show_Diode(void)
   /* display capacitance */
   if (CapFlag == 1)                     /* if requested */ 
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(DiodeCap_str);        /* display: C */
+    LCD_UpdateLine2();                  /* key press for line #2 */
+    LCD_EEString_Space(DiodeCap_str);   /* display: C */
     Show_Diode_Cap(D1);                 /* first diode */
     LCD_Space();
     Show_Diode_Cap(D2);                 /* second diode (optional) */
@@ -640,7 +629,7 @@ void Show_BJT(void)
   }
 
   /* display type */
-  LCD_EEString2(BJT_str);          /* display: BJT */
+  LCD_EEString_Space(BJT_str);     /* display: BJT */
   LCD_EEString(String);            /* display: NPN / PNP */
 
   /* parasitic BJT (freewheeling diode on same substrate) */
@@ -660,7 +649,7 @@ void Show_BJT(void)
     Show_FlybackDiode();           /* show diode */
   }
 
-  UpdateLine2();                   /* key press for line #2 */
+  LCD_UpdateLine2();               /* key press for line #2 */
 
   /* display either optional B-E resistor or hFE & V_BE */
   if (CheckSingleResistor(C_Pin, A_Pin) == 1)     /* found B-E resistor */
@@ -672,7 +661,7 @@ void Show_BJT(void)
     /* hFE and V_BE */
 
     /* display hFE */
-    LCD_EEString2(hFE_str);        /* display: h_FE */
+    LCD_EEString_Space(hFE_str);        /* display: h_FE */
     DisplayValue(Semi.F_1, 0, 0);
 
     /* display V_BE (taken from diode forward voltage) */
@@ -684,8 +673,8 @@ void Show_BJT(void)
       /* if the diode matches the transistor's B-E diode */
       if ((Diode->A == A_Pin) && (Diode->C == C_Pin))
       {
-        UpdateLine2();                  /* key press for line #2 */
-        LCD_EEString2(V_BE_str);        /* display: V_BE */
+        LCD_UpdateLine2();              /* key press for line #2 */
+        LCD_EEString_Space(V_BE_str);   /* display: V_BE */
 
         /*
          *  Vf is quite linear for a logarithmicly scaled I_b.
@@ -746,8 +735,8 @@ void Show_BJT(void)
   /* I_CEO: collector emitter cutoff current (leakage) */
   if (Semi.I_1 > 0)                     /* show if not zero */
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(I_CEO_str);           /* display: I_CE0 */
+    LCD_UpdateLine2();                  /* key press for line #2 */
+    LCD_EEString_Space(I_CEO_str);      /* display: I_CE0 */
     DisplayValue(Semi.I_1, -6, 'A');    /* display current */
   }
 }
@@ -775,14 +764,14 @@ void Show_FET_Extras(void)
   /* gate threshold voltage */
   if (Semi.U_2 != 0)
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(Vth_str);             /* display: Vth */
+    LCD_UpdateLine2();                  /* key press for line #2 */
+    LCD_EEString_Space(Vth_str);        /* display: Vth */
     DisplaySignedValue(Semi.U_2, -3, 'V');   /* display V_th in mV */
   }
 
   /* display gate-source capacitance */
-  UpdateLine2();                      /* key press for line #2 */
-  LCD_EEString2(GateCap_str);         /* display: Cgs */
+  LCD_UpdateLine2();                  /* key press for line #2 */
+  LCD_EEString_Space(GateCap_str);    /* display: Cgs */
   MeasureCap(Semi.A, Semi.C, 0);      /* measure capacitance */
   /* display value and unit */
   DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
@@ -939,8 +928,8 @@ void Show_Special(void)
   /* show V_GT (gate trigger voltage) */
   if (Semi.U_1 > 0)                /* show if not zero */
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(V_GT_str);            /* display: V_GT */
+    LCD_UpdateLine2();                  /* key press for line #2 */
+    LCD_EEString_Space(V_GT_str);       /* display: V_GT */
     DisplayValue(Semi.U_1, -3, 'V');    /* display V_GT in mV */
   }
 }
@@ -990,7 +979,7 @@ int main(void)
    *  - This is after the MCU done a reset driven by the watchdog.
    *  - Does only work if the capacitor at the base of the power management
    *    transistor is large enough to survive a MCU reset. Otherwise the
-   *    tester simply looses power.
+   *    tester simply loses power.
    */
 
   if (Test)
@@ -1140,7 +1129,7 @@ start:
   U_Bat += BAT_OFFSET;                  /* add offset for voltage drop */
 
   /* display battery voltage */
-  LCD_EEString2(Battery_str);           /* display: Bat. */
+  LCD_EEString_Space(Battery_str);      /* display: Bat. */
   DisplayValue(U_Bat / 10, -2, 'V');    /* display battery voltage */
   LCD_Space();
 
@@ -1197,7 +1186,7 @@ start:
   {
     /* tell user to be patient with large caps :-) */
     LCD_ClearLine2();
-    LCD_EEString2(Running_str);
+    LCD_EEString_Space(Running_str);
     LCD_Data('C');    
 
     /* check all possible combinations */

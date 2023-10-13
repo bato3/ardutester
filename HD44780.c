@@ -1,9 +1,8 @@
 /* ************************************************************************
  *
- *   LCD functions
+ *   display functions for HD44780 compatible character displays
  *   - supporting a HD44780 compatible LCD module
  *     running in 4 bit data mode
- *   - if required change pin assignment in LCD.h
  *
  *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
@@ -16,7 +15,7 @@
  */
 
 /* source management */
-#define LCD_C
+#define HD44780_C
 
 
 /*
@@ -26,7 +25,7 @@
 /* local includes */
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
-#include "LCD.h"              /* LCD module specifics */
+#include "HD44780.h"          /* HD44780 LCD module specifics */
 #include "functions.h"        /* external functions */
 
 
@@ -140,33 +139,6 @@ void LCD_Clear(void)
 
 
 
-#if 0
-/*
- *  move cursor to the first position of a specified line
- *
- *  requires:
- *  - line number [1-2]
- */
-
-void LCD_Line(unsigned char Line)
-{
-  uint8_t           Cmd;
-
-  if (Line == 1)              /* line #1 */
-  {
-    Cmd = CMD_SET_DD_RAM_ADDR | 0x00;
-  }
-  else                        /* line #2 */
-  {
-    Cmd = CMD_SET_DD_RAM_ADDR | 0x40;
-  }
-
-  LCD_Cmd(Cmd);               /* send command */
-}
-#endif
-
-
-
 /*
  *  move cursor to the first position of line #2
  */
@@ -275,30 +247,6 @@ void LCD_EELoadChar(const unsigned char *CharData, uint8_t ID)
  * ************************************************************************ */
 
 
-#if 0
-/*
- *  clear single line of display
- *  - by writing 20 spaces
- *  - cursor is set to first char of line
- */
-
-void LCD_ClearLine((unsigned char Line)
-{
-  unsigned char     Pos;
-
-  LCD_Line(Line);                  /* go to beginning of line */
-
-  for (Pos = 0; Pos < 20; Pos++)   /* for 20 times */
-  {
-    LCD_Data(' ');                   /* send space */
-  }
-
-  LCD_Line(Line);                  /* go back to beginning of line */  
-}
-#endif
-
-
-
 /*
  *  clear line #2 of display
  *  - by writing 20 spaces
@@ -318,55 +266,6 @@ void LCD_ClearLine2(void)
 
   LCD_Line2();                     /* go back to beginning of line */  
 }
-
-
-
-/*
- *  write probe pin number to the LCD
- *  - pin TP1 -> '1'
- *  - pin TP2 -> '2'
- *  - pin TP3 -> '3'
- *
- *  requires:
- *  - testpin ID (0-2)
- */
- 
-void LCD_ProbeNumber(unsigned char Probe)
-{
-  /* since TP1 is 0 we simply add the value to '1' */
-  LCD_Data('1' + Probe);           /* send data */
-}
-
-
-
-/*
- *  display a space
- */
-
-void LCD_Space(void)
-{
-  LCD_Data(' ');
-}
-
-
-
-#if 0
-/*
- *  display a string
- *
- *  requires:
- *  - pointer to string
- */ 
- 
-void LCD_String(char *String)
-{
-  while (*String)             /* loop until trailing 0 is reached */
-  {
-    LCD_Data(*String);          /* send character */
-    String++;                   /* next one */
-  }
-}
-#endif
 
 
 
@@ -401,16 +300,57 @@ void LCD_EEString(const unsigned char *String)
 
 
 /*
+ *  display a space
+ */
+
+void LCD_Space(void)
+{
+  LCD_Data(' ');
+}
+
+
+
+/*
+ *  write probe pin number to the LCD
+ *  - pin TP1 -> '1'
+ *  - pin TP2 -> '2'
+ *  - pin TP3 -> '3'
+ *
+ *  requires:
+ *  - testpin ID (0-2)
+ */
+ 
+void LCD_ProbeNumber(unsigned char Probe)
+{
+  /* since TP1 is 0 we simply add the value to '1' */
+  LCD_Data('1' + Probe);           /* send data */
+}
+
+
+
+/*
  *  display a fixed string stored in EEPROM followed by a space
  *
  *  requires:
  *  - pointer to fixed string
  */
 
-void LCD_EEString2(const unsigned char *String)
+void LCD_EEString_Space(const unsigned char *String)
 {
   LCD_EEString(String);       /* display string */
   LCD_Space();                /* print space */
+}
+
+
+
+/*
+ *  wait for key press and goto display line #2
+ */
+
+void LCD_UpdateLine2(void)
+{
+  WaitKey();                  /* next page */
+  LCD_ClearLine2();           /* only change line #2 */
 }
 
 
@@ -420,7 +360,7 @@ void LCD_EEString2(const unsigned char *String)
  * ************************************************************************ */
 
 /* source management */
-#undef LCD_C
+#undef HD44780_C
 
 
 

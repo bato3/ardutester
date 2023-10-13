@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -25,10 +25,10 @@
 
 
 /* ************************************************************************
- *   functions from LCD.c
+ *   functions from HD44780.c
  * ************************************************************************ */
 
-#ifndef LCD_C
+#ifndef HD44780_C
 
   extern void LCD_Enable(void);
   extern void LCD_Send(unsigned char Data);
@@ -36,19 +36,17 @@
   extern void LCD_Data(unsigned char Data);
 
   extern void LCD_Clear(void);
-//  extern void LCD_Line(unsigned char Line);
   extern void LCD_Line2(void);
   extern void LCD_Init(void);
   extern void LCD_EELoadChar(const unsigned char *CharData, uint8_t ID);
 
-//  extern void LCD_ClearLine(unsigned char Line);
   extern void LCD_ClearLine2(void);
-  extern void LCD_Space(void);
-  extern void LCD_ProbeNumber(unsigned char Probe);
-//  extern void LCD_String(char *String);
   extern void LCD_EEString(const unsigned char *String);
 
-  extern void LCD_EEString2(const unsigned char *String);
+  extern void LCD_Space(void);
+  extern void LCD_ProbeNumber(unsigned char Probe);
+  extern void LCD_EEString_Space(const unsigned char *String);
+  extern void LCD_UpdateLine2(void);
 
 #endif
 
@@ -95,7 +93,7 @@
     extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
   #endif
 
-  #ifdef SW_SIGNAL_GEN
+  #ifdef SW_SQUAREWAVE
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -119,8 +117,8 @@
   #ifdef SW_PWM
     extern void PWM_Tool(uint16_t Frequency);
   #endif
-  #ifdef SW_SIGNAL_GEN
-    extern void SignalGenerator(void);
+  #ifdef SW_SQUAREWAVE
+    extern void SquareWave_SignalGenerator(void);
   #endif
   #ifdef SW_ESR
     extern void ESR_Tool(void);

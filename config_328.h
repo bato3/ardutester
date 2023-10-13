@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   ATmega328 specific global configuration, setup and settings
+ *   ATmega 328 specific global configuration, setup and settings
  *
  *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
@@ -35,8 +35,9 @@
  */
 
 #if 0
-#define LCD_HD44780_PAR4
+#define LCD_HD44780
 #define LCD_TEXT                        /* character display */
+#define LCD_PAR_4                       /* 4 bit parallel interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
 #define LCD_DB_STD                      /* use standard pins 0-3 for DB4-7 */
@@ -53,14 +54,15 @@
 
 
 /*
- *  ST7565R, SPI interface
+ *  ST7565R, SPI interface (bit-bang)
  *  - settings for Electronic Assembly EA DOGM/DOGL128-6
  *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
  */
 
 //#if 0
-#define LCD_ST7565R_SPI
+#define LCD_ST7565R
 #define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
 #define LCD_RESET        PD0            /* port pin used for /RES */
@@ -82,64 +84,13 @@
 
 
 /*
- *  M12864 DIY Transistor Tester
- *  - ST7565 display
- *  - rotary encoder at PD1/3
+ *  ILI9342, SPI interface (bit-bang)
  */
 
 #if 0
-#define LCD_ST7565R_SPI
-#define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD0            /* port pin used for /RES */
-#define LCD_A0           PD1            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_FLIP_Y                      /* enable vertical flip */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
-#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
-#define SYMBOLS_24X24_VP                /* 24x24 symbols, vertically aligned */
-#endif
-
-
-
-/*
- *  Chinese clone T3/T4 with ST7565 display
- *  - thanks to tom666 @ EEVblog forum 
- */
-
-#if 0
-#define LCD_ST7565R_SPI
-#define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD4            /* port pin used for /RES */
-#define LCD_A0           PD3            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
-#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
-#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
-#define SYMBOLS_24X24_VP                /* 24x24 symbols, vertically aligned */
-#endif
-
-
-
-/*
- *  ILI9342, SPI interface
- */
-
-#if 0
-#define LCD_ILI9341_SPI
+#define LCD_ILI9341
 #define LCD_COLOR                       /* color graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
 #define LCD_RES          PD4            /* port pin used for /RES */
@@ -160,12 +111,13 @@
 
 
 /*
- *  ST7735, SPI interface
+ *  ST7735, SPI interface (bit-bang)
  */
 
 #if 0
-#define LCD_ST7735_SPI
+#define LCD_ST7735
 #define LCD_COLOR                       /* color graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
 #define LCD_RES          PD4            /* port pin used for /RESX */
@@ -185,12 +137,13 @@
 
 
 /*
- *  PCD8544 (SPI interface)
+ *  PCD8544, SPI interface (bit-bang)
  */
 
 #if 0
 #define LCD_PCD8544
 #define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
 #define LCD_RES          PD4            /* port pin used for /RES */
@@ -242,19 +195,17 @@
 
 /*
  *  Probe resistors
- *
- *  The resistors must be connected to the lower 6 pins of the port in
- *  following sequence:
- *  - pin 0: Rl1 680R (test pin 1)
- *  - pin 1: Rh1 470k (test pin 1)
- *  - pin 2: Rl2 680R (test pin 2)
- *  - pin 3: Rh2 470k (test pin 2)
- *  - pin 4: Rl3 680R (test pin 3)
- *  - pin 5: Rh3 470k (test pin 3)
+ *  - For PWM/squarewave output R_RL_2 has to be PB2/OC1B.
  */
 
 #define R_PORT           PORTB     /* port data register */
 #define R_DDR            DDRB      /* port data direction register */
+#define R_RL_1           PB0       /* Rl (680R) for test pin #1 */
+#define R_RH_1           PB1       /* Rh (470k) for test pin #1 */
+#define R_RL_2           PB2       /* Rl (680R) for test pin #2 */
+#define R_RH_2           PB3       /* Rh (470k) for test pin #2 */
+#define R_RL_3           PB4       /* Rl (680R) for test pin #3 */
+#define R_RH_3           PB5       /* Rh (470k) for test pin #3 */
 
 
 /*
@@ -295,7 +246,7 @@
 
 
 /*
- *  ATmega328
+ *  ATmega 328/328P
  */
 
 #if defined(__AVR_ATmega328__)

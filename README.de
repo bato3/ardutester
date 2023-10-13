@@ -5,13 +5,13 @@
 
                                 Trendy Edition
 
-           für ATmega328/324/664/1284 mit Text- oder Grafikdisplay
+           für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
 
         (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2016-08-03
+Letzte Änderung:  2016-09-25
 
 Inhaltsübersicht:
   - Über den Tester
@@ -93,11 +93,11 @@ Vorgaben gemacht. Zum einen ist das Projekt Open Source, und zum anderen
 sollen sich kommerzielle Benutzer beim Autor melden. Unglücklicherweise
 haben wir, Karl-Heinz und ich, den Autor bisher nicht erreichen können.
 Um das Problem des Fehlens einer vernünftigen Open-Source-Lizenz zu lösen,
-werde ich am 1.1.2016 eine Standard-Open-Source-Lizenz auswählen, wenn
-sich der ursprüngliche Autor nicht bis dahin meldet und seinen Wunsch äußert.
-Da diese Firmwareversion eine komplett neue Version ist, die lediglich ein
-paar Ideen der ursprünglich aufgreift, aber keine Code teilt, sollte dieses
-Vorgehen gerechtfertigt sein. 
+habe ich am 1.1.2016 eine Standard-Open-Source-Lizenz ausgewählt, nachdem
+der ursprüngliche Autor ausreichend zeit hatte uns seine Wünsche bzgl. einer
+Lizenz mitzuteilen. Da diese Firmwareversion eine komplett neue Version ist,
+die lediglich ein paar Ideen der ursprünglichen Firmware aufgreift, aber
+keinen Code teilt, sollte dieses Vorgehen gerechtfertigt sein. 
 
 Lizenziert unter der EUPL V.1.1
 
@@ -145,7 +145,10 @@ Mehr Details dazu findest du in den nachfolgenden Abschnitten.
 Als erstes solltest du das Makefile editieren und MCU-Modell, Frequenz,
 Oszillator-Typ und die Programmieradaptereinstellungen anpassen. Alle anderen
 Einstellungen stehen in der globalen config.h und einer MCU-spezifischen
-config-<MCU>.h.
+config-<MCU>.h. In der Datei "Clones" findest du Einstellungen zu
+verschiedenen Testerversionen bzw. Clonen. Ist dein Tester nicht dabei,
+schicke bitte die Einstellungen per EMail an den Autor, um anderen Benutzern
+damit zu helfen.
 
 In config.h wähle Hardware- und Software-Optionen, die Sprache für die
 Bedienung, und ändere Standardwerte, wenn notwendig. Alle Einstellungen und
@@ -174,6 +177,7 @@ Und natürlich die Software-Optionen:
 - Test von IR-Fernbedienungen (braucht TSOP IR-Empfängermodul)
 - Test von Opto-Kopplern
 - Erkennung von UJTs
+- Farbkodierung für Testpins (benötigt Farbdisplay)
 
 Bitte die Optionen entprechend deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
@@ -186,8 +190,8 @@ Verfügbare Sprachen:
 
 Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
 editiere config-<MCU>.h:
-- ATmega328                config_328.h
-- ATmega324/664/1284       config_644.h (noch Baustelle)
+- ATmega 328                config_328.h
+- ATmega 324/644/1284       config_644.h
 
 Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen haben. Für Grafikmodule
 einen Zeichensatz wählen, der die obige Bedingung erfüllt.
@@ -217,13 +221,13 @@ Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
 - PCD8544 (grafisches Display 84x48)
 
 Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
-mit PD5 und setze LCD_CS in config.h (nur für grafische LCD-Module).
+mit PD5 und setze LCD_CS in config_<MCU>.h (nur für grafische LCD-Module).
 Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
 zu fehlerhaften Ausgaben führen.
 
 Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
-nichts anzeigt, versuche den Kontrast zu ändern (config.h).
+nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
 
 
 + HD44780
@@ -335,7 +339,9 @@ kontextabhängig ist. Die Details werden in den weiteren Abschnitten erklärt.
 
 Der Algorithmus zum Lesen des Drehencoders wurde bisher nur mit Encodern
 der EC11 Serie von ALPS getestet, da ich keine anderen Typen habe. Eine
-Rückmeldung über andere Typen würde mich sehr interessieren. 
+Rückmeldung über andere Typen würde mich sehr interessieren. Sollte die
+Drehrichtung verdreht sein, einfach die Pin-Definitionen für A und B in
+config_<MCU>.h vertauschen.
 
 
 * Einschalten

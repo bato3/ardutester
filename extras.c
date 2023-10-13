@@ -87,7 +87,7 @@ void ToolInfo(const unsigned char *String)
 
 /*
  *  PWM tool
- *  - use probe #2 (PB2, OC1B) as PWM output
+ *  - use probe #2 (OC1B) as PWM output
  *    and probe #1 + probe #3 as ground
  *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
  *
@@ -127,7 +127,7 @@ void PWM_Tool(uint16_t Frequency)
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
-  R_DDR = (1 << (TP2 * 2));             /* enable Rl for probe 2 */
+  R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
   R_PORT = 0;                           /* pull down probe 2 initially */
 
 
@@ -260,7 +260,7 @@ void PWM_Tool(uint16_t Frequency)
 
 /*
  *  create square wave signal with variable frequency
- *  - use probe #2 (PB2, OC1B) as output
+ *  - use probe #2 (OC1B) as output
  *    and probe #1 + probe #3 as ground
  */
 
@@ -298,7 +298,7 @@ void SquareWave_SignalGenerator(void)
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
-  R_DDR = (1 << (TP2 * 2));             /* enable Rl for probe 2 */
+  R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
   R_PORT = 0;                           /* pull down probe 2 initially */
 
 

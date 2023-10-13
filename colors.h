@@ -2,18 +2,21 @@
  *
  *   color definitions for LCD modules
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
 
+/* source management */
+#define COLORS_H
+
 
 /* ************************************************************************
- *   colors
+ *   LCD specific color values
  * ************************************************************************ */
 
 /* ILI9341/ILI9342: 6 bit coded RGB */
-#ifdef LCD_ILI9341_SPI
+#ifdef LCD_ILI9341
   #define COLOR_BLACK         0x0000
   #define COLOR_BLUE          0x001f
   #define COLOR_GREEN         0x07e0
@@ -27,7 +30,7 @@
 
 
 /* ST7735: 6 bit coded RGB */
-#ifdef LCD_ST7735_SPI
+#ifdef LCD_ST7735
   #define COLOR_BLACK         0x0000
   #define COLOR_BLUE          0x001f
   #define COLOR_GREEN         0x07e0
@@ -38,6 +41,31 @@
   #define COLOR_ORANGE        0xfd20
   #define COLOR_WHITE         0xffff
 #endif
+
+
+
+/* ************************************************************************
+ *   default colors
+ * ************************************************************************ */
+
+
+/* background color */
+#define COLOR_BACKGROUND      COLOR_BLACK
+
+/* standard pen color */
+#define COLOR_PEN             COLOR_GREEN
+
+/* title color */
+#define COLOR_TITLE           COLOR_BLUE
+
+/* symbol color */
+#define COLOR_SYMBOL          COLOR_YELLOW
+
+/* color codes for probe pins */
+#define COLOR_PROBE_1         COLOR_YELLOW
+#define COLOR_PROBE_2         COLOR_GREEN
+#define COLOR_PROBE_3         COLOR_RED
+
 
 
 /* ************************************************************************

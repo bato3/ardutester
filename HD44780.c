@@ -9,7 +9,7 @@
 
 /*
  *  hints:
- *  - pin assignment
+ *  - pin assignment for 4 bit parallel
  *    DB4    LCD_PORT Bit #0
  *    DB5    LCD_PORT Bit #1
  *    DB6    LCD_PORT Bit #2
@@ -25,7 +25,7 @@
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_HD44780_PAR4
+#ifdef LCD_HD44780
 
 
 /*
@@ -55,6 +55,8 @@
  *   low level functions for 4 bit parallel interface
  * ************************************************************************ */
 
+
+#ifdef LCD_PAR_4
 
 /*
  *  create enable pulse
@@ -214,12 +216,13 @@ void LCD_Char(unsigned char Char)
   /* LCD's RAM address already points to next character */
 }
 
+#endif
+
 
 
 /* ************************************************************************
  *   high level functions
  * ************************************************************************ */
-
 
 
 /*

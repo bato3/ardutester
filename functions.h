@@ -69,7 +69,7 @@
 
   extern void LCD_EEString(const unsigned char *String);
   extern void LCD_EEString_Space(const unsigned char *String);
-  extern void LCD_ProbeNumber(unsigned char Probe);
+  extern void LCD_ProbeNumber(uint8_t Probe);
 
   extern void LCD_ClearLine2(void);
   extern void LCD_Space(void);

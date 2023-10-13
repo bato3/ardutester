@@ -136,14 +136,9 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   DischargeProbes();                    /* try to discharge probes */
   if (Check.Found == COMP_ERROR) return ESR;   /* skip on error */
 
-  Probe1 = Cap->A;       /* probe facing Gnd */
-  Probe2 = Cap->B;       /* probe facing Vcc */
-
-  UpdateProbes(Probe1, Probe2, 0);      /* update probes */
-
-  /* init variables */
-  Sum_1 = 1;             /* 1 to prevent division by zero */
-  Sum_2 = 1;             /* 1 to prevent division by zero */
+  UpdateProbes(Cap->A, Cap->B, 0);      /* update probes */
+  Probe1 = Probes.ADC_1;                /* ADC MUX for probe-1 */
+  Probe2 = Probes.ADC_2;                /* ADC MUX for probe-2 */
 
   Probe1 |= (1 << REFS1) | (1 << REFS0);     /* select bandgap reference */
   Probe2 |= (1 << REFS1) | (1 << REFS0);     /* select bandgap reference */
@@ -151,11 +146,15 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   /* bitmask to enable and start ADC */
   ADC_Mask = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
+  /* init variables */
+  Sum_1 = 1;             /* 1 to prevent division by zero */
+  Sum_2 = 1;             /* 1 to prevent division by zero */
+
 
   /*
    *  We have to create a delay to shift the middle of the pulse to the ADC's
    *  S&H. S&H happens at 1.5 ADC clock cycles after starting the conversion.
-   *  We synchronize to a dummy conversion done directly before, so we'll got
+   *  We synchronize to a dummy conversion done directly before, so we have
    *  2.5 ADC clock cycles to S&H. The time between the completed dummy
    *  conversion and S&H of the next conversion is:
    *    2.5 ADC clock cycles
@@ -357,8 +356,8 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
    *  - ESR = U_ESR / I_ESR
    *    with U_ESR = (U2 or U4) and I_ESR = (U1 or U3)/RiL
    *    ESR = (U2 or U4) * RiL / (U1 or U3)
-   *  - since we devide (U2 or U4) by (U1 or U3) we don't need to convert
-   *    the ADC value into a voltage and desample the sums.
+   *  - since we devide (U2 or U4) by (U1 or U3), we don't need to convert
+   *    the ADC value into a voltage and simply desample the sums.
    *  - so ESR = Sum_2 * RiL / Sum_1
    *  - for a resolution of 0.01 Ohms we have to scale RiL to 0.01 Ohms
    */
@@ -739,12 +738,12 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   R_PORT = Probes.Rh_1;                 /* pull-up probe-1 via Rh */  
                                         
   /* enable timer */
-  if (Check.Found == COMP_FET)
+  if (Check.Found == COMP_FET)     /* measuring C_GS */  
   {
     /* keep all probe pins pulled down but probe-1 */
-    TempByte = (((1 << TP1) | (1 << TP2) | (1 << TP3)) & ~(1 << Probes.ID_1));    
+    TempByte = ((1 << TP1) | (1 << TP2) | (1 << TP3)) & ~(Probes.Pin_1);
   }
-  else
+  else                             /* normal measurement */
   {
     TempByte = Probes.Pin_2;            /* keep just probe-2 pulled down */
   }

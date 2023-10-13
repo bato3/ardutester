@@ -57,6 +57,11 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   uint8_t           i, j;     /* counter */
   unsigned char     Pin[3];   /* component pins */
   unsigned char     ID[3];    /* component pin IDs */
+  #ifdef SW_PROBE_COLORS
+  uint16_t          Color;         /* color value */
+
+  Color = UI.PenColor;             /* save current color */
+  #endif
 
   /* copy probe pin numbers */
   Pin[0] = Semi.A;
@@ -80,6 +85,10 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   /* display pin IDs */
   for (i = 0; i <= 2; i++)         /* loop through probe pins */
   {
+    #ifdef SW_PROBE_COLORS
+    UI.PenColor = ProbeColors[i];  /* set probe color */
+    #endif
+
     for (j = 0; j <= 2; j++)       /* loop through component pins */
     {
       if (i == Pin[j])             /* probe pin matches */
@@ -88,6 +97,10 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
       }
     }
   }
+
+  #ifdef SW_PROBE_COLORS
+  UI.PenColor = Color;             /* restore old color */
+  #endif
 }
 
 
@@ -1107,7 +1120,7 @@ int main(void)
   LCD_Init();                           /* initialize LCD */
   LCD_NextLine_Mode(MODE_NONE);         /* reset line mode */
   #ifdef LCD_COLOR
-    UI.PenColor = COLOR_BLUE;           /* set pen color */
+    UI.PenColor = COLOR_TITLE;          /* set pen color */
   #endif
 
 
@@ -1138,7 +1151,7 @@ int main(void)
   LCD_NextLine_EEString_Space(Edition_str);   /* display firmware edition */
   LCD_EEString(Version_str);            /* display firmware version */
   #ifdef LCD_COLOR
-    UI.PenColor = COLOR_GREEN;          /* set pen color */
+    UI.PenColor = COLOR_PEN;            /* set pen color */
   #endif
   MilliSleep(1500);                     /* let the user read the display */
 
@@ -1429,7 +1442,7 @@ power_off:
   /* display feedback (otherwise the user will wait :-) */
   LCD_Clear();
   #ifdef LCD_COLOR
-    UI.PenColor = COLOR_BLUE;           /* set pen color */
+    UI.PenColor = COLOR_TITLE;          /* set pen color */
   #endif
   LCD_EEString(Bye_str);
 

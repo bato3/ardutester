@@ -4,11 +4,21 @@
 
                                 Trendy Edition
 
-                  für ATmega328 mit Text- oder Grafikdisplay
+           für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
 
                         (c) 2012-2016 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.25m 2016-09
+- Jede Menge Änderungen zur Unterstützung von ATmega 324/644/1284.
+- Manangement der Test-Widerstände auf variable Port-Pins umgestellt.
+- Software-Option für Farbkodierung der Testpins.
+- Farbmanagement zentralisiert.
+- Datei mit Auflistung der Einstellungen für verschiedene Testerversionen 
+  bzw. Clone.
+- Kleines Problem mit den 24x24-VP Symbolen in config.h beseitigt. Hinweis von
+  lordstein@EEVblog und hapless@EEVblog.
 
 v1.24m 2016-08
 - Messung vom Selbstentladungsleckstrom von Kondensatoren größer 4,7µF.

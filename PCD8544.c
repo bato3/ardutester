@@ -2,8 +2,8 @@
  *
  *   driver functions for PCD8544 compatible grafic displays
  *   - aka Nokia 3310/5110 display (LPH7366)
- *   - SPI interface (4 and 5 line)
  *   - 84 x 48 pixels
+ *   - SPI interface (4 and 5 line)
  *
  *   (c) 2016 by Markus Reschke
  *
@@ -11,7 +11,7 @@
 
 /*
  *  hints:
- *  - pin assignment
+ *  - pin assignment for bit-bang SPI
  *    /RES        LCD_RES
  *    D/C         LCD_DC
  *    SCLK        LCD_SCLK
@@ -20,7 +20,7 @@
  *  - max. SPI clock rate: 4MHz
  *  - write only
  */
- 
+
 
 /* local includes */
 #include "config.h"           /* global configuration */
@@ -73,9 +73,11 @@ uint8_t             Y_Start;       /* start position Y (bank) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for bit-bang SPI interface
  * ************************************************************************ */
 
+
+#ifdef LCD_SPI_BITBANG
 
 /*
  *  set up interface bus
@@ -203,6 +205,8 @@ void LCD_Data(uint8_t Data)
 
   LCD_Send(Data);             /* send data */
 }
+
+#endif
 
 
 

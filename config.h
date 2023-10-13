@@ -16,7 +16,7 @@
  *  For MCU specific settings (port and pin assignments) and LCD display
  *  settings please edit:
  *  - ATmega328:           config_328.h
- *  - ATmega324/644/1284:  config_644.h (not supported yet)
+ *  - ATmega324/644/1284:  config_644.h
  */
 
 
@@ -34,7 +34,7 @@
  *    rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
@@ -178,6 +178,15 @@
  */
 
 #define SW_UJT
+
+
+/*
+ *  color coding for probes
+ *  - uncomment to enable
+ *  - edit colors.h to select correct probe colors
+ */
+
+//#define SW_PROBE_COLORS
 
 
 
@@ -372,7 +381,7 @@
 
 
 /*
- *  ATmega328
+ *  ATmega 328/328P
  */
 
 #if defined(__AVR_ATmega328__)
@@ -381,10 +390,10 @@
 
 
 /*
- *  ATmega324 / ATmega664 / ATmega1284
+ *  ATmega 324P/324PA/644/644P/644PA/1284/1284P
  */
 
-#elif defined(__AVR_ATmega324__) || defined(__AVR_ATmega644__) || defined(__AVR_ATmega1284__)
+#elif defined(__AVR_ATmega324P__) || defined(__AVR_ATmega644__) || defined(__AVR_ATmega1284__)
 
   #include "config_644.h"
 
@@ -514,8 +523,15 @@
   #define LCD_CONTRAST        0
 #endif
 
+/* color coding for probes requires a color graphics display */
+#ifdef SW_PROBE_COLORS
+  #ifndef LCD_COLOR
+    #undef SW_PROBE_COLORS
+  #endif
+#endif
+
 /* component symbols for fancy pinout */
-#if defined (SYMBOLS_24X24_V) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_32X32_H)
+#if defined (SYMBOLS_24X24_VP) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_32X32_H)
   #define SW_SYMBOLS
 #endif
 

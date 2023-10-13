@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
  *   driver functions for ST7565R compatible grafic displays
- *   - using SPI interface (4 and 5 line)
  *   - 128 x 64 (132 x 64) pixels
+ *   - SPI interface (4 and 5 line)
  *
  *   (c) 2015-2016 by Markus Reschke
  *
@@ -10,7 +10,7 @@
 
 /*
  *  hints:
- *  - pin assignment
+ *  - pin assignment for bit-bang SPI
  *    /RES        LCD_RESET
  *    A0          LCD_A0
  *    SCL (DB6)   LCD_SCL
@@ -26,7 +26,7 @@
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_ST7565R_SPI
+#ifdef LCD_ST7565R
 
 
 /*
@@ -114,9 +114,11 @@ uint8_t             SymbolRight;   /* right of symbol */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for bit-bang SPI interface
  * ************************************************************************ */
 
+
+#ifdef LCD_SPI_BITBANG
 
 /*
  *  set up interface bus
@@ -235,6 +237,8 @@ void LCD_Data(uint8_t Data)
 
   LCD_Send(Data);             /* send data */
 }
+
+#endif
 
 
 

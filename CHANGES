@@ -4,11 +4,20 @@
 
                                 Trendy Edition
 
-                 for ATmega328 with character or graphic display
+         for ATmega 328/324/644/1284 with character or graphic display
 
                         (c) 2012-2016 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.25m 2016-09
+- A lot of changes to support the ATmega 324/644/1284.
+- Modified test resistor management to support variable port pins.
+- Added software option for probe color coding. 
+- Centralized color management.
+- Added file listing settings for various tester versions/clones.
+- Fixed small issue with 24x24 VP symbol bitmap in config.h. Reported by
+  lordstein@EEVblog and hapless@EEVblog.
 
 v1.24m 2016-08
 - Measurement of self-discharge leakage current for caps > 4.7µF.

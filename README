@@ -5,13 +5,13 @@
 
                                 Trendy Edition
 
-        for ATmega328/324/664/1284 with character or graphic display
+        for ATmega 328/324/644/1284 with character or graphic display
 
         (c) 2012-2016 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2016-08-03
+Last edit:  2016-09-25
 
 Content
   - About
@@ -87,14 +87,14 @@ or a power supply (or even mains).
 
 * License
 
-The original author hasn't provided any information about the licence
-under which the firmware is distributed. He only stated that it's open
-source and any commercial user should contact him. Unfortunately we (
-Karl-Heinz and I) haven't found any way to contact him. To remedy
-this problem I will choose an open source license at 2016-01-01, if the
-original author doesn't contact us to state his wishes until that date.
-Since the source code of this firmware version is a major rewrite with
-tons of new code and features, I think that this approach is justified.
+The original author hasn't provided any information about the licence under
+which the firmware is distributed. He only stated that it's open source and
+any commercial user should contact him. Unfortunately we (Karl-Heinz and I)
+haven't found any way to contact him. To remedy this problem I've chosen an
+open source license at 2016-01-01, after giving the original author more than
+sufficient time to tell us his wishes regarding the license. Since the source
+code of this firmware version is a major rewrite with tons of new code and
+features, I think that this approach is justified.
 
 Licensed under the EUPL V.1.1
 
@@ -141,7 +141,9 @@ There are more details in the sections below.
 
 First edit the Makefile to specify your MCU model, frequency, oscilator
 type and programmer settings. All other settings are moved to a global
-config.h and a MCU specific config-<MCU>.h.
+config.h and a MCU specific config-<MCU>.h. The file 'Clones' lists
+settings for various tester versions/clones. If you got a tester not listed,
+please email the settings to the author to help other users.
 
 In config.h please choose hardware and software options, the language for the
 UI, and change any default values if required. All settings and values are
@@ -168,6 +170,7 @@ And of course the software options:
 - IR remote control detection (requires TSOP IR receiver module)
 - check for opto couplers
 - detection of UJTs
+- color coding for probes (requires color graphics display)
 
 Please choose the options carefully to match your needs and the MCU's
 ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
@@ -180,8 +183,8 @@ Available UI languages:
 
 For MCU specific settings, like pin assignments and display, edit 
 config-<MCU>.h:
-- ATmega328                config_328.h
-- ATmega324/664/1284       config_644.h (hard hat area)
+- ATmega 328                config_328.h
+- ATmega 324/644/1284       config_644.h
 
 The display has to provide 2 lines with 16 characters each, at least. For
 graphic displays select a font which is small enough to match the
@@ -212,12 +215,13 @@ At the moment following LCD controllers are supported:
 - PCD8544 (graphic display 84x48)
 
 If you connect a rotary encoder to PD2/PD3, please connect the module's /CS
-to PD5 and set LCD_CS in config.h (applies to graphic displays). Otherwise the
-rotary encoder would screw up the display by interfering with the data bus.
+to PD5 and set LCD_CS in config_<MCU>.h (applies to graphic displays).
+Otherwise the rotary encoder would screw up the display by interfering with
+the data bus.
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. If the display doesn't show anything after double checking the
-wiring, please try different contrast settings (config.h).
+wiring, please try different contrast settings (config_<MCU>.h).
 
 
 + HD44780
@@ -327,9 +331,11 @@ With a rotary encoder you'll get some extra functionality with the user
 interface, but that's context specific. The additional functionality
 is described in the sections below, if applicable.
 
-The algorithm for reading the encoder is tested only with an ALPS EC11 series
-encoder, since I don't got any other rotary decoders yet. So I would
-appreciate any feedback on other encoders.
+The algorithm for reading the encoder is tested only with ALPS EC11 series
+encoders, since I don't got any other rotary decoders yet. So I would
+appreciate any feedback on other encoders. In case the enoder's turning
+direction is reversed, simply swap the MCU pin definitions for A and B
+in config_<MCU>.h.
 
 
 * Startup

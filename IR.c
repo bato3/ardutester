@@ -2,7 +2,7 @@
  *
  *   IR remote control functions
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2016 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1278,7 +1278,7 @@ void IR_Detector(void)
   /* set probes: probe-1 -- Gnd / probe-2 -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
   ADC_PORT = (1 << TP2);                /* pull down probe-1, pull up probe-2 */
   ADC_DDR = (1 << TP1) | (1 << TP2);    /* enable direct pull down/up */
-  R_DDR = (2 << (TP3 * 2));             /* enable Rh for probe-3 */
+  R_DDR = (1 << R_RH_3);                /* enable Rh for probe-3 */
   R_PORT = 0;                           /* pull down probe-3 */
   #else
   /* safe mode with current limiting resistor for Vs */
@@ -1286,8 +1286,8 @@ void IR_Detector(void)
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1);                 /* probe-1 */
   /* pull up probe-2 via Rl, pull down probe-3 via Rh */
-  R_DDR = (1 << (TP2 * 2)) | (2 << (TP3 * 2));    /* enable resistors */
-  R_PORT = (1 << (TP2 * 2));              /* pull up probe-2, pull down probe-3 */
+  R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
+  R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
   #endif
 
 

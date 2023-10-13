@@ -234,8 +234,8 @@ void DischargeProbes(void)
 
   /* all probe pins: Rh and Rl pull-down */
   R_PORT = 0;
-  R_DDR = (2 << (TP1 * 2)) | (2 << (TP2 * 2)) | (2 << (TP3 * 2));
-  R_DDR |= (1 << (TP1 * 2)) | (1 << (TP2 * 2)) | (1 << (TP3 * 2));
+  R_DDR = (1 << R_RH_1) | (1 << R_RH_2) | (1 << R_RH_3) |
+          (1 << R_RL_1) | (1 << R_RL_2) | (1 << R_RL_3);
 
   /* get current voltages */
   U_old[0] = ReadU(TP1);

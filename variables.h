@@ -21,6 +21,10 @@
   #include "config.h"
 #endif
 
+#ifndef COLORS_H
+  #include "colors.h"
+#endif
+
 
 
 /* ************************************************************************
@@ -65,6 +69,11 @@
 
   #ifdef HW_ENCODER
     RotaryEncoder_Type        Enc;           /* rotary encoder */
+  #endif
+
+  #ifdef SW_PROBE_COLORS
+    /* probe color coding */
+    uint16_t        ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
   #endif
 
 
@@ -333,7 +342,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.24m";
+  const unsigned char Version_str[] EEMEM = "v1.25m";
 
 
   /*
@@ -376,10 +385,10 @@
    */
 
   /* bitmasks for Rl probe resistors based on probe ID */
-  const unsigned char Rl_table[] EEMEM = {(1 << (TP1 * 2)), (1 << (TP2 * 2)), (1 << (TP3 * 2))};
+  const unsigned char Rl_table[] EEMEM = {(1 << R_RL_1), (1 << R_RL_2), (1 << R_RL_3)};
 
   /* bitmasks for Rh probe resistors based on probe ID */
-  const unsigned char Rh_table[] EEMEM = {(2 << (TP1 * 2)), (2 << (TP2 * 2)), (2 << (TP3 * 2))};
+  const unsigned char Rh_table[] EEMEM = {(1 << R_RH_1), (1 << R_RH_2), (1 << R_RH_3)};
 
   /* bitmasks for pins (ADC port) based on probe ID */
   const unsigned char Pin_table[] EEMEM = {(1 << TP1), (1 << TP2), (1 << TP3)};
@@ -429,6 +438,10 @@
 
   #ifdef HW_ENCODER
     extern RotaryEncoder_Type      Enc;           /* rotary encoder */
+  #endif
+
+  #ifdef SW_PROBE_COLORS
+    extern uint16_t      ProbeColors[3];          /* probe color coding */
   #endif
 
 

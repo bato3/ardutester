@@ -124,10 +124,21 @@ void LCD_EEString(const unsigned char *String)
  *  - probe/testpin ID (0-2)
  */
  
-void LCD_ProbeNumber(unsigned char Probe)
+void LCD_ProbeNumber(uint8_t Probe)
 {
+  #ifdef SW_PROBE_COLORS
+  uint16_t          Color;         /* color value */
+
+  Color = UI.PenColor;               /* save current color */
+  UI.PenColor = ProbeColors[Probe];  /* set probe color */
+  #endif
+
   /* since probe-1 is 0 we simply add the value to ASCII '1' */
   LCD_Char('1' + Probe);           /* send char */
+
+  #ifdef SW_PROBE_COLORS
+  UI.PenColor = Color;             /* restore old color */
+  #endif
 }
 
 

@@ -13,7 +13,10 @@ PROJECT = ComponentTester
 #
 
 # avr-gcc: MCU model
-# - ATmega328 or ATmega328P : atmega328
+# - ATmega 328/328P        : atmega328
+# - ATmega 324P/324PA      : atmega324p
+# - ATmega 644/644P/644PA  : atmega644
+# - ATmega 1284/1284P      : atmega1284
 MCU = atmega328
 
 # MCU freqency:
@@ -43,8 +46,15 @@ endif
 
 
 # avrdude: part number of MCU
-# - ATmega328  : m328
-# - ATmega328P : m328p 
+# - ATmega 328    : m328
+# - ATmega 328P   : m328p
+# - ATmega 324P   : m324p
+# - ATmega 324PA  : m324pa
+# - ATmega 644    : m644
+# - ATmega 644P   : m644p
+# - ATmega 644PA  : m644p
+# - ATmega 1284   : m1284
+# - ATmega 1284P  : m1284p
 PARTNO = m328p
 
 # avrdude: ISP programmer
@@ -87,7 +97,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # header files
 HEADERS = config.h common.h variables.h functions.h colors.h
-HEADERS += config_328.h config_664.h
+HEADERS += config_328.h config_644.h
 HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h
 HEADERS += ADS7843.h
 
@@ -95,7 +105,7 @@ HEADERS += ADS7843.h
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
 OBJECTS_C += display.o
-OBJECTS_C += HD44780_Par4.o ST7565R_SPI.o ILI9341_SPI.o PCD8544.o ST7735_SPI.o
+OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o
 OBJECTS_C += ADS7843.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
@@ -165,7 +175,8 @@ dist:
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/ \
 	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
-	  ${DIST}/README.de ${DIST}/CHANGES.de ${DIST}/*.pdf
+	  ${DIST}/README.de ${DIST}/CHANGES.de ${DIST}/Clones \
+	  ${DIST}/*.pdf
 
 # clean up
 clean:
@@ -177,8 +188,28 @@ clean:
 #  MCU fuses
 #
 
-# ATmega328 / ATmega328P
+# ATmega 328/328P
 ifeq (${MCU},atmega328)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 324P/324PA
+ifeq (${MCU},atmega324p)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 644/644P/644PA
+ifeq (${MCU},atmega644)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 1284/1284P
+ifeq (${MCU},atmega1284)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 328/324/644/1284
+ifeq (${FAMILY},atmega328_324)
   HFUSE = -U hfuse:w:0xd9:m
   EFUSE = -U efuse:w:0xfc:m
   ifeq (${FREQ},1)
@@ -214,6 +245,7 @@ ifeq (${MCU},atmega328)
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
 endif
+
 
 # select LFUSE
 ifeq (${OSCILLATOR},RC)

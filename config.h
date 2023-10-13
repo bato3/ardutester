@@ -70,7 +70,7 @@
  */
 
 #define UI_ENGLISH 1
-// define UI_GERMAN         1
+// #define UI_GERMAN        1
 
 /*
  *  LCD module with cyrillic character set

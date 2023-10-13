@@ -1,18 +1,58 @@
 
+// U_VCC defines the VCC Voltage of the ATmega in mV units
+// with integer factors the ADC-value will be changed to mV resolution in ReadADC !
+
+#define U_VCC 5000
+
+// U_SCALE can be set to 4 for better resolution of ReadADC function for resistor measurement
+#define U_SCALE 4
+
+// R_ANZ_MESS can ce set to a higher number of measurements (up to 200) for resistor measurement
+#define R_ANZ_MESS 190
+
+#if R_ANZ_MESS < ANZ_MESS
+#undef R_ANZ_MESS
+#define R_ANZ_MESS ANZ_MESS
+#endif
+#if U_SCALE < 0
+// limit U_SCALE
+#undef U_SCALE
+#define U_SCALE 1
+#endif
+#if U_SCALE > 4
+// limit U_SCALE
+#undef U_SCALE
+#define U_SCALE 4
+#endif
+
 // the following definitions specify where to load external data from: EEprom or flash
 #ifdef USE_EEPROM
 #define MEM_TEXT EEMEM
+#if E2END > 0X1FF
+#define MEM2_TEXT EEMEM
+#define MEM2_read_byte(a) eeprom_read_byte(a)
+#define MEM2_read_word(a) eeprom_read_word(a)
+#define lcd_fix2_string(a) lcd_fix_string(a)
+#else
+#define MEM2_TEXT PROGMEM
+#define MEM2_read_byte(a) pgm_read_byte(a)
+#define MEM2_read_word(a) pgm_read_word(a)
+#define lcd_fix2_string(a) lcd_pgm_string(a)
+#endif
 #define MEM_read_word(a) eeprom_read_word(a)
 #define MEM_read_byte(a) eeprom_read_byte(a)
 #else
 #define MEM_TEXT PROGMEM
+#define MEM2_TEXT PROGMEM
 #define MEM_read_word(a) pgm_read_word(a)
 #define MEM_read_byte(a) pgm_read_byte(a)
+#define lcd_fix2_string(a) lcd_pgm_string(a)
 #endif
 
 // RH_OFFSET : systematic offset of resistor measurement with RH (470k)
 // resolution is 0.1 Ohm, 7000 defines a offset of 700 Ohm
-#define RH_OFFSET 7000
+#define RH_OFFSET 3500
+
 // TP2_CAP_OFFSET is a additionally offset for TP2 capacity measurements in pF units
 #define TP2_CAP_OFFSET 2
 
@@ -51,7 +91,8 @@
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
-#define DEFAULT_RH_FAKT 856 // mega48 1101 mV
+#define DEFAULT_BAND_GAP 1070
+#define DEFAULT_RH_FAKT 884 // mega328 1070 mV
                             // WITH_SELFTEST enables the selftest fuction
 #ifdef WITH_SELFTEST
 #warning "ATmega48 does NOT support SELFTEST!"
@@ -87,7 +128,8 @@
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
-#define DEFAULT_RH_FAKT 855 // mega88 1102 mV
+#define DEFAULT_BAND_GAP 1070
+#define DEFAULT_RH_FAKT 884 // mega328 1070 mV
 // LONG_HFE  activates computation of current amplification factor with long variables
 #define LONG_HFE
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
@@ -108,7 +150,8 @@
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
-#define DEFAULT_RH_FAKT 855 // mega168 1102 mV
+#define DEFAULT_BAND_GAP 1070
+#define DEFAULT_RH_FAKT 884 // mega328 1070 mV
 // LONG_HFE  activates computation of current amplification factor with long variables
 #define LONG_HFE
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
@@ -117,8 +160,10 @@
 #define MEGA168PA 18
 
 // Pin resistor values of ATmega168
-#define PIN_RM 196
-#define PIN_RP 225
+//  #define PIN_RM 196
+//  #define PIN_RP 225
+#define PIN_RM 190
+#define PIN_RP 220
 // CC0 defines the capacity of empty terminal pins 1 & 3 without cable
 #define CC0 36
 // Slew rate correction  val += COMP_SLEW1 / (val + COMP_SLEW2)
@@ -132,7 +177,8 @@
 #define MCU_STATUS_REG MCUCR
 #define ADC_COMP_CONTROL ADCSRB
 #define TI1_INT_FLAGS TIFR1
-#define DEFAULT_RH_FAKT 855 // mega328 1102 mV
+#define DEFAULT_BAND_GAP 1070
+#define DEFAULT_RH_FAKT 884 // mega328 1070 mV
 // LONG_HFE  activates computation of current amplification factor with long variables
 #define LONG_HFE
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
@@ -154,7 +200,8 @@
 #define MCU_STATUS_REG MCUCSR
 #define ADC_COMP_CONTROL SFIOR
 #define TI1_INT_FLAGS TIFR
-#define DEFAULT_RH_FAKT 708 // mega8 1298 mV
+#define DEFAULT_BAND_GAP 1298 // mega8 1298 mV
+#define DEFAULT_RH_FAKT 708   // mega8 1298 mV
 // LONG_HFE  activates computation of current amplification factor with long variables
 #define LONG_HFE
 // COMMON_COLLECTOR activates measurement of current amplification factor also in common collector circuit  (Emitter follower)
@@ -253,4 +300,46 @@ Is SWUART_INVERT defined, the UART works is inverse mode
 #define TXD_VAL 0
 #else
 #define TXD_VAL TXD_MSK
+#endif
+
+#ifdef __AVR_ATmega8__
+// 2.54V reference voltage + korrection (fix for ATmega8)
+#ifdef AUTO_CAL
+#define ADC_internal_reference (2560 + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
+#else
+#define ADC_internal_reference (2560 + REF_R_KORR)
+#endif
+#else
+#ifdef AUTO_CAL
+#define ADC_internal_reference (ref_mv + (int8_t)eeprom_read_byte((uint8_t *)&RefDiff))
+#else
+#define ADC_internal_reference (ref_mv + REF_R_KORR)
+#endif
+#endif
+
+#undef AUTO_RH
+#ifdef C_MESS
+#ifdef WITH_AUTO_REF
+#define AUTO_RH
+#else
+#ifdef AUTO_CAL
+#define AUTO_RH
+#endif
+#endif
+#endif
+
+#undef CHECK_CALL
+#ifdef WITH_SELFTEST
+// AutoCheck Function is needed
+#define CHECK_CALL
+#endif
+
+#ifdef AUTO_CAL
+// AutoCheck Function is needed
+#define CHECK_CALL
+#define RR680PL resis680pl
+#define RR680MI resis680mi
+#else
+#define RR680PL (R_L_VAL + PIN_RP)
+#define RR680MI (R_L_VAL + PIN_RM)
 #endif

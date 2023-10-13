@@ -61,10 +61,10 @@ w3f6:
   lds	r18, ADCSRA
   sbrc	r18, ADSC
 #endif
-  rjmp	w3f6 
+  rjmp	w3f6
 
 #ifdef NO_AREF_CAP
-; wait50us();		// AVR126 recommend a 70µs wait-time for band gap ADC
+; wait50us();		// AVR126 recommend a 70ï¿½s wait-time for band gap ADC
   ACALL wait50us
 #else
 ;  wait300us();
@@ -97,9 +97,9 @@ w416:
   lds	r18, ADCSRA
   sbrc	r18, ADSC
 #endif
-  rjmp	w416 
+  rjmp	w416
 
-;     adcx += ADCW;		//  add measurements 
+;     adcx += ADCW;		//  add measurements
 #if ADCH < 32
   in	r18,ADCL
   in	r19,ADCH
@@ -112,25 +112,25 @@ w416:
 #ifdef AUTOSCALE_ADC
 ;     if ((jj == 4) && (adcx < 1024)){
   cpi	r20, 0x04	; 4
-  brne	r436 
+  brne	r436
   ldi	r21, 0x04	; 4 * 256
   cpi	r24, 0
   cpc	r25, r21
-  brcs	lowADC 
+  brcs	lowADC
 #endif
 
 ;  for (jj = 0; jj < ANZ_MESS; jj++) {
 r436:
   subi	r20, 0xFF	; 255
   cpi	r20, ANZ_MESS
-  brne	forlop1 
+  brne	forlop1
 
 #if ANZ_MESS == 22
 ;  adcx *= 2;		// multiply sum by 2
   add	r24,r24
   adc	r25,r25		;*2
 #endif
-  
+
 #if ANZ_MESS == 11
 ;  adcx *= 4;		// multiply sum by 4
   add	r24,r24
@@ -144,8 +144,8 @@ r436:
   ldi	r23, 0
 
 #ifdef AUTOSCALE_ADC
-  rjmp	diviret 
-  
+  rjmp	diviret
+
 lowADC:
 ;  adcx = 0;
 ;  ADMUX = mux | (1<<REFS1) | (1<<REFS0); // Internal 1.1V Referenz
@@ -173,10 +173,10 @@ w454:
   lds	r24, ADCSRA
   sbrc	r24, ADSC
 #endif
-  rjmp	w454 
+  rjmp	w454
 
 #ifdef NO_AREF_CAP
-;  wait300us();			//wait 300µs for no or 1nF AREF capacitor
+;  wait300us();			//wait 300ï¿½s for no or 1nF AREF capacitor
   ACALL wait300us
 #else
 ;  wait5ms();			//wait 6ms for up to 100nF AREF capacitor
@@ -211,7 +211,7 @@ w476:
   lds	r18, ADCSRA
   sbrc	r18, ADSC
 #endif
-  rjmp	w476 
+  rjmp	w476
 
 ;     adcx += ADCW;			//add Measurement results
 #if ADCSRA < 32
@@ -229,7 +229,7 @@ w476:
 r48c:
   lds	r18, minmul
   cp	r20, r18
-  brcs	forlop2 
+  brcs	forlop2
 
 ;  return (adcx/mindiv);		//divide by mindiv gives a resolution of mV
   lds	r22, mindiv
@@ -240,4 +240,3 @@ diviret:
   movw	r24, r22
   clr	r0
   ret
-

@@ -196,10 +196,10 @@ const unsigned char AnKat[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
 const unsigned char KatAn[] MEM_TEXT = {'-', LCD_CHAR_DIODE2, '-', 0};
 const unsigned char Dioden[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
 #ifdef R_MESS
-const unsigned char Resis[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
+const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 #endif
 const unsigned char TestTimedOut[] MEM_TEXT = "Timeout!";
-const unsigned char VERSION[] MEM_TEXT = "Version 0.98k";
+const unsigned char VERSION[] MEM_TEXT = "Version 0.99k";
 
 #ifdef WITH_SELFTEST
 const unsigned char mVT[] MEM_TEXT = "mV ";
@@ -210,8 +210,15 @@ const unsigned char ATE[] MEM_TEXT = "Selftest End";
 const unsigned char SELFTEST[] MEM_TEXT = "Selftest mode..";
 const unsigned char RH1L[] MEM_TEXT = "RH-";
 const unsigned char RH1H[] MEM_TEXT = "RH+";
-const unsigned char RILO[] MEM_TEXT = "Ri_Lo= (mV)";
+#ifdef AUTO_CAL
+const unsigned char RIHI[] MEM_TEXT = "Ri_Hi=";
+const unsigned char RILO[] MEM_TEXT = "Ri_Lo=";
+const unsigned char MinCap[] MEM_TEXT = " >100nF";
+const unsigned char REF_Cstr[] MEM_TEXT = "REF_C=";
+#else
 const unsigned char RIHI[] MEM_TEXT = "Ri_Hi= (mV)";
+const unsigned char RILO[] MEM_TEXT = "Ri_Lo= (mV)";
+#endif
 const unsigned char RLRL[] MEM_TEXT = "+RL- 12 13 23";
 const unsigned char RHRH[] MEM_TEXT = "+RH- 12 13 23";
 const unsigned char RELPROBE[] MEM_TEXT = "isolate probe";
@@ -281,6 +288,10 @@ const unsigned char CyrillicOmegaIcon[] MEM_TEXT = {0, 0, 14, 17, 17, 10, 27, 0}
 const unsigned char CyrillicMuIcon[] MEM_TEXT = {0, 17, 17, 17, 19, 29, 16, 16};  // �
 #endif
 
+#ifdef AUTO_CAL
+const uint16_t R680pl EEMEM = R_L_VAL + PIN_RP; // total resistor to VCC
+const uint16_t R680mi EEMEM = R_L_VAL + PIN_RM; // total resistor to GND
+#endif
 // End of EEPROM-Strings
 
 // Watchdog
@@ -307,11 +318,12 @@ void ReadCapacity(uint8_t HighPin, uint8_t LowPin); // capacity measurement
 void UfAusgabe(uint8_t bcdchar);                    // Output of the threshold voltage(s) Uf
 void mVAusgabe(uint8_t nn);                         // Output of the theshold voltage for Diode nn
 void RvalOut(uint8_t ii);                           // Output of the resistore value(s)
+void ShowResistor(void);                            // show one or two Resistors
 void EntladePins();                                 // discharge capacitors
 void RefVoltage();                                  // compensate the reference voltage for comparator
 void AutoCheck();                                   // check if self-test should be done
 unsigned int getRLmultip(unsigned int cvolt);       // get C-Multiplikator for voltage cvolt
-void scale_intref_adc();                            // get skale factors for ReadADC with internal reference
+void scale_intref_adc();                            // get scale factors for ReadADC with internal reference
 uint8_t value_out(unsigned long vval, uint8_t pp);  // output 4 digits with (pp-1) digits after point
 unsigned int compute_hfe(unsigned int lpx, unsigned int tpy);
 
@@ -386,13 +398,18 @@ struct resis_t
     uint8_t ra, rb;   // Pins of RX
     uint8_t rt;       // Tristate-Pin (inactive)
 } resis[3];
-unsigned int rxv, rtst;
-unsigned int rvmax;
-uint8_t NumOfR; // Number of found resistors
+uint8_t ResistorsFound; // Number of found resistors
 #endif
 
 #ifdef C_MESS
 const unsigned char C_Prefix_tab[] PROGMEM = {'p', 'n', LCD_CHAR_U, 'm'}; // pF,nF,�F,mF
+#ifdef AUTO_CAL
+//  const uint16_t cap_null EEMEM = C_NULL;	// Zero offset of capacity measurement
+const int16_t ref_offset EEMEM = REF_C_KORR; // default correction of internal reference voltage for capacity measurement
+// LoPin:HiPin                        2:1    3:1    1:2                    :     3:2                   1:3    2:3
+const uint8_t c_zero_tab[] EEMEM = {C_NULL, C_NULL, C_NULL + TP2_CAP_OFFSET, C_NULL, C_NULL + TP2_CAP_OFFSET, C_NULL, C_NULL}; // table of zero offsets
+uint8_t pin_combination;                                                                                                       // coded Pin-combination  2:1,3:1,1:2,x:x,3:2,1:3,2:3
+#endif
 #define MULTIP
 #endif
 #ifdef MULTIP
@@ -404,12 +421,17 @@ unsigned int RHmultip = DEFAULT_RH_FAKT;
 uint8_t minmul = 1, mindiv = 1;
 #endif
 
-uint8_t ii;         // multipurpose counter
-unsigned long cval; // capacitor value
-uint8_t cpre;       // Prefix for capacitor value  0=p, 1=n, 2=�, 3=m
-uint8_t ca, cb;     // pins of capacitor
+uint8_t ii;                     // multipurpose counter
+unsigned long cval;             // capacitor value
+unsigned long cval_uncorrected; // capacity value without corrections
+int16_t load_diff;              // difference voltage of loaded capacitor and internal reference
+uint8_t cpre;                   // Prefix for capacitor value  0=p, 1=n, 2=�, 3=m
+uint8_t ca, cb;                 // pins of capacitor
 
 uint8_t PartFound;   // the found part
 char outval[12];     // String for ASCII-outpu
 uint8_t empty_count; // counter for max count of empty measurements
 uint8_t mess_count;  // counter for max count of nonempty measurements
+#if POWER_OFF + 0 > 1
+unsigned int display_time; // display time of measurement in ms units
+#endif
